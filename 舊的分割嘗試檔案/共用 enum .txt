@@ -1,0 +1,42 @@
+/*
+// 偵測狀態的結果
+enum class Encoding{
+  UTF8_BOM,
+  UTF8_NoBOM,
+  UTF16_LE,
+  UTF16_BE,
+  UTF32_LE,
+  UTF32_BE,
+  Ansi_Big5,
+  Ansi_GBK,
+  Ansi_JIS,
+  Ansi_Korean,
+  Ansi_Latin_1,
+  Ansi_CEI,
+  Ansi_Cyrillic,
+  Invalid
+};
+
+// 偵測狀態可能的錯誤
+enum class DetectorResult{
+  isOK,               // 偵測成功
+  NotRTF,             // 檔案不是 RTF
+  HeaderMalformed,    // 標頭錯誤
+  UnsupportedEncoding,// ansicpg 不支援
+  EncodingConflict,   // BOM 與 ansicpg 矛盾
+  CannotDetect,       // 完全無法判斷
+  EmptyFile,          // 檔案為空
+  FileTooSmall,       // 不足以包含 RTF header
+  BinaryFile,         // 很明顯不是文字檔
+  WrongStep,          // 執行步驟錯誤
+  Invalid             // 代表未進行設定
+};
+
+enum class DetectorCategory{
+  OK,           // 正常
+  Warning,      // 可繼續執行,但要把警告訊息記入 errorLog
+  Recoverable,  // 直接跳過此檔案
+  Fatal,        // 終止程式
+  InternalError // 程式執行流程錯誤
+};
+*/

@@ -1,0 +1,277 @@
+/*
+namespace ErrorSystem{
+  // 分類錯誤嚴重度用
+  enum class ErrorLevel{
+    None,       // 無錯
+    Warning,    // 警告(不影響執行)
+    Recoverable,// 影響某個區塊,但可以繼續執行流程
+    FatalLocal, // 區域型致命錯誤,需中斷當下目標之執行(非整個程式)
+    FatalGlobal // 全域型致命錯誤,需直接中止整個程式
+  };
+  
+  static constexpr std::array<const char*,5> ErrorLevelNames = {
+    "None",
+    "Warning",
+    "Recoverable",
+    "FatalLocal",
+    "FatalGlobal"
+  };
+
+  std::ostream& operator<< (std::ostream& os , ErrorLevel level){
+    auto index = static_cast<size_t>(level);
+    if(index < ErrorLevelNames.size()){
+      return os << ErrorLevelNames[index]; 
+    }
+    return os << "Unknown";
+  }
+
+  constexpr std::string_view getLevelStr(ErrorLevel level) noexcept{
+    auto index = static_cast<size_t>(level);
+    if(index < ErrorLevelNames.size()){
+      return ErrorLevelNames[index];
+    }
+
+    return "UnKnowErrorLevel";
+  }
+}
+
+namespace ErrorSystem{
+  // 分類錯誤區塊
+  enum class ErrorCategory{
+    None,
+    FileIO,
+    DetectEncoding,
+    Decode,
+    Picture,
+    Group,
+    TextClean
+  };
+
+  static constexpr std::array<const char*,7> ErrorCategoryName = {
+    "None",
+    "FileIO",
+    "DetectEncoding",
+    "Decode",
+    "Picture",
+    "Group",
+    "TextClean" 
+  };
+
+  std::ostream& operator<< (std::ostream& os , ErrorCategory category){
+    auto index = static_cast<size_t>(category);
+    if(index <  ErrorCategoryName.size()){
+      return os <<  ErrorCategoryName[index]; 
+    }
+    return os << "Unknown";
+  }
+  constexpr std::string_view getCategoryStr(ErrorCategory category) noexcept{
+    auto index = static_cast<size_t>(category);
+    if(index <  ErrorCategoryName.size()){
+      return ErrorCategoryName[index]; 
+    }
+    return "UnknownErrorCategory";
+  }
+}
+
+namespace ErrorSystem{
+  // 比較詳細的錯誤型態
+  enum class ErrorType{
+    OK,
+    Type_Convert_Fail,
+    // ========= Fatal Errors =========
+    NotRTF,
+    EncodingUnreadable,
+    Fatal_CreateDirFail,
+    Fatal_FileOpenFail,
+    Fatal_CreatOutputFail,
+
+    // ========= Decode Errors (Recoverable) =========
+    Decode_UTF8_BrokenSequence,
+    Decode_UTF8_ByteError,
+    Decode_ANSI_InvalidByte,
+    Decode_ANSI_TruncatedLeadByte,
+    Decode_ANSI_codeLacking,
+    Decode_UTF16_ByteError,
+
+    // ========= Picture Errors (Recoverable) =========
+    Picture_Structural_BraceMismatch,
+    Picture_Content_InvalidFormat,
+    Picture_Content_TooLarge,
+    Picture_Content_DataError,
+    Picture_Content_FormatError,
+    Picture_StructureError,
+    Picture_Retrieve_Data_Failed,
+    Picture_Output_Path_Failed,
+    Picture_File_Creation_Failed,
+    Picture_Hex_Too_Little,
+    Picture_Hex_Broken,
+
+    // ========= Group Errors =========
+    Group_BraceMismatch,
+    Group_UnknownControlWord,
+
+    // ========= TextClean Errors =========
+    TextClean_InvalidUnicode,
+    TextClean_UnexpectedControl,
+
+    // ========= Detector Errors =====
+    Detector_Warning,
+    Detector_Recoverable,
+    Detector_Fatal,
+
+    // ========= RTF General ======
+    General_Fatal,
+    General_Recoverable,
+    General_Warning
+  };
+
+  static constexpr std::array<const char*,34> ErrorTypeName = {
+    "OK",
+    "Type_Convert_Fail",
+    "Fatal_NotRTF",
+    "Fatal_EncodingUnreadable",
+    "Fatal_CraeateDirFail",
+    "Fatal_FileOpenFail",
+    "Fatal_CreatOutputFail",
+    "Decode_UTF8_BrokenSequence",
+    "Decode_UTF8_ByteError",
+    "Decode_ANSI_InvalidByte",
+    " Decode_ANSI_TruncatedLeadByte",
+    "Decode_ANSI_codeLacking",
+    "Decode_UTF16_ByteError",
+    "Picture_Structural_BraceMismatch",
+    "Picture_Content_InvalidFormat",
+    "Picture_Content_TooLarge",
+    "Picture_Content_DataError",
+    "Picture_Content_FormatError",
+    "Picture_StructureError",
+    "Picture_Retrieve_Data_Failed",
+    "Picture_Output_Path_Failed",
+    "Picture_File_Creation_Failed",
+    "Picture_Hex_Too_Little",
+    "Picture_Hex_Broken",
+    "Group_BraceMismatch",
+    "Group_UnknownControlWord",
+    "TextClean_InvalidUnicode",
+    "TextClean_UnexpectedControl",
+    "Detector_Warning",
+    "Detector_Recoverable",
+    "Detector_Fatal",
+    "General_Fatal",
+    "General_Recoverable",
+    "General_Warning"
+  };
+
+  std::ostream& operator<< (std::ostream& os , ErrorType type){
+    auto index = static_cast<size_t>(type);
+    if(index <  ErrorTypeName.size()){
+      return os <<  ErrorTypeName[index]; 
+    }
+    return os << "Unknown";
+  }
+
+  constexpr std::string_view getTypeStr(ErrorType type) noexcept{
+    auto index = static_cast<size_t>(type);
+    if(index <  ErrorTypeName.size()){
+      return ErrorTypeName[index]; 
+    }
+    return "UnknownErrorType";
+  }
+}
+
+namespace ErrorSystem{
+  struct ErrorItem{
+    ErrorSystem::ErrorType type;
+    ErrorSystem::ErrorLevel level;
+    ErrorSystem::ErrorCategory category;
+    std::wstring message;
+  };
+
+  inline std::string toUtf8(const std::wstring& ws){
+    std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+    return conv.to_bytes(ws);
+  }
+
+  std::ostream& operator<<(std::ostream& os,const ErrorItem& item){
+    os << "[Category]: " << item.category << "\n"
+       << "[Type]: "     << item.type     << "\n"
+       << "[Level]: "    << item.level    << "\n";
+    
+    std::string utf8 = toUtf8(item.message);
+    os << "[message]: "  << utf8          << "\n";
+    
+    return os;
+  }
+}
+
+namespace ErrorSystem{
+  // 將所有錯誤包進一個類別方便一次性回傳
+  class ErrorInfo{
+   std::vector<ErrorSystem::ErrorItem> items_;
+  public:
+    bool isEmpty() const{
+      return items_.empty();
+    }
+
+    size_t getErrorCount() const{
+      return items_.size();
+    }
+
+    size_t getWarringCount() const{
+      size_t Count = 0;
+      if(items_.empty()) return 0;
+      for(auto p : items_){
+        if(p.level == ErrorSystem::ErrorLevel::Warning){
+          Count++;
+        }
+      }
+      return Count;
+    }  
+    
+    // 可以直接用用一個個值加入
+    void add(ErrorSystem::ErrorType type,ErrorSystem::ErrorLevel level,
+             ErrorSystem::ErrorCategory category, std::wstring message)
+    {
+      items_.push_back({type,level,category,std::move(message)});
+    }
+
+    // 也可以直接一個整體放入
+    void add(const ErrorSystem::ErrorItem& item){
+      items_.push_back(item);
+    }
+
+    // 取得所有錯誤
+    const std::vector<ErrorSystem::ErrorItem>& getItems() const{
+      return items_;
+    }
+    
+    // 用來找到最嚴重的錯誤等級
+    const ErrorLevel getMaxLevel() const{
+      if(items_.empty()) return ErrorLevel::None;
+
+      ErrorLevel result = ErrorLevel::None;
+
+      for(const auto& item : items_){
+        if(static_cast<int>(item.level) > static_cast<int>(result)){
+          result = item.level;
+        }
+      }
+
+      return result;
+    }
+
+    // 用來合併另一個 ErrorInfo
+    void merge(const ErrorInfo& other) {
+      items_.insert(items_.end(), other.items_.begin(), other.items_.end());
+    }
+  };
+
+  std::ostream& operator<<(std::ostream& os,const ErrorInfo& info){
+    for(const auto& p : info.getItems()){
+      os << p << "\n";
+    }
+
+    return os;
+  }
+}
+*/

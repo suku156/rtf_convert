@@ -1,0 +1,74 @@
+/*
+// 錯誤處理系統
+class ErrorHandle{
+ bool FileHeaderStarted_ = false; // 旗子 用來判定有無執行 beginFile 程序
+ bool hasFatalLocal_ = false;
+ size_t errorCount_ = 0;
+ size_t warringCount_ = 0;
+ logSystem& logger_;
+
+public:
+  
+  explicit ErrorHandle(logSystem& logger):logger_(logger){}
+  
+  void handleFatalGlobal(const std::wstring& message){
+    terminate(message,EXIT_FAILURE);
+  }  
+
+  void handle(const ErrorSystem::ErrorInfo& info){
+    if(info.isEmpty()) return;
+    if(!FileHeaderStarted_) return;
+    
+    if(logger_.isOpen()){
+      logger_.log(info);
+    }
+    errorCount_ += info.getErrorCount();
+    warringCount_ += info.getWarringCount();
+    if(info.getMaxLevel() == ErrorSystem::ErrorLevel::FatalLocal ||
+       info.getMaxLevel() == ErrorSystem::ErrorLevel::Recoverable)
+    {
+      hasFatalLocal_ = true;
+    }
+  }
+
+  void beginFile(){
+    errorCount_ = 0;
+    warringCount_ = 0;
+    FileHeaderStarted_ = true;
+    hasFatalLocal_ = false;
+  }
+
+  void endFile(){
+    if(!FileHeaderStarted_) return;
+
+    // 對可能影響下一份資料的資料成員進行對應的措施
+    errorCount_ = 0;
+    warringCount_ = 0;
+    FileHeaderStarted_ = false;
+    hasFatalLocal_ = false;
+  }
+
+private:
+  
+  [[noreturn]] void terminate(const std::wstring& message , int exitCode){
+    std::wcerr <<L"[Fatal Error] "<< message << L"\n→ 程式中止 (Exit Code = " << exitCode << L")\n";
+    std::exit(exitCode);
+  }
+
+};
+
+// 用於自動跑 ErrorHandle 的 endfile()
+class FileScopeGuard{
+  ErrorHandle& eh;
+public:
+  FileScopeGuard() = delete;
+  FileScopeGuard(const FileScopeGuard&) = delete;
+  FileScopeGuard& operator=(const FileScopeGuard&) = delete;
+
+  explicit FileScopeGuard(ErrorHandle& handler) : eh(handler){}
+
+  ~FileScopeGuard() noexcept{
+    eh.endFile();
+  }
+};
+*/
