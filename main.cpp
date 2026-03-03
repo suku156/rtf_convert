@@ -31,6 +31,7 @@
 #include "PictProcessor_Module/pictProcessor.h"  // 處裡圖片的模組
 #include "SemanticStructure_Module/Document.h"       // 語意結構與轉化成語意結構用的模組
 #include "SemanticStructure_Module/Renderer.h"       // 依據需求解讀語意結構用的模組
+#include "Cli_Module\CliParser.h"        // Cli 命令列選項模組
 
 #ifdef _WIN32
   #include <windows.h>
@@ -671,6 +672,13 @@ int wmain(int argc,wchar_t* argv[]){
     // 簡易防呆
     if(argc < 2){
       mainerrorhandler.handleFatalGlobal(L"需要正確輸入: "+std::wstring(argv[0])+ L" <檔案/資料夾路徑>\n");
+    }
+
+    // 命令列紀錄
+    Cli::ParseResult parseresult = Cli::parse(argc,argv);
+    if(!parseresult.ok){
+      Console::ensureWcout(parseresult.message);
+      return 2;
     }
 
     //使用類別來執行任務

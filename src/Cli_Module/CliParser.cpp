@@ -1,0 +1,57 @@
+#include "CliParser.h"
+#include<string>
+
+namespace Cli{
+  ParseResult parse(int argc,wchar_t* argv[]){
+    ParseResult result;
+    bool hasInput = false;
+    bool hasOutput = false;
+    bool hasFormat = false;
+    
+    for(int i = 1; i < argc; i++){
+       std::wstring arg = argv[i];
+       
+       if(arg == L"--input" && i+1 < argc){
+        result.config.inputPath = argv[++i];
+        hasInput = true;
+       }
+       else if(arg == L"--output" && i+1 < argc){
+        result.config.outputDir = argv[++i];
+        hasOutput = true;
+       }
+       else if(arg == L"--format" && i+1 < argc){
+        std::wstring fmt = argv[++i];
+        if(fmt == L"txt"){
+          result.config.format = OutputFormat::Txt; 
+        }
+        else if(fmt == L"md"){
+          result.config.format = OutputFormat::Md;
+        }
+        else if(fmt == L"html"){
+          result.config.format = OutputFormat::Html;  
+        }
+        else{
+          result.ok = false;
+          result.message = L"ゼ format";
+          return result; 
+        }
+        hasFormat = true;
+       }
+       else{
+        result.ok = false;
+        result.message = L"ゼ把计┪ぶ";
+        return result;  
+       }
+    }
+
+    if(!hasInput || !hasOutput || !hasFormat){
+      result.ok = false;
+      result.message = L"ぶゲ璶把计";
+      return result;
+    }
+    
+    result.ok = true;
+    return result;
+  }
+}
+
