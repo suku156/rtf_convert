@@ -686,18 +686,6 @@ int wmain(int argc,wchar_t* argv[]){
     RTFProcessor processor;
     std::filesystem::path filePath = parseresult.config.inputPath;
     
-    // 確認是否真的是可以用的input
-    std::error_code ec;
-    auto st = std::filesystem::status(filePath,ec);
-    if (ec) {
-      mainerrorhandler.handleFatalGlobal(L"無法取得路徑狀態: " + filePath.wstring() + L"\n");
-      return;
-    }
-    if (!std::filesystem::exists(st)) {
-      mainerrorhandler.handleFatalGlobal(L"找不到檔案/資料夾: "+ filePath.wstring() + L"\n");
-      return;
-    }
-
     // 分辨目標,依照目標屬性呼叫相對的函式
     
     if(std::filesystem::is_regular_file(filePath)){
