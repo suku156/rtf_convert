@@ -53,5 +53,19 @@ namespace Cli{
     result.ok = true;
     return result;
   }
+
+  std::wstring usage(){
+    return 
+    L"Usage:\n"
+    L"  rtfconvert --input <file|dir> --output <dir> --format <txt|md|html>\n"
+    L"\n"
+    L"Options:\n"
+    L"  --input     指定輸入檔案或資料夾\n"
+    L"  --output    指定輸出資料夾\n"
+    L"  --format    輸出格式 (txt | md | html)\n"
+    L"\n"
+    L"Example:\n"
+    L"  rtfconvert --input test.rtf --output out --format txt\n";
+  }
 }
 

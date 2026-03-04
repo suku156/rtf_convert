@@ -31,7 +31,7 @@
 #include "PictProcessor_Module/pictProcessor.h"  // 處裡圖片的模組
 #include "SemanticStructure_Module/Document.h"       // 語意結構與轉化成語意結構用的模組
 #include "SemanticStructure_Module/Renderer.h"       // 依據需求解讀語意結構用的模組
-#include "Cli_Module\CliParser.h"        // Cli 命令列選項模組
+#include "Cli_Module\CliParser.h"        // Cli 命令列選項模組 (將命令列資訊拆解成可用的容器)
 
 #ifdef _WIN32
   #include <windows.h>
@@ -678,12 +678,13 @@ int wmain(int argc,wchar_t* argv[]){
     Cli::ParseResult parseresult = Cli::parse(argc,argv);
     if(!parseresult.ok){
       Console::ensureWcout(parseresult.message);
+      Console::ensureWcout(Cli::usage());
       return 2;
     }
 
     //使用類別來執行任務
     RTFProcessor processor;
-    std::filesystem::path filePath(argv[1]); // 直接使用 wchar_t 接收路徑
+    std::filesystem::path filePath = parseresult.config.inputPath;
     
     if (!std::filesystem::exists(filePath)) {
       mainerrorhandler.handleFatalGlobal(L"找不到檔案/資料夾: "+ filePath.wstring() + L"\n");

@@ -27,5 +27,6 @@ namespace Cli{
 
   // 將得到的訊息拆解成 ParseResult 回傳給主流程去做使用
   ParseResult parse(int argc,wchar_t* argv[]);
-
+  // 正確範例.在打錯時告知使用者正確的版本
+  std::wstring usage();
 }
