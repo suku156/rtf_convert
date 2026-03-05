@@ -175,6 +175,7 @@ int wmain(int argc,wchar_t* argv[]){
 
     // 分辨目標,依照目標屬性呼叫相對的函式
     
+    /*
     if(std::filesystem::is_regular_file(filePath)){
       processor.processFile(filePath,ProcessMode::SingleFile);
     }else if(std::filesystem::is_directory(filePath)){
@@ -182,6 +183,7 @@ int wmain(int argc,wchar_t* argv[]){
       ProgressObserver ProOB;
       Drunner.run(filePath,ProOB);
     }
+    */  
     
     return EXIT_SUCCESS;
 }
