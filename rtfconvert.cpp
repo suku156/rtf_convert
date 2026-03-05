@@ -160,19 +160,18 @@ int wmain(int argc,wchar_t* argv[]){
     }
 
     // 命令列紀錄
-    /*
     Cli::ParseResult parseresult = Cli::parse(argc,argv);
     if(!parseresult.ok){
       Console::ensureWcout(parseresult.message);
       Console::ensureWcout(Cli::usage());
       return 2;
     }
-    */
+    
 
     //使用類別來執行任務
     RTFProcessor processor;
-    //std::filesystem::path filePath = parseresult.config.inputPath;
-    std::filesystem::path filePath = argv[1];
+    std::filesystem::path filePath = parseresult.config.inputPath;
+    
 
     // 分辨目標,依照目標屬性呼叫相對的函式
     

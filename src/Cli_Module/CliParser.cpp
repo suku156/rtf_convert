@@ -1,4 +1,5 @@
 ﻿#include "CliParser.h"
+#include "Universal_Module/CommonEnum.h"
 #include<string>
 
 namespace Cli{

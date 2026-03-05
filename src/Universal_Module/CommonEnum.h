@@ -37,3 +37,12 @@ enum class DetectorCategory{
   Fatal,        
   InternalError 
 };
+
+// Cli 系統 跟 主流程(RTFProcessor) 都會用到
+namespace Cli{
+  enum class OutputFormat{
+    Txt,
+    Md,
+    Html
+  };
+}

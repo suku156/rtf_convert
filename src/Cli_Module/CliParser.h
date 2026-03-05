@@ -1,16 +1,10 @@
 ﻿#pragma once
+#include "Universal_Module/CommonEnum.h"
 #include <filesystem>
-//#include <optional>
 #include <string>
 
 namespace Cli{
-  // 表示輸出格式
-  enum class OutputFormat{
-    Txt,
-    Md,
-    Html
-  };
-
+  
   // 核心資訊
   struct Config{
     std::filesystem::path inputPath;

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Universal_Module/CommonEnum.h"  // 多個模組共用的 enum
 #include<filesystem>
 #include<optional>
 
@@ -9,8 +10,10 @@ enum class ProcessMode{SingleFile,BatchFile};
 class RTFProcessor{
 public:
   void processFile(const std::filesystem::path& filePath,
-                    ProcessMode mode,
-                    std::optional<std::filesystem::path> taskRootDir = std::nullopt);
+                   const std::filesystem::path& outputpath,
+                   Cli::OutputFormat outputformat,
+                   ProcessMode mode,
+                   std::optional<std::filesystem::path> taskRootDir = std::nullopt);
 };
 
 

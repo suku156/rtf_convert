@@ -20,6 +20,7 @@
   #include <windows.h>
 #endif
 
+// 使用 namespace 的隱常功能
 // 目前只要主流程會用到的類別與函式,先放在.cpp 中 有需求時在拆出去
 namespace{
    // 用來檢查與替換檔名中有影響的空格
@@ -346,20 +347,22 @@ namespace{
 
 // 主流程函式定義
 void RTFProcessor::processFile(const std::filesystem::path& filePath,
-                    ProcessMode mode,
-                    std::optional<std::filesystem::path> taskRootDir)
+                               const std::filesystem::path& outputpath,
+                               Cli::OutputFormat outputformat,
+                               ProcessMode mode,
+                               std::optional<std::filesystem::path> taskRootDir)
 {
  // 擷取不含副檔名的檔案名稱
     std::wstring baseName = filePath.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格
     baseName = sanitizeFileName(baseName);
-    std::filesystem::path outputDir = filePath.parent_path() / baseName;
-    OutputDirGuard fileOut(outputDir);
-    //確保有輸出資料夾
-    if(!fileOut.ensure()){
+    std::filesystem::path outputDir = outputpath;
+    //輕檢查確認輸出資料夾
+    if(!outputDir.empty()){
       Console::ensureWcerr(L"[FatalLocal] 沒有可用的輸出資料夾: " + filePath.wstring());
       return;
     }
+    OutputDirGuard fileOut(outputDir);
     
     logSystem logger;
     
