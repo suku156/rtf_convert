@@ -495,9 +495,20 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
     
 
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
+    
+    
     // 開啟輸出檔案
-    // 將 std::wstring 透過 .c_str() 轉換為 const wchar_t*
-    std::filesystem::path textOutput = fileOut.path() / (baseName+L".txt");
+    std::wstring ext;
+    switch(outputformat){
+        case Cli::OutputFormat::Txt:  ext = L".txt"; break;
+        case Cli::OutputFormat::Md:   ext = L".md"; break;
+        case Cli::OutputFormat::Html: ext = L".html"; break;
+        default:
+        Console::ensureWcerr(L"[Unknown OutputFormat]");
+        return;
+    }
+    
+    std::filesystem::path textOutput = fileOut.path() / (baseName + ext);
     std::ofstream output(textOutput, std::ios::binary);
     if (!output) {
       ErrorSystem::ErrorInfo info;
@@ -510,18 +521,42 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
     }
     logger.log(LogLevel::Info,"輸出檔案開啟成功");
 
-    // 寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
-    const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
-    output.write(reinterpret_cast<const char*>(bom), 3);
-    
+    // .txt 檔案寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
+    if(outputformat == Cli::OutputFormat::Txt){
+      const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
+      output.write(reinterpret_cast<const char*>(bom), 3);
+    }
     
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
 
-    TxtRenderer txtRen;
-    txtRen.render(Doc,output);
-    logger.log(LogLevel::Info,"將語意模型以預設之檔案類型輸出");
+    switch(outputformat){
+      case  Cli::OutputFormat::Txt:{
+        TxtRenderer txtRen;
+        txtRen.render(Doc,output);
+        logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(txt)輸出");
+        break;
+      }
+      
+      case Cli::OutputFormat::Md:{
+        MarkdownRenderer mdRen;
+        mdRen.render(Doc,output);
+        logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(md)輸出");
+        break;
+      }
+      
+      case Cli::OutputFormat::Html:{
+        HtmlRenderer htmlren;
+        htmlren.render(Doc,output);
+        logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(html)輸出");
+        break;
+      }
+      
+      default:
+      Console::ensureWcerr(L"[Unknown OutputFormat]");
+      return;
+    }
     
     Console::ensureWcout(L"已輸出至: " + baseName + L"\n");
     output.close();
