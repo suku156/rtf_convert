@@ -32,13 +32,17 @@ namespace App{
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(pr.config.inputPath, ec)) {
-      // 單檔：呼叫 processor（可能要多傳 out/fmt）
+      // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor;
-      rtfprocessor.processFile(pr.config.inputPath,
-                               pr.config.outputDir,
-                               pr.config.format,
-                               ProcessMode::SingleFile);
-      return AppExitCode::Success;  
+      bool flag = rtfprocessor.processFile(pr.config.inputPath,
+                                           pr.config.outputDir,
+                                           pr.config.format,
+                                           ProcessMode::SingleFile);
+      if(flag){
+        return AppExitCode::Success;  
+      }else{
+        return AppExitCode::Fail;
+      }
     }
     else if (std::filesystem::is_directory(pr.config.inputPath, ec)) {
       RTFDirectoryRunner Drunner;
@@ -46,7 +50,7 @@ namespace App{
       Drunner.run(pr.config.inputPath,ProOB,pr);  
     }
 
-    return AppExitCode::GeneralError;
+    return AppExitCode::Fail;
   }
 }
 

@@ -346,7 +346,7 @@ namespace{
 }
 
 // 主流程函式定義
-void RTFProcessor::processFile(const std::filesystem::path& filePath,
+bool RTFProcessor::processFile(const std::filesystem::path& filePath,
                                const std::filesystem::path& outputpath,
                                Cli::OutputFormat outputformat,
                                ProcessMode mode,
@@ -360,7 +360,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
     //輕檢查確認輸出資料夾
     if(!outputDir.empty()){
       Console::ensureWcerr(L"[FatalLocal] 沒有可用的輸出資料夾: " + filePath.wstring());
-      return;
+      return false;
     }
     OutputDirGuard fileOut(outputDir);
     
@@ -368,7 +368,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
     
     if(!logger.open(fileOut.path())){
       std::wcout<< L"測試失敗,開啟有問題\n";
-      return; 
+      return false; 
     }
     logger.log(LogLevel::Info,"以確保有輸出資料夾");
 
@@ -390,7 +390,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
                ErrorSystem::ErrorCategory::FileIO,
                L"無法正確開啟目標檔案 : " + filePath.wstring());
       errorhandler.handle(info);
-      return;
+      return false;
      }
      logger.log(LogLevel::Info,"成功開啟輸入檔案");
      
@@ -415,7 +415,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
       case DetectorCategory::Recoverable:
       case DetectorCategory::Fatal:
       logger.log(LogLevel::Error,"輸入檔案偵測未通過");
-      return;
+      return false;
       default: break;
     }
     logger.log(LogLevel::Info,"輸入檔案偵測成功");
@@ -435,7 +435,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
       break;
       case PictProcessResult::AbortFile:
       logger.log(LogLevel::Error,"圖片區塊有無法跳過處裡之錯誤!,終止後續流程");
-      return;
+      return false;
       case PictProcessResult::AbortGlobal:
       logger.log(LogLevel::Error,"圖片區塊有破壞性之錯誤!,終止整個程序!");
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
@@ -454,7 +454,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
       {
        Utf8ErrorDetector utf_detector;
        auto utf_decoded = utf8Decoder().decode(rtfContent,utf_detector,errorhandler);
-       if(!utf_decoded) return;
+       if(!utf_decoded) return false;
        rtfContent = utf_decoded.value();
        utf8GroupProcessor().processGroups(rtfContent);//加入處理群組的功能
        Console::ensureWcout(L"是UTF編碼體系的檔案\n");
@@ -466,7 +466,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
        AnsiErrorDetector detector(filecontext.getEncoding());
        ansiDecoder ansiDe;
        auto ansi_decoded = ansiDe.setCodePage(filecontext.getCodepage()).decode(rtfContent,detector,errorhandler); // 使用串聯特性
-       if(!ansi_decoded) return; // 偵測結果錯誤就中斷函式執行
+       if(!ansi_decoded) return false; // 偵測結果錯誤就中斷函式執行
        rtfContent = ansi_decoded.value();
        Console::ensureWcout(L"是ANSI編碼的檔案\n");
        logger.log(LogLevel::Info,"完成 ANSI 體系的解碼");
@@ -486,7 +486,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
       case HandleDecision::TerminateAll:
       Console::ensureWcerr(L"[圖片處理流程後的文法檢查階段出現致命錯誤]: " + filePath.wstring());
       logger.log(LogLevel::Error,"輸入檔案不符合 RTF 之文法");
-      return;
+      return false;
     }
     
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
@@ -505,7 +505,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
         case Cli::OutputFormat::Html: ext = L".html"; break;
         default:
         Console::ensureWcerr(L"[Unknown OutputFormat]");
-        return;
+        return false;
     }
     
     std::filesystem::path textOutput = fileOut.path() / (baseName + ext);
@@ -517,7 +517,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
                ErrorSystem::ErrorCategory::FileIO,
                L"無法建立輸出檔案 : " + textOutput.wstring());
       errorhandler.handle(info);
-      return ;
+      return false;
     }
     logger.log(LogLevel::Info,"輸出檔案開啟成功");
 
@@ -555,7 +555,7 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
       
       default:
       Console::ensureWcerr(L"[Unknown OutputFormat]");
-      return;
+      return false;
     }
     
     Console::ensureWcout(L"已輸出至: " + baseName + L"\n");
@@ -563,4 +563,5 @@ void RTFProcessor::processFile(const std::filesystem::path& filePath,
     logger.log(LogLevel::Info,"關閉輸出檔案");
     
     logger.close();
+    return true;
 }

@@ -6,12 +6,10 @@
 // 用來區分處理的是 單獨檔案 還是 資料夾
 enum class ProcessMode{SingleFile,BatchFile};
 
-// 用來表達 主流程結果的 enum 
-
 // 主流程
 class RTFProcessor{
 public:
-  void processFile(const std::filesystem::path& filePath,
+  bool processFile(const std::filesystem::path& filePath,
                    const std::filesystem::path& outputpath,
                    Cli::OutputFormat outputformat,
                    ProcessMode mode,

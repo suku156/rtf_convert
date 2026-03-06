@@ -8,7 +8,7 @@ namespace Cli{
 namespace App{
   enum class AppExitCode{
     Success,
-    GeneralError,
+    Fail,
     CliError,
     RunTimeError
   };
