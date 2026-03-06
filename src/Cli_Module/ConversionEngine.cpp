@@ -41,7 +41,9 @@ namespace App{
       return AppExitCode::Success;  
     }
     else if (std::filesystem::is_directory(pr.config.inputPath, ec)) {
-        
+      RTFDirectoryRunner Drunner;
+      ProgressObserver ProOB;
+      Drunner.run(pr.config.inputPath,ProOB,pr);  
     }
 
     return AppExitCode::GeneralError;
