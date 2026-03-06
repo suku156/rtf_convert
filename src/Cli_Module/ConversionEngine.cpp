@@ -2,6 +2,7 @@
 #include "Cli_Module/CliParser.h"
 #include "Universal_Module/OutputDirGuard.h"
 #include "MainProcess_Module/RTFProcessor.h"
+#include "thread_Moudle/MyThread.h"
 #include <system_error>
 #include <filesystem>
 
@@ -39,7 +40,11 @@ namespace App{
                                ProcessMode::SingleFile);
       return AppExitCode::Success;  
     }
+    else if (std::filesystem::is_directory(pr.config.inputPath, ec)) {
+        
+    }
 
+    return AppExitCode::GeneralError;
   }
 }
 
