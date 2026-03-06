@@ -49,8 +49,9 @@ int wmain(int argc,wchar_t* argv[]){
   }
 
   // 用命令列訊息決定如何呼叫
-
-
-    
-  return EXIT_SUCCESS;
+  App::ConversionEngine conversionengine;
+  App::AppExitCode resultCode = conversionengine.run(parseresult);
+  int result = static_cast<int>(resultCode);
+  
+  return 0;
 }

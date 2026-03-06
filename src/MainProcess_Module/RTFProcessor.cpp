@@ -352,13 +352,13 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
                                ProcessMode mode,
                                std::optional<std::filesystem::path> taskRootDir)
 {
- // 擷取不含副檔名的檔案名稱
+    // 擷取不含副檔名的檔案名稱
     std::wstring baseName = filePath.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格
     baseName = sanitizeFileName(baseName);
     std::filesystem::path outputDir = outputpath;
     //輕檢查確認輸出資料夾
-    if(!outputDir.empty()){
+    if(outputDir.empty()){
       Console::ensureWcerr(L"[FatalLocal] 沒有可用的輸出資料夾: " + filePath.wstring());
       return false;
     }
