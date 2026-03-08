@@ -45,6 +45,8 @@ void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
     std::atomic_size_t index{0};
 
+    auto output = std::filesystem::absolute(pr.config.outputDir);
+
     // 4. 用 lambda 執行某個任務
     auto worker = [&](){
       RTFProcessor  localprocessor;
@@ -56,7 +58,7 @@ void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
         const auto& file = files[i];
 
         try{
-          localprocessor.processFile(file,pr.config.outputDir,pr.config.format,ProcessMode::BatchFile,dirPath);
+          localprocessor.processFile(file,output,pr.config.format,ProcessMode::BatchFile,dirPath);
         }catch(const std::exception& e){
           Console::ensureWcerr(L"[Exception] " + file.wstring() + L"\n ");
         }

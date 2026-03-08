@@ -46,10 +46,15 @@ namespace{
 
 namespace App{
   AppExitCode ConversionEngine::run(const Cli::ParseResult& pr){
+    
+    // 先把相對路徑轉成絕對路徑
+    auto input  = std::filesystem::absolute(pr.config.inputPath);
+    auto output = std::filesystem::absolute(pr.config.outputDir);
+    
     // 確認是否真的是可以用的input
     {
      std::error_code ec;
-     auto st = std::filesystem::status(pr.config.inputPath,ec);
+     auto st = std::filesystem::status(input,ec);
      if (ec) {
       std::wcout << L"1.輸入檔案不符合規定,程式未執行\n";
       return AppExitCode::CliError;
@@ -61,7 +66,7 @@ namespace App{
     }
     
     // 確保 outputDir 存在 使用原有模組達成
-    OutputDirGuard fileOut(pr.config.outputDir);
+    OutputDirGuard fileOut(output);
     if(!fileOut.ensure()){ // ensure 後沒有回傳 false 就可以確保有輸出資料夾
       std::wcout << L"輸出資料夾不符合規定,程式未執行\n";
       return AppExitCode::RunTimeError;
@@ -69,7 +74,7 @@ namespace App{
     
     // 在指定資料夾中建立輸出資料夾
     // 擷取不含副檔名的檔案名稱
-    std::wstring baseName = pr.config.inputPath.stem().wstring();
+    std::wstring baseName = input.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格
     baseName = sanitizeFileName(baseName);
 
@@ -83,10 +88,10 @@ namespace App{
 
     std::error_code ec;
     //目標如果是單獨檔案的話
-    if (std::filesystem::is_regular_file(pr.config.inputPath, ec)) {
+    if (std::filesystem::is_regular_file(input, ec)) {
       // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor;
-      bool flag = rtfprocessor.processFile(pr.config.inputPath,
+      bool flag = rtfprocessor.processFile(input,
                                            useOutDir.path(),
                                            pr.config.format,
                                            ProcessMode::SingleFile);
@@ -96,10 +101,10 @@ namespace App{
         return AppExitCode::Fail;
       }
     }
-    else if (std::filesystem::is_directory(pr.config.inputPath, ec)) {
+    else if (std::filesystem::is_directory(input, ec)) {
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
-      Drunner.run(pr.config.inputPath,ProOB,pr);  
+      Drunner.run(input,ProOB,pr);  
     }
 
     return AppExitCode::Fail;
