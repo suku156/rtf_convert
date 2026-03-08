@@ -104,7 +104,7 @@ namespace App{
     else if (std::filesystem::is_directory(input, ec)) {
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
-      Drunner.run(input,ProOB,pr);  
+      Drunner.run(input,ProOB,output,pr.config.format);  
     }
 
     return AppExitCode::Fail;

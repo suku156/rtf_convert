@@ -3,6 +3,7 @@
 #include<atomic>
 #include<filesystem>
 #include<vector>
+#include "Universal_Module/CommonEnum.h"
 
 // forward delecration
 namespace Cli{
@@ -24,7 +25,8 @@ private:
 // 多執行緒任務的總管
 class RTFDirectoryRunner{
 public:
-  void run(const std::filesystem::path& dirPath,ProgressObserver& ProOB,const Cli::ParseResult& pr);
+  void run(const std::filesystem::path& dirPath,ProgressObserver& ProOB,
+           const std::filesystem::path& output,Cli::OutputFormat format);
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath);
   size_t DecideThreadNum(size_t resultCount);
