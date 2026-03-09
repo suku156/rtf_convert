@@ -12,6 +12,7 @@
 # 忽略資料夾
 Test history/
 舊的分割嘗試檔案/
+testout/
 
 # 個人日誌
 流程紀錄本.txt
