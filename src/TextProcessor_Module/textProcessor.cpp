@@ -1,4 +1,7 @@
-﻿#include "textProcessor.h"
+﻿// =====================================================
+// Module : textProcessor (implementation)
+// =====================================================
+#include "textProcessor.h"
 #include "LogSystem_Module/LogSystem.h"
 #include "Universal_Module/Console.h"
 #include<string>

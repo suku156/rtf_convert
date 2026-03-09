@@ -1,4 +1,7 @@
-﻿#include "Document.h"
+﻿// =====================================================
+// Module : Document (implementation)
+// =====================================================
+#include "Document.h"
 #include<string>
 #include<vector>
 #include<memory>

@@ -1,4 +1,23 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : LogSystem
+// Author  : suku156
+// Purpose : 用來記錄程式的動作
+// Layer   : log
+//
+// Depend  :
+//   ErrorSystem 
+//
+// Used by :
+//   RTFProcessor   
+//   ErrorHandle
+//   PictProcessor
+//   textProcessor
+//
+// Notes :
+//   用來記錄程式的行動
+//   正常執行或錯誤行為都會記錄 
+// =====================================================
+#pragma once
 #include<fstream>
 #include<mutex>
 #include<filesystem>

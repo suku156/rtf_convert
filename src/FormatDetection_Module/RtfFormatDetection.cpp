@@ -1,4 +1,7 @@
-﻿#include "RtfFormatDetection.h"
+﻿// =====================================================
+// Module : RtfFormatDetection (implementation)
+// =====================================================
+#include "RtfFormatDetection.h"
 #include "Universal_Module/CommonEnum.h"
 #include<fstream>
 #include<vector>

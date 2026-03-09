@@ -1,4 +1,19 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : RtfFormatDetection
+// Author  : suku156
+// Purpose : 用來偵測目標 rtf 的格式
+// Layer   : formatdetect
+//
+// Depend  :
+//   CommonEnum 
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   用來在目標rtf檔上找到並儲存處裡需要的資訊
+//   基礎編碼等等,會做一些非常基礎的驗證(是不是rtf檔案等等)
+// =====================================================
+#pragma once
 #include "Universal_Module/CommonEnum.h"
 #include<fstream>
 #include<vector>

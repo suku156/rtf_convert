@@ -1,4 +1,7 @@
-﻿#include"ErrorHandle.h"
+﻿// =====================================================
+// Module : ErrorHandle (implementation)
+// =====================================================
+#include"ErrorHandle.h"
 #include"LogSystem_Module/LogSystem.h"
 #include"ErrorSystem_Module/ErrorSystem.h"
 #include<cstddef>

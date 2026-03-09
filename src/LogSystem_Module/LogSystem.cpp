@@ -1,4 +1,8 @@
-﻿#include "LogSystem.h"
+﻿// =====================================================
+// Module : LogSystem (implementation)
+// 設計時有加入鎖的概念進行確保
+// =====================================================
+#include "LogSystem.h"
 #include "ErrorSystem_Module/ErrorSystem.h"
 #include<system_error>
 #include<fstream>

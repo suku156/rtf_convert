@@ -1,4 +1,22 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : MyThread
+// Author  : suku156
+// Purpose : 方案的多執行緒功能
+// Layer   : thread
+//
+// Depend  :
+//   RTFProcessor
+//   Console
+//   CliParser
+//
+// Used by :
+//   ConversionEngine   
+//   
+// Notes :
+//   目標是資料夾時啟用多執行緒
+//   每個執行緒負責一個檔案,各自呼叫主流程
+// =====================================================
+#pragma once
 #include<cstddef>
 #include<atomic>
 #include<filesystem>

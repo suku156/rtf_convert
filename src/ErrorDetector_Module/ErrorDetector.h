@@ -1,19 +1,19 @@
 ﻿// =====================================================
 // Module  : ErrorDetector
 // Author  : suku156
-// Purpose : 對 ansi(/'XX) 與 utf(/uXXXX) 格式將其解碼成人可識別文字
+// Purpose : 負責偵測錯誤
 // Layer   : errordetect
 //
 // Depend  :
-//   ErrorDetector
+//   CommonEnum
 //   ErrorSystem
-//   ErrorHandle  
+//
 // Used by :
 //   RTFProcessor   
-//
+//   Decode
 // Notes :
-//   將檔案依照基礎編碼格式的控制符轉換為人眼可識別的文字(中文)
-//   有導入 錯誤偵測 與 錯誤處理系統.會進行錯誤偵測並且進行記錄
+//   負責錯誤偵測的模組,目前有 文法,ansi解碼以及utf解碼三種
+//   
 // =====================================================
 #pragma once
 #include "ErrorSystem_Module/ErrorSystem.h"

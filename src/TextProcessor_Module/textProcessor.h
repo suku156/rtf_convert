@@ -1,4 +1,20 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : textProcessor
+// Author  : suku156
+// Purpose : 清理多餘控制符
+// Layer   : textProcessor
+//
+// Depend  :
+//   LogSystem
+//   Console
+//   
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   將解碼完的字串的控制符清理乾淨
+// =====================================================
+#pragma once
 #include<string>
 #include<string_view>
 #include<cstddef>

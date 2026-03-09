@@ -1,4 +1,7 @@
-﻿#include "Renderer.h"
+﻿// =====================================================
+// Module : Renderer (implementation)
+// =====================================================
+#include "Renderer.h"
 #include "SemanticStructure_Module/Document.h"
 #include<ostream>
 #include<string>

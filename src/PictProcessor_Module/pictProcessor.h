@@ -1,4 +1,24 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : pictProcessor
+// Author  : suku156
+// Purpose : 用來處理 rtf 內部得圖片相關 
+// Layer   : pictProcessors
+//
+// Depend  :
+//   ErrorSystem 
+//   ErrorHandle
+//   OutputDirGuard
+//   LogSystem
+//   Console
+//   
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   負責處理圖片區塊,將其轉換為 wmf 檔案(預設幫忙多轉換.png檔)
+//   處理完的圖片區塊會替換為圖片標記符(分為正常與錯誤標記符)
+// =====================================================
+#pragma once
 #include<string>
 #include<cstddef>
 #include<cstdint>

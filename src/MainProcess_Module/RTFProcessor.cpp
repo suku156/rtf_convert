@@ -1,4 +1,7 @@
-﻿#include "RTFProcessor.h"
+﻿// =====================================================
+// Module : RTFProcessor (implementation)
+// =====================================================
+#include "RTFProcessor.h"
 #include "Universal_Module/OutputDirGuard.h" // 用來確保輸出資料夾的模組
 #include "Universal_Module/Console.h"        // 用來確保多執行緒的情況下 std::wcout 以及 std::wcerr 不會互相交叉
 #include "LogSystem_Module/LogSystem.h"   // 日誌系統的模組

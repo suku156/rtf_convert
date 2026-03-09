@@ -1,5 +1,25 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : ErrorSystem
+// Author  : suku156
+// Purpose : 用來存放錯誤系統會用的資訊
+// Layer   : errorsystem
+//
+// Depend  :
+//    
+// Used by :
+//   RTFProcessor   
+//   Decode
+//   ErrorDetector
+//   ErrorHandle
+//   pictprocessor
+//   logsystem
+//
+// Notes :
+//   錯誤系統中用來存放所有會用的資訊(層級,地點,解釋等等)
+//   
+// =====================================================
 
+#pragma once
 #include<array>
 #include<string_view>
 #include<ostream>

@@ -1,4 +1,7 @@
-﻿#include "ErrorDetector.h"
+﻿// =====================================================
+// Module : ErrorDetector (implementation)
+// =====================================================
+#include "ErrorDetector.h"
 #include "ErrorSystem_Module/ErrorSystem.h"
 #include "Universal_Module/CommonEnum.h"
 #include<vector>

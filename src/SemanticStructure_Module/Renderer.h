@@ -1,4 +1,20 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : Renderer
+// Author  : suku156
+// Purpose : 解讀語意結構
+// Layer   : SemanticStructure
+//
+// Depend  :
+//   Document
+//  
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   可以依照指定格式解讀語意結構成為目標格式
+//   目前支援 : txt,md,html 
+// =====================================================
+#pragma once
 #include<ostream>
 #include<string>
 

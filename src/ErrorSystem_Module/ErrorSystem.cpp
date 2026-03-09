@@ -1,4 +1,8 @@
-﻿#include "ErrorSystem.h"
+﻿// =====================================================
+// Module : ErrorSystem (implementation)
+// enum 印出什麼資訊存放在此
+// =====================================================
+#include "ErrorSystem.h"
 
 namespace ErrorSystem{
   

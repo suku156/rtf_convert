@@ -1,4 +1,15 @@
-﻿#pragma once
+﻿// =====================================================
+// 多檔案會用到的 enum
+// Used by :
+//   CliParser
+//   ErrorDetector
+//   RtfFormatDetection
+//   RTFProcessor
+//   MyThread
+// 
+// =====================================================
+
+#pragma once
 enum class Encoding{
   UTF8_BOM,
   UTF8_NoBOM,

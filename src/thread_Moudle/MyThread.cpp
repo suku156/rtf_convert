@@ -1,4 +1,7 @@
-﻿#include "MyThread.h"
+﻿// =====================================================
+// Module : MyThread (implementation)
+// =====================================================
+#include "MyThread.h"
 #include "Universal_Module/Console.h"
 #include "MainProcess_Module/RTFProcessor.h"
 #include "Cli_Module/CliParser.h"

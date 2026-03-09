@@ -1,4 +1,8 @@
-﻿#include "pictProcessor.h"
+﻿// =====================================================
+// Module : pictProcessor (implementation)
+// 預設會將 wmf 圖片額外轉成 png(不會刪除原 wmf 圖片)(需使用外部程式 magic.exe) 
+// =====================================================
+#include "pictProcessor.h"
 #include "ErrorSystem_Module/ErrorHandle.h"
 #include "Universal_Module/OutputDirGuard.h"
 #include "LogSystem_Module/LogSystem.h"

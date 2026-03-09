@@ -1,4 +1,19 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : Document
+// Author  : suku156
+// Purpose : 語意結構建立
+// Layer   : SemanticStructure
+//
+// Depend  :
+//
+// Used by :
+//   RTFProcessor   
+//   Renderer
+//
+// Notes :
+//   用來存放語意結構的架構,還有將處裡好的字串拆解成語意結構的函式 
+// =====================================================
+#pragma once
 #include<string>
 #include<vector>
 #include<memory>

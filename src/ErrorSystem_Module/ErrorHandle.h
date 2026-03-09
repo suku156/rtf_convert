@@ -1,4 +1,23 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : ErrorHandle
+// Author  : suku156
+// Purpose : 用來決定如何處裡錯誤
+// Layer   : errorsystem
+//
+// Depend  :
+//   logsystem
+//   ErrorSystem
+//    
+// Used by :
+//   RTFProcessor   
+//   Decode
+//   pictprocessor
+//   
+// Notes :
+//   錯誤系統中負責決定如何處理錯誤系統的負責層
+//   
+// =====================================================
+#pragma once
 #include<cstddef>
 #include<string>
 
