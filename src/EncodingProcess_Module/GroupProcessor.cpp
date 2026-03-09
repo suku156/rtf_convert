@@ -1,4 +1,7 @@
-﻿#include "GroupProcessor.h"
+﻿// =====================================================
+// Module : GroupProcessor (implementation)
+// =====================================================
+#include "GroupProcessor.h"
 #include<string>
 #include<cstddef>
 

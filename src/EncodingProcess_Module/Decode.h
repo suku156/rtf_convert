@@ -1,4 +1,21 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : Decode
+// Author  : suku156
+// Purpose : 對 ansi(/'XX) 與 utf(/uXXXX) 格式將其解碼成人可識別文字
+// Layer   : Decode
+//
+// Depend  :
+//   ErrorDetector
+//   ErrorSystem
+//   ErrorHandle  
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   將檔案依照基礎編碼格式的控制符轉換為人眼可識別的文字(中文)
+//   有導入 錯誤偵測 與 錯誤處理系統.會進行錯誤偵測並且進行記錄
+// =====================================================
+#pragma once
 #include<optional>
 #include<string>
 #include<vector>

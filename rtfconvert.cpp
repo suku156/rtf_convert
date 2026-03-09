@@ -1,22 +1,20 @@
-﻿#pragma execution_character_set("utf-8")
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<sstream>
-#include<vector>
-#include<filesystem>
-#include<fcntl.h>
-#include<iconv.h>      
-#include<algorithm>
-#include<cstdlib>
-#include<cctype>
-#include<cstdint>
-#include<optional>
-#include<iomanip>
-#include<thread>
-#include<atomic>
-#include<mutex>
-#include<cstring>
+﻿// ======================================================
+// Module  : rtfconvert
+// author  : suku156
+// Purpose : 程式主入口，負責啟動 CLI 與 ConversionEngine
+// layer   : main
+//
+// Depend(依賴對象) :
+//   CliParser
+//   ConversionEngine
+//
+// Notes :
+//   wmain 只負責流程啟動,不包含邏輯
+// ==============================
+#pragma execution_character_set("utf-8")
+#include <io.h>       
+#include <fcntl.h>    
+#include <cstdio> 
 #include "LogSystem_Module/LogSystem.h"
 #include "ErrorSystem_Module/ErrorHandle.h"
 #include "Universal_Module/Console.h"

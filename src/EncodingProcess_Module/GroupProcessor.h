@@ -1,4 +1,19 @@
-﻿#pragma once
+﻿// =====================================================
+// Module  : GroupProcessor
+// Author  : suku156
+// Purpose : 將 utf 系列的群組清理乾淨
+// Layer   : Decode
+//
+// Depend  :
+//   
+// Used by :
+//   RTFProcessor   
+//
+// Notes :
+//   在 utf 系列解碼後將其特有的 {\loch {\hich {\dbch 
+//   開頭的群組清理乾淨,有判斷是否是控制符的動作
+// =====================================================
+#pragma once
 #include<string>
 #include<cstddef>
 

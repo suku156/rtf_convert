@@ -1,4 +1,9 @@
-﻿#include "Decode.h"
+﻿// =====================================================
+// Module : ConversionEngine (implementation)
+// 偵測的目標必須用的容器是 std::vector<uint8_t> 才能真正判斷
+// =====================================================
+
+#include "Decode.h"
 #include "ErrorSystem_Module/ErrorSystem.h"
 #include "ErrorDetector_Module/ErrorDetector.h"
 #include "ErrorSystem_Module/ErrorHandle.h"
