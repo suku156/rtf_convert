@@ -17,20 +17,21 @@
 #include "Universal_Module/CommonEnum.h"
 #include <filesystem>
 #include <string>
+#include <optional>
 
 namespace Cli{
   
   // 核心資訊
-  struct Config{
+  struct ParsedConfig{
     std::filesystem::path inputPath;
-    std::filesystem::path outputDir;
-    OutputFormat format = OutputFormat::Txt;
+    std::optional<std::filesystem::path> outputDir;
+    std::optional<OutputFormat> format;
   };
 
   //真正使用的資訊
   struct ParseResult{
     bool ok = false;
-    Config config;
+    ParsedConfig config;
     std::wstring message;
   };
 
