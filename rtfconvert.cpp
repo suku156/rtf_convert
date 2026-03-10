@@ -40,6 +40,11 @@ int wmain(int argc,wchar_t* argv[]){
 
   // 命令列紀錄
   Cli::ParseResult parseresult = Cli::parse(argc,argv);
+  if(parseresult.showhelp){
+    Cli::printHelp();
+    return 0;
+  }
+
   if(!parseresult.ok){
     Console::ensureWcout(parseresult.message);
     Console::ensureWcout(Cli::usage());

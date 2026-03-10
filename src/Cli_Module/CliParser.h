@@ -31,6 +31,7 @@ namespace Cli{
 
   //真正使用的資訊
   struct ParseResult{
+    bool showhelp = false;
     bool ok = false;
     ParsedConfig config;
     std::wstring message;
@@ -40,4 +41,6 @@ namespace Cli{
   ParseResult parse(int argc,wchar_t* argv[]);
   // 正確範例.在打錯時告知使用者正確的版本
   std::wstring usage();
+  // 用來顯示 --help 功能介紹
+  void printHelp();
 }
