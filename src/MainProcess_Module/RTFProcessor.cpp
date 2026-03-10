@@ -359,13 +359,16 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
     std::wstring baseName = filePath.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格
     baseName = sanitizeFileName(baseName);
-    std::filesystem::path outputDir = outputpath;
-    //輕檢查確認輸出資料夾
-    if(outputDir.empty()){
-      Console::ensureWcerr(L"[FatalLocal] 沒有可用的輸出資料夾: " + filePath.wstring());
+    if(baseName.empty()){ // 防止特殊檔名導致空白檔名
+      baseName = L"output";
+    }
+    std::filesystem::path outputSet = outputpath / baseName;
+    // 建立輸出資料夾
+    OutputDirGuard fileOut(outputSet);
+    if(!fileOut.ensure()){
+      Console::ensureWcerr(L"沒有成功建立輸出資料夾: " + outputSet.wstring() + L"\n");
       return false;
     }
-    OutputDirGuard fileOut(outputDir);
     
     logSystem logger;
     

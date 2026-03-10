@@ -5,7 +5,7 @@
 // Layer   : Cli
 //
 // Depend  :
-//   CliParser
+//   ConversionRequestResolver
 //   RTFProcessor
 //   MyThread  
 // Used by :
@@ -18,8 +18,8 @@
 #pragma once
 
 // forward declaration
-namespace Cli{
-  struct  ParseResult; 
+namespace Conversion{
+  struct  ResolvedConfig; 
 }
 
 namespace App{
@@ -32,7 +32,7 @@ namespace App{
 
   class ConversionEngine{
   public:
-  AppExitCode run(const Cli::ParseResult& pr);
+  AppExitCode run(const Conversion::ResolvedConfig& RlConfig);
   private:
   }; 
 }

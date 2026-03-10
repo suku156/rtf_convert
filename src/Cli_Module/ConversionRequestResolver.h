@@ -15,7 +15,6 @@
 // =====================================================
 #pragma once
 #include <filesystem>
-#include <string>
 #include "Universal_Module/CommonEnum.h"
 
 namespace Cli{
@@ -28,7 +27,6 @@ namespace Conversion {
     std::filesystem::path inputPath;
     std::filesystem::path outputDir;
     Cli::OutputFormat format;
-    std::wstring basename;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);

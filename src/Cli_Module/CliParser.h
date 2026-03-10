@@ -8,7 +8,8 @@
 //   CommonEnum
 //
 // Used by :
-//   rtfconvert   
+//   rtfconvert
+//   ConversionRequestResolver   
 //
 // Notes :
 //   只負責解析輸入資料,不做轉換.判斷或執行
