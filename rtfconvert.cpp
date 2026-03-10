@@ -44,6 +44,10 @@ int wmain(int argc,wchar_t* argv[]){
     Cli::printHelp();
     return 0;
   }
+  if(parseresult.shoeversion){
+    Cli::printVersion();
+    return 0;
+  }
 
   if(!parseresult.ok){
     Console::ensureWcout(parseresult.message);

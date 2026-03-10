@@ -32,6 +32,7 @@ namespace Cli{
   //真正使用的資訊
   struct ParseResult{
     bool showhelp = false;
+    bool shoeversion = false;
     bool ok = false;
     ParsedConfig config;
     std::wstring message;
@@ -43,4 +44,6 @@ namespace Cli{
   std::wstring usage();
   // 用來顯示 --help 功能介紹
   void printHelp();
+  // 用來顯示 --version 版本介紹
+  void printVersion();
 }

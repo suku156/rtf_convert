@@ -3,6 +3,7 @@
 // =====================================================
 #include "CliParser.h"
 #include "Universal_Module/CommonEnum.h"
+#include "Universal_Module/Version.h"
 #include<string>
 #include<cwctype>
 #include<algorithm>
@@ -43,6 +44,10 @@ namespace Cli{
       }
       else if(arg == L"--help"){
         result.showhelp = true;
+        return result;
+      }
+      else if(arg == L"--version"){
+        result.shoeversion = true;
         return result;
       }
       else if(arg == L"--format" ){
@@ -104,10 +109,17 @@ namespace Cli{
     std::wcout << L"Options:\n";
     std::wcout << L"  --input     指定輸入檔案或資料夾\n";
     std::wcout << L"  --output    指定輸出資料夾 \n";
-    std::wcout << L"  --output 不輸入的話.目標為檔案時預設為檔案所在資料夾,目標為資料夾的話預設為目標資料夾\n";
+    std::wcout << L"(--output 不輸入的話.目標為檔案時預設為檔案所在資料夾,目標為資料夾的話預設為目標資料夾)\n";
     std::wcout << L"  --format    輸出格式\n";
-    std::wcout << L"  --format 目前支援 : txt|md|html 三種格式";
+    std::wcout << L"(--format 目前支援 : txt|md|html 三種格式)\n";
     std::wcout << L"  --help      顯示此說明\n";
+  }
+
+  void printVersion(){
+    std::wcout << AppInfo::Name
+               << L" "
+               << AppInfo::Version
+               << L"\n";
   }
 }
 
