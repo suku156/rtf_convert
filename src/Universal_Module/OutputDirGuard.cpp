@@ -6,37 +6,53 @@
 bool OutputDirGuard::isReady() const{
   return hasDir_;
 }
-// 安全使用方法 : 在使用 ensure() 函式並回傳 true 後 可確保存在輸出資料夾
+// 安全使用方法 : 在使用 ensure() 函式並回傳 Success 後 可確保存在輸出資料夾
 const std::filesystem::path& OutputDirGuard::path() const{
   return outputDir_;
 }
-bool OutputDirGuard::ensure(){
-    if(hasDir_) return true;
+EnsureDirResult OutputDirGuard::ensure(){
+    if(hasDir_) return EnsureDirResult::Success;
     std::error_code ec;
   
-    //1.如果已經有檔案,先檢查原本路徑使否真的有指向物件
+    //1.如果已經有同名檔案依據狀況回傳 enum
     if(std::filesystem::exists(outputDir_,ec)){
-      if(!ec && std::filesystem::is_directory(outputDir_,ec)){
-        hasDir_ = true;
-        return true; // 如果該物件是資料夾就 OK
-      }else{
-        return false; // 不是就是檔案 回傳 否
+      if(ec){
+        return EnsureDirResult::VerifyFailed;
       }
+      
+      if(!ec && std::filesystem::is_directory(outputDir_,ec)){
+        return EnsureDirResult::AlreadyExists;
+      }
+      
+      return EnsureDirResult::NotDirectory;
     }
     
-    //2.嘗試建立資料夾
+    //2.沒有同名檔案就嘗試建立資料夾
     std::filesystem::create_directories(outputDir_,ec);
-    if(ec){  // 真的建立失敗在回傳 錯誤
-      Console::ensureWcerr(L"[create_directories failed]\npath = " + outputDir_.wstring());
-      return false;
+    if(ec){  // 建立失敗回傳錯誤
+      return EnsureDirResult::CreateFailed;
     };
 
-    //3.二次確認
-    if(!std::filesystem::is_directory(outputDir_)){
-      return false;
+    //二次確認
+    if(!std::filesystem::is_directory(outputDir_,ec) || ec){
+      return EnsureDirResult::VerifyFailed;
     }
     
     hasDir_ = true;
-    return true;
-    
+    return EnsureDirResult::Success;
+}
+DirCheckResult OutputDirGuard::checkDirectory(const std::filesystem::path& p){
+  std::error_code ec;
+
+  if(!std::filesystem::exists(p, ec)){
+    if(ec) return DirCheckResult::StatusFailed;
+    return DirCheckResult::NotExist;
+  }
+
+  if(!std::filesystem::is_directory(p, ec)){
+    if(ec) return DirCheckResult::StatusFailed;
+    return DirCheckResult::NotDirectory;
+  }
+
+  return DirCheckResult::Ok;
 }

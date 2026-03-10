@@ -625,7 +625,8 @@ std::optional<std::filesystem::path> PictDisassembler::makeOutputPath(PictFormat
       default: ext = ".img"; break;
     }
 
-    if(!outputDir_.ensure()){
+    auto DirResult = outputDir_.ensure();
+    if(DirResult != EnsureDirResult::Success){
       return std::nullopt;
     }
 

@@ -38,7 +38,9 @@ namespace App{
     
     // 確保 outputDir 存在 使用原有模組達成
     OutputDirGuard fileOut(output);
-    if(!fileOut.ensure()){ // ensure 後沒有回傳 false 就可以確保有輸出資料夾
+    auto st = fileOut.checkDirectory(output);
+
+    if(st != DirCheckResult::Ok){ // 檢查給定的指定資料夾
       std::wcout << L"輸出資料夾不符合規定,程式未執行\n";
       return AppExitCode::RunTimeError;
     }

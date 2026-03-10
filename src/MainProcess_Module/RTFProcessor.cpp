@@ -365,8 +365,25 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
     std::filesystem::path outputSet = outputpath / baseName;
     // 建立輸出資料夾
     OutputDirGuard fileOut(outputSet);
-    if(!fileOut.ensure()){
-      Console::ensureWcerr(L"沒有成功建立輸出資料夾: " + outputSet.wstring() + L"\n");
+    auto dirResult = fileOut.ensure();
+    if(dirResult != EnsureDirResult::Success){
+      switch(dirResult){
+        case EnsureDirResult::AlreadyExists:
+        Console::ensureWcerr(L"輸出資料夾已存在: " + outputSet.wstring() + L"\n");
+        break;
+        case EnsureDirResult::NotDirectory:
+        Console::ensureWcerr(L"輸出路徑已存在但不是資料夾: " + outputSet.wstring() + L"\n");
+        break;
+        case EnsureDirResult::CreateFailed:
+        Console::ensureWcerr(L"建立輸出資料夾失敗: " + outputSet.wstring() + L"\n");
+        break;
+        case EnsureDirResult::VerifyFailed:
+        Console::ensureWcerr(L"建立後驗證輸出資料夾失敗: " + outputSet.wstring() + L"\n");
+        break;
+        default:
+        Console::ensureWcerr(L"未知的輸出資料夾錯誤: " + outputSet.wstring() + L"\n");
+        break;
+      }
       return false;
     }
     
