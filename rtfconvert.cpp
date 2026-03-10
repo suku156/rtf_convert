@@ -7,7 +7,7 @@
 // Depend(依賴對象) :
 //   CliParser
 //   ConversionEngine
-//
+//   ConversionRequestResolver
 // Notes :
 //   wmain 只負責流程啟動,不包含邏輯
 // ==============================
@@ -20,7 +20,7 @@
 #include "Universal_Module/Console.h"
 #include "Cli_Module/CliParser.h"           // Cli 命令列選項模組 (將命令列資訊拆解成可用的容器)
 #include "Cli_Module/ConversionEngine.h"   // Cli 模組 根據輸入的 Cli 決定如何呼叫主流程
-
+#include "Cli_Module/ConversionRequestResolver.h" // Cli模組 轉譯層
 
 int wmain(int argc,wchar_t* argv[]){
   // 強制讓 wcout 用 UTF-16 (Windows 本地寬字輸出)
@@ -45,10 +45,13 @@ int wmain(int argc,wchar_t* argv[]){
     Console::ensureWcout(Cli::usage());
     return 2;
   }
+  
+  // 將命令列解析後的資訊轉譯成預定型態
+  Conversion::ResolvedConfig RLconfig = Conversion::resolveConfig(parseresult);
 
   // 用命令列訊息決定如何呼叫
   App::ConversionEngine conversionengine;
-  App::AppExitCode resultCode = conversionengine.run(parseresult);
+  App::AppExitCode resultCode = conversionengine.run(RLconfig);
   int result = static_cast<int>(resultCode);
   
   return 0;

@@ -22,11 +22,16 @@ namespace App{
      std::error_code ec;
      auto st = std::filesystem::status(input,ec);
      if (ec) {
-      std::wcout << L"1.輸入檔案不符合規定,程式未執行\n";
+      std::wcout << L"[Error] 無法讀取輸入路徑: "
+                 << input.wstring()
+                 << L"\n";
+
       return AppExitCode::CliError;
      }
      if (!std::filesystem::exists(st)) {
-      std::wcout << L"1.輸入檔案不符合規定,程式未執行\n";
+      std::wcout << L"[Error] 輸入目標不存在: "
+                 << input.wstring()
+                 << L"\n";
       return AppExitCode::CliError;
      }
     }
