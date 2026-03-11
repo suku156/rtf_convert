@@ -38,7 +38,7 @@ namespace App{
     }
     
     // 確保 outputDir 存在 使用原有模組達成
-    OutputDirGuard fileOut(output);
+    OutputDirGuard fileOut(output,RlConfig.dirPolicy);
     auto st = fileOut.checkDirectory(output);
 
     if(st != DirCheckResult::Ok){ // 檢查給定的指定資料夾
