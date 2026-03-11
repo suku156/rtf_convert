@@ -48,7 +48,7 @@ namespace App{
 
     FileProcessRequest FPrequest;
     FPrequest.filePath = input;
-    FPrequest.filePath = output;
+    FPrequest.outputRootDir = output;
     FPrequest.outputFormat = RlConfig.format;
     FPrequest.dirPolicy = RlConfig.dirPolicy;
     
