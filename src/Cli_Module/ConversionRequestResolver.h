@@ -26,7 +26,7 @@ namespace Conversion {
   struct ResolvedConfig{
     std::filesystem::path inputPath;
     std::filesystem::path outputDir;
-    Cli::OutputFormat format;
+    Common::OutputFormat format;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);

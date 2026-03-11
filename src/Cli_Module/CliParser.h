@@ -26,7 +26,7 @@ namespace Cli{
   struct ParsedConfig{
     std::filesystem::path inputPath;
     std::optional<std::filesystem::path> outputDir;
-    std::optional<OutputFormat> format;
+    std::optional<Common::OutputFormat> format;
   };
 
   //真正使用的資訊

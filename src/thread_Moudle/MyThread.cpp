@@ -33,7 +33,7 @@ void ProgressObserver::display() const{
 void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
                              ProgressObserver& ProOB,
                              const std::filesystem::path& output,
-                             Cli::OutputFormat format){
+                             Common::OutputFormat format){
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
     files = collectRtfFiles(dirPath);

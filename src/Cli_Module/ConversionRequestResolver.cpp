@@ -41,7 +41,7 @@ Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& par
   if(parConfig.config.format.has_value()){
     resultconfig.format = parConfig.config.format.value();
   }else{
-    resultconfig.format = Cli::OutputFormat::Txt;
+    resultconfig.format = Common::OutputFormat::Txt;
   }
 
   return resultconfig;

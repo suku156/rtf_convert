@@ -6,7 +6,8 @@
 //   RtfFormatDetection
 //   RTFProcessor
 //   MyThread
-// 
+//   OutputDirGuard
+//  
 // =====================================================
 
 #pragma once
@@ -50,10 +51,15 @@ enum class DetectorCategory{
 };
 
 // Cli 系統 跟 主流程(RTFProcessor) 都會用到
-namespace Cli{
+namespace Common{
   enum class OutputFormat{
     Txt,
     Md,
     Html
   };
+
+  enum class ExistingDirPolicy {
+    Reject,   // 有同名檔案就拒絕
+    Overwrite // 有同名檔案舊覆蓋
+  }; 
 }

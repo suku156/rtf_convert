@@ -351,7 +351,7 @@ namespace{
 // 主流程函式定義
 bool RTFProcessor::processFile(const std::filesystem::path& filePath,
                                const std::filesystem::path& outputpath,
-                               Cli::OutputFormat outputformat,
+                               Common::OutputFormat outputformat,
                                ProcessMode mode,
                                std::optional<std::filesystem::path> taskRootDir)
 {
@@ -523,9 +523,9 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
     // 開啟輸出檔案
     std::wstring ext;
     switch(outputformat){
-        case Cli::OutputFormat::Txt:  ext = L".txt"; break;
-        case Cli::OutputFormat::Md:   ext = L".md"; break;
-        case Cli::OutputFormat::Html: ext = L".html"; break;
+        case Common::OutputFormat::Txt:  ext = L".txt"; break;
+        case Common::OutputFormat::Md:   ext = L".md"; break;
+        case Common::OutputFormat::Html: ext = L".html"; break;
         default:
         Console::ensureWcerr(L"[Unknown OutputFormat]");
         return false;
@@ -545,7 +545,7 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
     logger.log(LogLevel::Info,"輸出檔案開啟成功");
 
     // .txt 檔案寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
-    if(outputformat == Cli::OutputFormat::Txt){
+    if(outputformat == Common::OutputFormat::Txt){
       const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
@@ -555,21 +555,21 @@ bool RTFProcessor::processFile(const std::filesystem::path& filePath,
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
 
     switch(outputformat){
-      case  Cli::OutputFormat::Txt:{
+      case  Common::OutputFormat::Txt:{
         TxtRenderer txtRen;
         txtRen.render(Doc,output);
         logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(txt)輸出");
         break;
       }
       
-      case Cli::OutputFormat::Md:{
+      case Common::OutputFormat::Md:{
         MarkdownRenderer mdRen;
         mdRen.render(Doc,output);
         logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(md)輸出");
         break;
       }
       
-      case Cli::OutputFormat::Html:{
+      case Common::OutputFormat::Html:{
         HtmlRenderer htmlren;
         htmlren.render(Doc,output);
         logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(html)輸出");

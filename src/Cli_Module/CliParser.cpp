@@ -59,13 +59,13 @@ namespace Cli{
         std::wstring fmt = argv[++i];
         fmt = toLower(fmt);
         if(fmt == L"txt"){
-          result.config.format = OutputFormat::Txt; 
+          result.config.format = Common::OutputFormat::Txt; 
         }
         else if(fmt == L"md"){
-          result.config.format = OutputFormat::Md;
+          result.config.format = Common::OutputFormat::Md;
         }
         else if(fmt == L"html"){
-          result.config.format = OutputFormat::Html;  
+          result.config.format = Common::OutputFormat::Html;  
         }
         else{
           result.message = L"未知的 format: " + fmt;

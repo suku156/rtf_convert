@@ -39,7 +39,7 @@ class RTFProcessor{
 public:
   bool processFile(const std::filesystem::path& filePath,
                    const std::filesystem::path& outputpath,
-                   Cli::OutputFormat outputformat,
+                   Common::OutputFormat outputformat,
                    ProcessMode mode,
                    std::optional<std::filesystem::path> taskRootDir = std::nullopt);
 };

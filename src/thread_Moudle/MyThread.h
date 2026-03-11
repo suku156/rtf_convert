@@ -44,7 +44,7 @@ private:
 class RTFDirectoryRunner{
 public:
   void run(const std::filesystem::path& dirPath,ProgressObserver& ProOB,
-           const std::filesystem::path& output,Cli::OutputFormat format);
+           const std::filesystem::path& output,Common::OutputFormat format);
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath);
   size_t DecideThreadNum(size_t resultCount);
