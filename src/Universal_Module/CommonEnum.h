@@ -64,7 +64,4 @@ namespace Common{
     Reject,   // 有同名檔案就拒絕
     Overwrite // 有同名檔案舊覆蓋
   }; 
-
-  // 用來區分處理的是 單獨檔案 還是 資料夾(主流程用)
-  enum class ProcessMode{SingleFile,BatchFile};
 }

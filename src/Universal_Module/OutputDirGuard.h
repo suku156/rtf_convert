@@ -8,12 +8,19 @@
 #pragma once
 #include<filesystem>
 
+// forward delcaration
+namespace Common{
+  enum class ExistingDirPolicy;
+}
+
+
 enum class EnsureDirResult{
   Success,
   AlreadyExists,
   NotDirectory,
   CreateFailed,
-  VerifyFailed
+  VerifyFailed,
+  RemoveFailed
 };
 
 enum class DirCheckResult {
@@ -26,9 +33,11 @@ enum class DirCheckResult {
 // 確保輸出的資料夾建立的工具
 class OutputDirGuard{
   std::filesystem::path outputDir_;
+  Common::ExistingDirPolicy policy_;
   bool hasDir_ = false;
 public:
-  OutputDirGuard(const std::filesystem::path& outputDir) : outputDir_(outputDir) {}
+  OutputDirGuard(const std::filesystem::path& outputDir,
+                 Common::ExistingDirPolicy policy) : outputDir_(outputDir) , policy_(policy) {}
   bool isReady() const;
   // 安全使用方法 : 在使用 ensure() 函式並回傳 Success 後 可確保存在輸出資料夾
   const std::filesystem::path& path() const;

@@ -365,7 +365,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     std::filesystem::path outputSet = outputpath / baseName;
     // 建立輸出資料夾
-    OutputDirGuard fileOut(outputSet);
+    OutputDirGuard fileOut(outputSet,req.dirPolicy);
     auto dirResult = fileOut.ensure();
     if(dirResult != EnsureDirResult::Success){
       switch(dirResult){
