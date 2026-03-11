@@ -19,14 +19,14 @@
 
 namespace Cli{
    struct ParseResult;
-   enum class OutputFormat;
-};
+}
 
 namespace Conversion {
   struct ResolvedConfig{
     std::filesystem::path inputPath;
     std::filesystem::path outputDir;
     Common::OutputFormat format;
+    Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);

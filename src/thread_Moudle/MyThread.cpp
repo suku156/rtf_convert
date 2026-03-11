@@ -60,7 +60,7 @@ void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
         const auto& file = files[i];
 
         try{
-          localprocessor.processFile(file,output,format,ProcessMode::BatchFile,dirPath);
+          localprocessor.processFile(file,output,format,Common::ProcessMode::BatchFile,dirPath);
         }catch(const std::exception& e){
           Console::ensureWcerr(L"[Exception] " + file.wstring() + L"\n ");
         }

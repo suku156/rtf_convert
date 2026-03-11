@@ -50,6 +50,9 @@ namespace Cli{
         result.shoeversion = true;
         return result;
       }
+      else if(arg == L"--overwrite"){
+        result.config.dirPolicy = Common::ExistingDirPolicy::Overwrite;
+      }
       else if(arg == L"--format" ){
         if(i + 1 >= argc){
           result.message = L"--format 後面缺少格式名稱";

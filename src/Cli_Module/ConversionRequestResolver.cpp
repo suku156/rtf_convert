@@ -44,5 +44,8 @@ Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& par
     resultconfig.format = Common::OutputFormat::Txt;
   }
 
+  // 依據輸入決定資料夾處裡模式
+  resultconfig.dirPolicy = parConfig.config.dirPolicy;
+
   return resultconfig;
 }

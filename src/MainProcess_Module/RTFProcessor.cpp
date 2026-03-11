@@ -352,7 +352,7 @@ namespace{
 bool RTFProcessor::processFile(const std::filesystem::path& filePath,
                                const std::filesystem::path& outputpath,
                                Common::OutputFormat outputformat,
-                               ProcessMode mode,
+                               Common::ProcessMode mode,
                                std::optional<std::filesystem::path> taskRootDir)
 {
     // 擷取不含副檔名的檔案名稱

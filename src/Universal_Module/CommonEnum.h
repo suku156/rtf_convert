@@ -50,16 +50,21 @@ enum class DetectorCategory{
   InternalError 
 };
 
-// Cli 系統 跟 主流程(RTFProcessor) 都會用到
+
 namespace Common{
+  // Cli 系統 跟 主流程(RTFProcessor) 都會用到
   enum class OutputFormat{
     Txt,
     Md,
     Html
   };
-
+  
+  // 用於表示對同名資料夾的預設處理
   enum class ExistingDirPolicy {
     Reject,   // 有同名檔案就拒絕
     Overwrite // 有同名檔案舊覆蓋
   }; 
+
+  // 用來區分處理的是 單獨檔案 還是 資料夾(主流程用)
+  enum class ProcessMode{SingleFile,BatchFile};
 }

@@ -27,6 +27,7 @@ namespace Cli{
     std::filesystem::path inputPath;
     std::optional<std::filesystem::path> outputDir;
     std::optional<Common::OutputFormat> format;
+    Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
   };
 
   //真正使用的資訊

@@ -53,7 +53,7 @@ namespace App{
       bool flag = rtfprocessor.processFile(input,
                                            fileOut.path(),
                                            RlConfig.format,
-                                           ProcessMode::SingleFile);
+                                           Common::ProcessMode::SingleFile);
       if(flag){
         return AppExitCode::Success;  
       }else{
