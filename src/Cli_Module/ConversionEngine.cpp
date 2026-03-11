@@ -7,6 +7,7 @@
 #include "MainProcess_Module/RTFProcessor.h"
 #include "thread_Moudle/MyThread.h"
 #include "Universal_Module/Console.h"
+#include "MainProcess_Module/FileProcessRequest.h"
 #include <system_error>
 #include <filesystem>
 #include <iostream>
@@ -44,16 +45,19 @@ namespace App{
       std::wcout << L"輸出資料夾不符合規定,程式未執行\n";
       return AppExitCode::RunTimeError;
     }
+
+    FileProcessRequest FPrequest;
+    FPrequest.filePath = input;
+    FPrequest.filePath = output;
+    FPrequest.outputFormat = RlConfig.format;
+    FPrequest.dirPolicy = RlConfig.dirPolicy;
     
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
       // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor;
-      bool flag = rtfprocessor.processFile(input,
-                                           fileOut.path(),
-                                           RlConfig.format,
-                                           Common::ProcessMode::SingleFile);
+      bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
         return AppExitCode::Success;  
       }else{
@@ -63,7 +67,7 @@ namespace App{
     else if (std::filesystem::is_directory(input, ec)) {
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
-      Drunner.run(input,ProOB,output,RlConfig.format);  
+      Drunner.run(ProOB,FPrequest);  
     }
 
     return AppExitCode::Fail;

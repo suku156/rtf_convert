@@ -4,6 +4,7 @@
 #include "MyThread.h"
 #include "Universal_Module/Console.h"
 #include "MainProcess_Module/RTFProcessor.h"
+#include "MainProcess_Module/FileProcessRequest.h"
 #include "Cli_Module/CliParser.h"
 #include <thread>
 
@@ -30,13 +31,10 @@ void ProgressObserver::display() const{
 }
 
 // 多執行緒任務的總管 (函式定義)
-void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
-                             ProgressObserver& ProOB,
-                             const std::filesystem::path& output,
-                             Common::OutputFormat format){
+void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req){
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
-    files = collectRtfFiles(dirPath);
+    files = collectRtfFiles(req.filePath);
     if(files.empty()) return;
     
     // 設定進度條的總數
@@ -60,7 +58,7 @@ void RTFDirectoryRunner::run(const std::filesystem::path& dirPath,
         const auto& file = files[i];
 
         try{
-          localprocessor.processFile(file,output,format,Common::ProcessMode::BatchFile,dirPath);
+          localprocessor.processFile(req);
         }catch(const std::exception& e){
           Console::ensureWcerr(L"[Exception] " + file.wstring() + L"\n ");
         }

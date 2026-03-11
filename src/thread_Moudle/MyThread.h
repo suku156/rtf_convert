@@ -27,6 +27,7 @@
 namespace Cli{
   struct ParseResult;
 }
+struct FileProcessRequest;
 
 // 用來接收進度資訊並決定如何呈現的類別
 class ProgressObserver{
@@ -43,8 +44,7 @@ private:
 // 多執行緒任務的總管
 class RTFDirectoryRunner{
 public:
-  void run(const std::filesystem::path& dirPath,ProgressObserver& ProOB,
-           const std::filesystem::path& output,Common::OutputFormat format);
+  void run(ProgressObserver& ProOB,const FileProcessRequest& req);
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath);
   size_t DecideThreadNum(size_t resultCount);

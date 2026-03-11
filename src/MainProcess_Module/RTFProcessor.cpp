@@ -16,6 +16,7 @@
 #include "SemanticStructure_Module/Document.h"       // 語意結構與轉化成語意結構用的模組
 #include "SemanticStructure_Module/Renderer.h"       // 依據需求解讀語意結構用的模組
 #include "Universal_Module/CommonEnum.h"  // 多個模組共用的 enum
+#include "MainProcess_Module/FileProcessRequest.h"
 #include<filesystem>
 #include<optional>
 #include<iostream>
@@ -349,12 +350,12 @@ namespace{
 }
 
 // 主流程函式定義
-bool RTFProcessor::processFile(const std::filesystem::path& filePath,
-                               const std::filesystem::path& outputpath,
-                               Common::OutputFormat outputformat,
-                               Common::ProcessMode mode,
-                               std::optional<std::filesystem::path> taskRootDir)
+bool RTFProcessor::processFile(const FileProcessRequest& req)
 {
+    const std::filesystem::path& filePath = req.filePath;
+    const std::filesystem::path& outputpath = req.outputRootDir;
+    auto outputformat = req.outputFormat;
+    
     // 擷取不含副檔名的檔案名稱
     std::wstring baseName = filePath.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格

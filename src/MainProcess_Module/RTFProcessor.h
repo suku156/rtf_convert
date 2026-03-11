@@ -31,16 +31,12 @@
 #include<filesystem>
 #include<optional>
 
-
+struct FileProcessRequest;
 
 // 主流程
 class RTFProcessor{
 public:
-  bool processFile(const std::filesystem::path& filePath,
-                   const std::filesystem::path& outputpath,
-                   Common::OutputFormat outputformat,
-                   Common::ProcessMode mode,
-                   std::optional<std::filesystem::path> taskRootDir = std::nullopt);
+  bool processFile(const FileProcessRequest& req);
 };
 
 
