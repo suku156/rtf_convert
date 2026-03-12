@@ -6,5 +6,5 @@
 
 namespace AppInfo{
     constexpr const wchar_t* Name     = L"rtfconvert";
-    constexpr const wchar_t* Version  = L"0.1.0";
+    constexpr const wchar_t* Version  = L"0.2.0";
 }

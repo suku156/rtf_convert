@@ -363,7 +363,16 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     if(baseName.empty()){ // 防止特殊檔名導致空白檔名
       baseName = L"output";
     }
+    if(baseName == L"." || baseName == L".."){ // 預防錯誤
+      baseName = L"output";
+    }
+
     std::filesystem::path outputSet = outputpath / baseName;
+    if(outputSet == req.outputRootDir){
+      Console::ensureWcout(L"輸出資料夾與輸出資料夾根目錄相同!,程式中止\n");
+      return false;
+    } 
+    
     // 建立輸出資料夾
     OutputDirGuard fileOut(outputSet,req.dirPolicy);
     auto dirResult = fileOut.ensure();
