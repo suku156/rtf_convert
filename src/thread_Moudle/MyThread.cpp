@@ -7,7 +7,7 @@
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Cli_Module/CliParser.h"
 #include <thread>
-
+#include<cstddef>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
@@ -47,8 +47,13 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
     std::atomic_size_t index{0};
 
+    // 4.清空計數器
+    successCount_.store(0,std::memory_order_relaxed);
+    failCount_.store(0,std::memory_order_relaxed);
+
+    FileProcessRequest baseReq = req;
     // 4. 用 lambda 執行某個任務
-    auto worker = [&](){
+    auto worker = [&index,&files,&baseReq,&ProOB,this](){
       RTFProcessor  localprocessor;
       
       while(true){
@@ -56,13 +61,22 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
         if(i >= files.size()) break;
 
         const auto& file = files[i];
+        FileProcessRequest fileReq = baseReq;
+        fileReq.filePath = file;
 
         try{
-          localprocessor.processFile(req);
+          bool ok = localprocessor.processFile(fileReq);
+          if(ok){
+            successCount_.fetch_add(1,std::memory_order_relaxed);
+          }else{
+            failCount_.fetch_add(1,std::memory_order_relaxed);
+          }
         }catch(const std::exception& e){
+          failCount_.fetch_add(1,std::memory_order_relaxed);
           Console::ensureWcerr(L"[Exception] " + file.wstring() + L"\n ");
         }
         catch(...){
+          failCount_.fetch_add(1,std::memory_order_relaxed);
           Console::ensureWcerr(L"[Unknown Exception] " + file.wstring() +  L"\n");
         }
         
@@ -105,4 +119,10 @@ size_t RTFDirectoryRunner::DecideThreadNum(size_t resultCount){
     systemMax = std::min(systemMax,size_t(16)); // 最多就開十六條執行緒
 
     return std::min(systemMax,resultCount);
+}
+size_t RTFDirectoryRunner::getSuccessNum() const{
+  return successCount_.load(std::memory_order_relaxed);
+}
+size_t RTFDirectoryRunner::getFailNum() const{
+  return failCount_.load(std::memory_order_relaxed);
 }

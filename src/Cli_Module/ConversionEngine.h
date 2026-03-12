@@ -23,11 +23,12 @@ namespace Conversion{
 }
 
 namespace App{
-  enum class AppExitCode{
-    Success,
-    Fail,
-    CliError,
-    RunTimeError
+  enum class AppExitCode : int{
+    Success = 0,
+    Fail = 1,
+    CliError = 2,
+    RunTimeError = 3,
+    PartialSuccess = 4
   };
 
   class ConversionEngine{

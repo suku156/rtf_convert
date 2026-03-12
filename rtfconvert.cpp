@@ -63,5 +63,5 @@ int wmain(int argc,wchar_t* argv[]){
   App::AppExitCode resultCode = conversionengine.run(RLconfig);
   int result = static_cast<int>(resultCode);
   
-  return 0;
+  return result;
 }

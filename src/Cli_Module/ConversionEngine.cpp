@@ -11,6 +11,7 @@
 #include <system_error>
 #include <filesystem>
 #include <iostream>
+#include <string>
 
 namespace App{
   AppExitCode ConversionEngine::run(const Conversion::ResolvedConfig& RlConfig){
@@ -67,7 +68,19 @@ namespace App{
     else if (std::filesystem::is_directory(input, ec)) {
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
-      Drunner.run(ProOB,FPrequest);  
+      Drunner.run(ProOB,FPrequest);
+      Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
+                           std::to_wstring(Drunner.getSuccessNum()) + 
+                           L" 多執行緒失敗數量: " + 
+                           std::to_wstring(Drunner.getFailNum())+
+                           L"\n");
+      if(Drunner.getFailNum() == 0){
+        return AppExitCode::Success;
+      }
+      else if(Drunner.getSuccessNum() == 0){
+        return AppExitCode::RunTimeError;
+      }
+      return AppExitCode::PartialSuccess;                       
     }
 
     return AppExitCode::Fail;
