@@ -27,6 +27,7 @@ namespace Conversion {
     std::filesystem::path outputDir;
     Common::OutputFormat format;
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
+    bool recursive = false;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);

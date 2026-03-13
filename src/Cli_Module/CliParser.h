@@ -34,6 +34,7 @@ namespace Cli{
   struct ParseResult{
     bool showhelp = false;
     bool shoeversion = false;
+    bool recursive = false;
     bool ok = false;
     ParsedConfig config;
     std::wstring message;

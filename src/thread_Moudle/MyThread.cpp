@@ -7,7 +7,9 @@
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Cli_Module/CliParser.h"
 #include <thread>
-#include<cstddef>
+#include <cstddef>
+#include <system_error>
+#include <filesystem>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
@@ -31,10 +33,10 @@ void ProgressObserver::display() const{
 }
 
 // 多執行緒任務的總管 (函式定義)
-void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req){
+void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req,bool recursive){
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
-    files = collectRtfFiles(req.filePath);
+    files = collectRtfFiles(req.filePath,recursive);
     if(files.empty()) return;
     
     // 設定進度條的總數
@@ -99,15 +101,36 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
 
     ProOB.Finish();
 }
-std::vector<std::filesystem::path> RTFDirectoryRunner::collectRtfFiles(const std::filesystem::path& dirPath){
+std::vector<std::filesystem::path> 
+RTFDirectoryRunner::collectRtfFiles(
+  const std::filesystem::path& dirPath ,bool recursive)
+  {
     std::vector<std::filesystem::path> files;
-    for (const auto& entry : std::filesystem::directory_iterator(dirPath)) {
-      if (entry.is_regular_file() && entry.path().extension() == L".rtf") {
-        files.push_back(entry.path());
+    
+    std::error_code ec;
+
+    if(recursive){
+      for (const auto& entry : std::filesystem::recursive_directory_iterator(dirPath, ec)) {
+        
+        if (ec) break;
+
+        if (entry.is_regular_file() && entry.path().extension() == L".rtf") {
+          files.push_back(entry.path());
+        }
+      }
+ 
+    }else{
+      for (const auto& entry : std::filesystem::directory_iterator(dirPath,ec)) {
+        
+        if(ec) break;
+        
+        if (entry.is_regular_file() && entry.path().extension() == L".rtf") {
+          files.push_back(entry.path());
+        }
       }
     }
     return files;
-}
+  }
 size_t RTFDirectoryRunner::DecideThreadNum(size_t resultCount){
     if(resultCount == 0) return 0;
 

@@ -46,11 +46,11 @@ class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
 public:
-  void run(ProgressObserver& ProOB,const FileProcessRequest& req);
+  void run(ProgressObserver& ProOB,const FileProcessRequest& req,bool recursive);
   size_t getSuccessNum() const;
   size_t getFailNum() const;  
 private:
-  std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath);
+  std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t DecideThreadNum(size_t resultCount);
 };
 

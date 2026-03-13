@@ -47,5 +47,8 @@ Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& par
   // 依據輸入決定資料夾處裡模式
   resultconfig.dirPolicy = parConfig.config.dirPolicy;
 
+  // 依據指令決定是否要開啟遞迴輸入
+  resultconfig.recursive = parConfig.recursive;
+
   return resultconfig;
 }

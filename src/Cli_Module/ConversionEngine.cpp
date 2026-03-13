@@ -68,7 +68,7 @@ namespace App{
     else if (std::filesystem::is_directory(input, ec)) {
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
-      Drunner.run(ProOB,FPrequest);
+      Drunner.run(ProOB,FPrequest,RlConfig.recursive);
       Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
                            L" 多執行緒失敗數量: " + 

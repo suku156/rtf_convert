@@ -53,6 +53,9 @@ namespace Cli{
       else if(arg == L"--overwrite"){
         result.config.dirPolicy = Common::ExistingDirPolicy::Overwrite;
       }
+      else if(arg == L"--recursive"){
+        result.recursive = true;
+      }
       else if(arg == L"--format" ){
         if(i + 1 >= argc){
           result.message = L"--format 後面缺少格式名稱";
@@ -116,6 +119,7 @@ namespace Cli{
     std::wcout << L"(--format 目前支援 : txt|md|html 三種格式)\n";
     std::wcout << L"  --version 顯示目前的版本號\n";
     std::wcout << L"  --overwrite 加上的話碰到同名資料夾會啟用覆蓋模式,否則預設為安全模式\n";
+    std::wcout << L"  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
     std::wcout << L"  --help      顯示此說明\n";
   }
 
