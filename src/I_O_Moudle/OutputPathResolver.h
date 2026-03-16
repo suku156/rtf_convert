@@ -56,5 +56,28 @@ namespace OPResolver{
     bool preserveRelativeStructure = true;
     CollisionPolicy collisionPolicy = CollisionPolicy::RenameWithSuffix;
   };
+
+  // 類別用來回傳的結果
+  struct ResolverResult{
+    std::filesystem::path finalPath;
+    std::filesystem::path parentDir;
+    std::filesystem::path relativeSubDir;
+    bool collisionResolved = false;
+  };
+
+  // 負責處裡的類別
+  class OutputPathResolver{
+  public:
+    ResolverResult resolve(const ResolverRequest& request) const;  
+  
+  private:
+    // 再資料夾遞迴模式下用來算出子資料夾與目標資料夾中間的路徑
+    std::filesystem::path buildRelativeSubDir(const ResolverRequest& request) const;
+    std::filesystem::path applyFormatExtension(const std::filesystem::path& p,
+                                               OutputFormat format) const;
+    std::filesystem::path applyCollisionPolicy(const std::filesystem::path& candidate,
+                                               CollisionPolicy policy,
+                                               bool& collisionResolved) const;
+  };
   
 }
