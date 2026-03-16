@@ -13,6 +13,6 @@ struct FileProcessRequest{
     std::filesystem::path outputRootDir;    // 輸出根目錄
     Common::OutputFormat outputFormat;      // 輸出格式
     Common::ExistingDirPolicy dirPolicy;    // 已存在輸出資料夾的策略
-    std::filesystem::path finalOutputPath;
-    std::filesystem::path finalOutputDir;
+    std::filesystem::path finalOutputPath;  // resolver 模組計算出的最終路徑
+    std::filesystem::path finalOutputDir;   // resolver 模組計算出的路徑中間值 
 };

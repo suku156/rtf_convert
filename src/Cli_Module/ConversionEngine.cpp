@@ -94,11 +94,12 @@ namespace App{
       resolverReq.mode = OPResolver::PathResolveMode::SingleFile;
       resolverReq.preserveRelativeStructure = false;
 
-      //第一版測試 : 驗證得出的路徑是否正確
+      //驗證得到的路徑並且將起寫入主流程的參數結構
       OPResolver::OutputPathResolver resolver;
       OPResolver::ResolverResult test = resolver.resolve(resolverReq);
-      
-      
+      FPrequest.finalOutputPath = test.finalPath;
+      FPrequest.finalOutputDir  = test.parentDir;
+
       // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor;
       bool flag = rtfprocessor.processFile(FPrequest);
