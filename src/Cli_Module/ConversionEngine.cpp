@@ -8,10 +8,12 @@
 #include "thread_Moudle/MyThread.h"
 #include "Universal_Module/Console.h"
 #include "MainProcess_Module/FileProcessRequest.h"
+#include "I_O_Moudle/OutputPathResolver.h"
 #include <system_error>
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <optional>
 
 namespace App{
   AppExitCode ConversionEngine::run(const Conversion::ResolvedConfig& RlConfig){
@@ -47,15 +49,51 @@ namespace App{
       return AppExitCode::RunTimeError;
     }
 
+    // 主流程需要的參數資料結構
     FileProcessRequest FPrequest;
     FPrequest.filePath = input;
     FPrequest.outputRootDir = output;
     FPrequest.outputFormat = RlConfig.format;
     FPrequest.dirPolicy = RlConfig.dirPolicy;
+
+    // 確保輸出檔案的資料結構
+    OPResolver::ResolverRequest resolverReq;
+    resolverReq.baseOutputDir = RlConfig.outputDir;
+    switch(RlConfig.format){
+      case Common::OutputFormat::Txt :
+      resolverReq.format = OPResolver::OutputFormat::txt;
+      break;
+      case Common::OutputFormat::Md :
+      resolverReq.format = OPResolver::OutputFormat::md;
+      break;
+      case Common::OutputFormat::Html :
+      resolverReq.format = OPResolver::OutputFormat::html;
+      break;
+      default: // 預設使用 txt
+      resolverReq.format = OPResolver::OutputFormat::txt;
+      break;
+    }
+    switch(RlConfig.dirPolicy){
+      case Common::ExistingDirPolicy::Reject :
+      resolverReq.collisionPolicy = OPResolver::CollisionPolicy::ErrorIfExists;
+      break;
+      case Common::ExistingDirPolicy::Overwrite :
+      resolverReq.collisionPolicy = OPResolver::CollisionPolicy::Overwrite;
+      break;
+      default: // 預設為安全模式
+      resolverReq.collisionPolicy = OPResolver::CollisionPolicy::ErrorIfExists;
+      break;
+    }
     
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
+      // 依據判斷出來的模式再次調整 resolverReq
+      resolverReq.inputFile = RlConfig.inputPath;
+      resolverReq.taskRootDir = std::nullopt;
+      resolverReq.mode = OPResolver::PathResolveMode::SingleFile;
+      resolverReq.preserveRelativeStructure = false;
+      
       // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor;
       bool flag = rtfprocessor.processFile(FPrequest);
@@ -66,8 +104,20 @@ namespace App{
       }
     }
     else if (std::filesystem::is_directory(input, ec)) {
+      // 依據判斷出來的模式再次調整 resolverReq
+      // resolverReq.inputFile 先不設定資料夾模式要等到進函式內才會拿到
+      resolverReq.taskRootDir = RlConfig.inputPath;// 給定輸入資料夾位置
+      if(!RlConfig.recursive){
+        resolverReq.mode = OPResolver::PathResolveMode::DirectoryFlat;
+        resolverReq.preserveRelativeStructure = false;
+      }else{
+        resolverReq.mode = OPResolver::PathResolveMode::DirectoryRecursive;
+        resolverReq.preserveRelativeStructure = true;
+      }
+      
       RTFDirectoryRunner Drunner;
       ProgressObserver ProOB;
+      // 須注意 resolverReq.inputFile 在資料夾模式中需要進入多執行緒類別中設定,不然為空
       Drunner.run(ProOB,FPrequest,RlConfig.recursive);
       Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
