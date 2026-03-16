@@ -24,6 +24,9 @@
 #include "Universal_Module/CommonEnum.h"
 
 // forward delecration
+namespace OPResolver{
+  struct ResolverRequest;
+}
 namespace Cli{
   struct ParseResult;
 }
@@ -46,7 +49,8 @@ class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
 public:
-  void run(ProgressObserver& ProOB,const FileProcessRequest& req,bool recursive);
+  void run(ProgressObserver& ProOB,const FileProcessRequest& req,
+           bool recursive , const OPResolver::ResolverRequest& templateResolverreq);
   size_t getSuccessNum() const;
   size_t getFailNum() const;  
 private:

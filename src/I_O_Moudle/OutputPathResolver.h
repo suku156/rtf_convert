@@ -8,6 +8,7 @@
 //
 // Used by :
 //   ConversionEngine  
+//   Mythread
 //
 // Notes :
 //   用於確保輸出檔案

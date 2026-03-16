@@ -6,6 +6,7 @@
 #include "MainProcess_Module/RTFProcessor.h"
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Cli_Module/CliParser.h"
+#include "I_O_Moudle/OutputPathResolver.h"
 #include <thread>
 #include <cstddef>
 #include <system_error>
@@ -33,7 +34,8 @@ void ProgressObserver::display() const{
 }
 
 // 多執行緒任務的總管 (函式定義)
-void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req,bool recursive){
+void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req,
+                             bool recursive , const OPResolver::ResolverRequest& templateResolverreq){
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
     files = collectRtfFiles(req.filePath,recursive);
@@ -55,7 +57,7 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
 
     FileProcessRequest baseReq = req;
     // 4. 用 lambda 執行某個任務
-    auto worker = [&index,&files,&baseReq,&ProOB,this](){
+    auto worker = [&index,&files,&baseReq,&ProOB,this,&templateResolverreq](){
       RTFProcessor  localprocessor;
       
       while(true){
@@ -65,7 +67,20 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
         const auto& file = files[i];
         FileProcessRequest fileReq = baseReq;
         fileReq.filePath = file;
+        // 複製並補上 目標檔案路徑
+        OPResolver::ResolverRequest useResolverreq = templateResolverreq;
+        useResolverreq.inputFile = file;
+        //第一版測試 : 驗證得出的路徑是否正確
+        OPResolver::OutputPathResolver resolver;
+        OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
+        std::wstring msg;
+        msg += L"[TEST] file    : " + file.wstring() + L"\n";
+        msg += L"[TEST] relative: " + test.relativeSubDir.wstring() + L"\n";
+        msg += L"[TEST] parent  : " + test.parentDir.wstring() + L"\n";
+        msg += L"[TEST] final   : " + test.finalPath.wstring() + L"\n\n";
+        Console::ensureWcout(msg);
 
+        /*
         try{
           bool ok = localprocessor.processFile(fileReq);
           if(ok){
@@ -81,6 +96,7 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
           failCount_.fetch_add(1,std::memory_order_relaxed);
           Console::ensureWcerr(L"[Unknown Exception] " + file.wstring() +  L"\n");
         }
+        */  
         
         ProOB.onUnitDone();
       }
