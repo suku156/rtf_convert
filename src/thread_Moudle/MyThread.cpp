@@ -70,17 +70,13 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
         // 複製並補上 目標檔案路徑
         OPResolver::ResolverRequest useResolverreq = templateResolverreq;
         useResolverreq.inputFile = file;
-        //第一版測試 : 驗證得出的路徑是否正確
+        
+        //負責的類別驗證路徑
         OPResolver::OutputPathResolver resolver;
         OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
-        std::wstring msg;
-        msg += L"[TEST] file    : " + file.wstring() + L"\n";
-        msg += L"[TEST] relative: " + test.relativeSubDir.wstring() + L"\n";
-        msg += L"[TEST] parent  : " + test.parentDir.wstring() + L"\n";
-        msg += L"[TEST] final   : " + test.finalPath.wstring() + L"\n\n";
-        Console::ensureWcout(msg);
-
-        /*
+        fileReq.finalOutputPath = test.finalPath;
+        fileReq.finalOutputDir  = test.parentDir; 
+        
         try{
           bool ok = localprocessor.processFile(fileReq);
           if(ok){
@@ -96,7 +92,7 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
           failCount_.fetch_add(1,std::memory_order_relaxed);
           Console::ensureWcerr(L"[Unknown Exception] " + file.wstring() +  L"\n");
         }
-        */  
+        
         
         ProOB.onUnitDone();
       }
