@@ -80,6 +80,9 @@ namespace App{
       case Common::ExistingDirPolicy::Overwrite :
       resolverReq.collisionPolicy = OPResolver::CollisionPolicy::Overwrite;
       break;
+      case Common::ExistingDirPolicy::RenameWithSuffix :
+      resolverReq.collisionPolicy = OPResolver::CollisionPolicy::RenameWithSuffix;
+      break;
       default: // 預設為安全模式
       resolverReq.collisionPolicy = OPResolver::CollisionPolicy::ErrorIfExists;
       break;

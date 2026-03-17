@@ -320,7 +320,6 @@ namespace{
 bool RTFProcessor::processFile(const FileProcessRequest& req)
 {
     const std::filesystem::path& filePath = req.filePath;
-    const std::filesystem::path& outputpath = req.outputRootDir;
     auto outputformat = req.outputFormat;
 
     // 簡單測試最終路徑

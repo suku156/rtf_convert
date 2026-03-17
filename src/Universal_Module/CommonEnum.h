@@ -61,7 +61,11 @@ namespace Common{
   
   // 用於表示對同名資料夾的預設處理
   enum class ExistingDirPolicy {
-    Reject,   // 有同名檔案就拒絕
-    Overwrite // 有同名檔案舊覆蓋
+    // 有同名檔案就拒絕
+    Reject,   
+    // 有同名檔案就把舊的覆蓋掉
+    Overwrite,
+    // 在尾部加上數字並建立新檔案 
+    RenameWithSuffix
   }; 
 }

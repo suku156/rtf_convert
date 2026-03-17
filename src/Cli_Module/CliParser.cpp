@@ -23,6 +23,7 @@ namespace Cli{
   ParseResult parse(int argc,wchar_t* argv[]){
     ParseResult result;
     bool hasInput = false;
+    bool hasDirPolicy = false;
    
     for(int i = 1; i < argc; i++){
       std::wstring arg = argv[i];
@@ -51,7 +52,22 @@ namespace Cli{
         return result;
       }
       else if(arg == L"--overwrite"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
         result.config.dirPolicy = Common::ExistingDirPolicy::Overwrite;
+        hasDirPolicy = true;
+      }
+      else if(arg == L"--renamewithsuffix"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
+        result.config.dirPolicy = Common::ExistingDirPolicy::RenameWithSuffix;
+        hasDirPolicy = true;
       }
       else if(arg == L"--recursive"){
         result.recursive = true;
@@ -93,21 +109,6 @@ namespace Cli{
     return result;
   }
 
-  std::wstring usage(){
-    return 
-    L"\n\n"
-    L"Usage:\n"
-    L"  rtfconvert --input <file|dir> --output <dir> --format <txt|md|html>\n"
-    L"\n"
-    L"Options:\n"
-    L"  --input     指定輸入檔案或資料夾\n"
-    L"  --output    指定輸出資料夾(不輸入使用預設)\n"
-    L"  --format    輸出格式 (txt | md | html)(不輸入使用預設)\n"
-    L"\n"
-    L"Example:\n"
-    L"  rtfconvert --input test.rtf --output out --format txt\n";
-  }
-
   void printHelp(){
     std::wcout << L"Usage:\n";
     std::wcout << L"  rtfconvert --input <path> [--output <dir>] [--format txt]\n\n";
@@ -118,7 +119,8 @@ namespace Cli{
     std::wcout << L"  --format    輸出格式\n";
     std::wcout << L"(--format 目前支援 : txt|md|html 三種格式)\n";
     std::wcout << L"  --version 顯示目前的版本號\n";
-    std::wcout << L"  --overwrite 加上的話碰到同名資料夾會啟用覆蓋模式,否則預設為安全模式\n";
+    std::wcout << L"  --overwrite 碰到同名資料夾會採取覆蓋策略,不能與安全模式及新增檔案模式並存\n";
+    std::wcout << L"  --renamewithsuffix 碰到同名資料夾會採取新增檔案策略,不能與安全模式及覆蓋檔案模式並存\n";
     std::wcout << L"  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
     std::wcout << L"  --help      顯示此說明\n";
   }

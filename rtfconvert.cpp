@@ -51,7 +51,7 @@ int wmain(int argc,wchar_t* argv[]){
 
   if(!parseresult.ok){
     Console::ensureWcout(parseresult.message);
-    Console::ensureWcout(Cli::usage());
+    Cli::printHelp();
     return 2;
   }
   

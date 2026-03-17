@@ -7,6 +7,9 @@
 #include <optional>
 #include <system_error>
 #include <string>
+#include <mutex>
+#include <mutex>
+#include <unordered_set>
 
 namespace{
   // 用來檢查與替換檔名中有影響的空格
@@ -105,4 +108,36 @@ namespace OPResolver{
 
     return rel;
   }
+
+  std::optional<std::filesystem::path> 
+  OutputPathRegistry::reserveUniqueDir(
+  const std::filesystem::path& parent,
+  const std::wstring& baseName)
+  {
+    std::lock_guard<std::mutex> lockguard(mutex_);
+     
+    //先組合路徑進行檢查
+    std::filesystem::path candidate = parent / baseName;
+    std::wstring key = candidate.wstring();
+    
+    //名單放在記憶體比較快先檢查名單
+    if(reserved_.count(key) == 0){
+      std::error_code ec;
+      bool existsOnDisk = std::filesystem::exists(candidate, ec);
+    
+      if(ec){
+        return std::nullopt; 
+      }
+      if(!existsOnDisk){ // 代表磁碟檢查也通過
+        reserved_.insert(key); // 登入名單中
+        return candidate;
+      }
+
+      // 進行 policy 判斷
+    }
+      
+    // 會走到此處代表需要嘗試在檔名後方加上數字
+    
+    return std::nullopt;// 暫時放這個
+  } 
 }

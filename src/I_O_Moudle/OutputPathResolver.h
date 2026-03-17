@@ -18,6 +18,8 @@
 #pragma once
 #include <filesystem>
 #include <optional>
+#include <mutex>
+#include <unordered_set>
 
 namespace OPResolver{
   // 用來表示現在的處理模式
@@ -74,11 +76,15 @@ namespace OPResolver{
   private:
     // 再資料夾遞迴模式下用來算出子資料夾與目標資料夾中間的路徑
     std::filesystem::path buildRelativeSubDir(const ResolverRequest& request) const;
-    std::filesystem::path applyFormatExtension(const std::filesystem::path& p,
-                                               OutputFormat format) const;
-    std::filesystem::path applyCollisionPolicy(const std::filesystem::path& candidate,
-                                               CollisionPolicy policy,
-                                               bool& collisionResolved) const;
+  };
+
+  // 共用的輸出資料夾名稱分配器
+  class OutputPathRegistry{
+    std::mutex mutex_;
+    std::unordered_set<std::wstring> reserved_;
+  public:
+    std::optional<std::filesystem::path> reserveUniqueDir(const std::filesystem::path& parent,
+                                                          const std::wstring& baseName); 
   };
   
 }
