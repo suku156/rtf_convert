@@ -27,40 +27,7 @@
 // 使用 namespace 的隱常功能
 // 目前只要主流程會用到的類別與函式,先放在.cpp 中 有需求時在拆出去
 namespace{
-  // 用來檢查與替換檔名中有影響的空格
-  std::wstring sanitizeFileName(const std::wstring& basename){
-    std::wstring result;
-    result.reserve(basename.size());
-
-    for(wchar_t c:basename){
-    //如果有找到全形或特別的空白
-    if(c == L'\u3000' || c == L'\u00A0' || c == L'\u2002' || c == L'\u2003' ||
-        c == L'\u2009' || c == L'\u202F' || c == L'\u205F' || c == L'\u200B')
-    {
-        result.push_back(L' ');
-    }else if(c == L' '){
-        result.push_back(L' ');
-    }else if(c == L'<' || c == L'>' || c == L':' || c == L'"' ||
-                c == L'/' || c == L'\\' || c == L'|' || c == L'?' || c == L'*') // 防止非法檔案名稱
-    {
-        result.push_back(L'_');
-    }else{
-        result.push_back(c);
-    }
-    }
-
-    // 去除開頭或結尾空白（避免 Windows 檔名非法）
-    while (!result.empty() && std::iswspace(result.front())) result.erase(result.begin());
-    while (!result.empty() && std::iswspace(result.back()))  result.pop_back();
-
-    //如果有對檔案名稱進行改動,傳入資料流
-    if(result != basename){
-    Console::ensureWcerr(L"[Notice] 檔名中包含不安全字元，已自動修正。\n");
-    }
-
-    return result;
-  } 
-  
+   
   // 偵測結果的錯誤處理
   DetectorCategory handleDetectorResult(DetectorResult r,ErrorHandle& errorhandler){
     switch(r){
@@ -359,6 +326,21 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     Console::ensureWcout(req.finalOutputPath);
     Console::ensureWcout(req.finalOutputDir);
     
+    // 簡單測試最終路徑
+    if(req.finalOutputDir.empty()){
+      Console::ensureWcerr(L"輸出資料夾路徑為空\n");
+      return false;
+    }
+    if(req.finalOutputPath.empty()){
+      Console::ensureWcerr(L"輸出檔案路徑為空\n");
+      return false;
+    }
+    if(req.finalOutputPath.parent_path() != req.finalOutputDir){
+      Console::ensureWcerr(L"輸出檔案路徑與輸出資料夾路徑不一致\n");
+      return false;
+    }
+    
+    /*
     // 擷取不含副檔名的檔案名稱
     std::wstring baseName = filePath.stem().wstring();
     // 檢查與替換檔名中會造成問題的空格
@@ -374,27 +356,29 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     if(outputSet == req.outputRootDir){
       Console::ensureWcout(L"輸出資料夾與輸出資料夾根目錄相同!,程式中止\n");
       return false;
-    } 
+    }
+    */
+     
     
     // 建立輸出資料夾
-    OutputDirGuard fileOut(outputSet,req.dirPolicy);
+    OutputDirGuard fileOut(req.finalOutputDir,req.dirPolicy);
     auto dirResult = fileOut.ensure();
     if(dirResult != EnsureDirResult::Success){
       switch(dirResult){
         case EnsureDirResult::AlreadyExists:
-        Console::ensureWcerr(L"輸出資料夾已存在: " + outputSet.wstring() + L"\n");
+        Console::ensureWcerr(L"輸出資料夾已存在: " + req.finalOutputDir.wstring() + L"\n");
         break;
         case EnsureDirResult::NotDirectory:
-        Console::ensureWcerr(L"輸出路徑已存在但不是資料夾: " + outputSet.wstring() + L"\n");
+        Console::ensureWcerr(L"輸出路徑已存在但不是資料夾: " + req.finalOutputDir.wstring() + L"\n");
         break;
         case EnsureDirResult::CreateFailed:
-        Console::ensureWcerr(L"建立輸出資料夾失敗: " + outputSet.wstring() + L"\n");
+        Console::ensureWcerr(L"建立輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n");
         break;
         case EnsureDirResult::VerifyFailed:
-        Console::ensureWcerr(L"建立後驗證輸出資料夾失敗: " + outputSet.wstring() + L"\n");
+        Console::ensureWcerr(L"建立後驗證輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n");
         break;
         default:
-        Console::ensureWcerr(L"未知的輸出資料夾錯誤: " + outputSet.wstring() + L"\n");
+        Console::ensureWcerr(L"未知的輸出資料夾錯誤: " + req.finalOutputDir.wstring() + L"\n");
         break;
       }
       return false;
@@ -532,26 +516,14 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
 
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
     
-    
-    // 開啟輸出檔案
-    std::wstring ext;
-    switch(outputformat){
-        case Common::OutputFormat::Txt:  ext = L".txt"; break;
-        case Common::OutputFormat::Md:   ext = L".md"; break;
-        case Common::OutputFormat::Html: ext = L".html"; break;
-        default:
-        Console::ensureWcerr(L"[Unknown OutputFormat]");
-        return false;
-    }
-    
-    std::filesystem::path textOutput = fileOut.path() / (baseName + ext);
-    std::ofstream output(textOutput, std::ios::binary);
+    // 直接使用得到的最終檔案路徑
+    std::ofstream output(req.finalOutputPath, std::ios::binary);
     if (!output) {
       ErrorSystem::ErrorInfo info;
       info.add(ErrorSystem::ErrorType::Fatal_CreatOutputFail,
                ErrorSystem::ErrorLevel::FatalLocal,
                ErrorSystem::ErrorCategory::FileIO,
-               L"無法建立輸出檔案 : " + textOutput.wstring());
+               L"無法建立輸出檔案 : " + req.finalOutputPath.wstring());
       errorhandler.handle(info);
       return false;
     }
@@ -594,7 +566,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       return false;
     }
     
-    Console::ensureWcout(L"已輸出至: " + baseName + L"\n");
+    Console::ensureWcout(L"已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n");
     output.close();
     logger.log(LogLevel::Info,"關閉輸出檔案");
     
