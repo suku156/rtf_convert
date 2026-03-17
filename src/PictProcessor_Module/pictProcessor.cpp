@@ -17,6 +17,7 @@
 #include<string_view>
 #include<iostream>
 #include<cctype>
+#include<system_error>
 #ifdef _WIN32
   #include <windows.h>
 #endif
@@ -624,11 +625,21 @@ std::optional<std::filesystem::path> PictDisassembler::makeOutputPath(PictFormat
       case PictFormat::EMF:  ext = ".emf";  break;
       default: ext = ".img"; break;
     }
-
+    
+    // 確保主資料夾存在
     auto DirResult = outputDir_.ensure();
     if(DirResult != EnsureDirResult::Success){
       return std::nullopt;
     }
 
-    return outputDir_.path() / ("IMG_" + std::to_string(index) + ext);
+    // 建立 images 子資料夾
+    std::filesystem::path imageDir = outputDir_.path() / L"images";
+    
+    std::error_code ec;
+    std::filesystem::create_directories(imageDir,ec);
+    if(ec){
+      return std::nullopt;
+    }
+
+    return imageDir / ("IMG_" + std::to_string(index) + ext);
 }

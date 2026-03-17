@@ -323,9 +323,6 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     const std::filesystem::path& outputpath = req.outputRootDir;
     auto outputformat = req.outputFormat;
 
-    Console::ensureWcout(req.finalOutputPath);
-    Console::ensureWcout(req.finalOutputDir);
-    
     // 簡單測試最終路徑
     if(req.finalOutputDir.empty()){
       Console::ensureWcerr(L"輸出資料夾路徑為空\n");
@@ -339,26 +336,6 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       Console::ensureWcerr(L"輸出檔案路徑與輸出資料夾路徑不一致\n");
       return false;
     }
-    
-    /*
-    // 擷取不含副檔名的檔案名稱
-    std::wstring baseName = filePath.stem().wstring();
-    // 檢查與替換檔名中會造成問題的空格
-    baseName = sanitizeFileName(baseName);
-    if(baseName.empty()){ // 防止特殊檔名導致空白檔名
-      baseName = L"output";
-    }
-    if(baseName == L"." || baseName == L".."){ // 預防錯誤
-      baseName = L"output";
-    }
-
-    std::filesystem::path outputSet = outputpath / baseName;
-    if(outputSet == req.outputRootDir){
-      Console::ensureWcout(L"輸出資料夾與輸出資料夾根目錄相同!,程式中止\n");
-      return false;
-    }
-    */
-     
     
     // 建立輸出資料夾
     OutputDirGuard fileOut(req.finalOutputDir,req.dirPolicy);

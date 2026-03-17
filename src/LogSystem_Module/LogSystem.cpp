@@ -15,10 +15,10 @@
 #include<iomanip>
 
 
-bool logSystem::open(const std::filesystem::path& logPath){
+bool logSystem::open(const std::filesystem::path& logDir){
     std::lock_guard<std::mutex> lock(mutex_); // 開啟時先上鎖 使用lock_guard 會在週期結束自動解鎖
     
-    if(logPath.empty()) return false; //防呆
+    if(logDir.empty()) return false; //防呆
     
     //檔案如果已經開啟了 先關閉
     if(output_.is_open()){
@@ -27,12 +27,12 @@ bool logSystem::open(const std::filesystem::path& logPath){
 
     // 確保目錄存在
     std::error_code ec;
-    std::filesystem::create_directories(logPath, ec);
+    std::filesystem::create_directories(logDir, ec);
     if (ec) {
       return false;
     }
     
-    std::filesystem::path logout = logPath / "log.txt";
+    std::filesystem::path logout = logDir / L"log.txt";
     
     output_.open(logout, std::ios::out | std::ios::app);
     if(!output_.is_open()) return false;
