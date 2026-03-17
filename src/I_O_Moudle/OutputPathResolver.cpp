@@ -3,6 +3,7 @@
 // =====================================================
 #include "OutputPathResolver.h"
 #include "Universal_Module/Console.h"
+
 #include <filesystem>
 #include <optional>
 #include <system_error>
@@ -112,7 +113,8 @@ namespace OPResolver{
   std::optional<std::filesystem::path> 
   OutputPathRegistry::reserveUniqueDir(
   const std::filesystem::path& parent,
-  const std::wstring& baseName)
+  const std::wstring& baseName,
+  CollisionPolicy policy)
   {
     std::lock_guard<std::mutex> lockguard(mutex_);
      
@@ -131,9 +133,17 @@ namespace OPResolver{
       if(!existsOnDisk){ // 代表磁碟檢查也通過
         reserved_.insert(key); // 登入名單中
         return candidate;
+      }else{
+        switch(policy){
+          case CollisionPolicy::ErrorIfExists :
+          return std::nullopt;
+          break;
+          case CollisionPolicy::Overwrite :
+          break;
+        }
       }
 
-      // 進行 policy 判斷
+      
     }
       
     // 會走到此處代表需要嘗試在檔名後方加上數字

@@ -84,7 +84,8 @@ namespace OPResolver{
     std::unordered_set<std::wstring> reserved_;
   public:
     std::optional<std::filesystem::path> reserveUniqueDir(const std::filesystem::path& parent,
-                                                          const std::wstring& baseName); 
+                                                          const std::wstring& baseName,
+                                                          CollisionPolicy policy); 
   };
   
 }
