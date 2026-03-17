@@ -2,9 +2,47 @@
 // Module : OutputPathResolver (implementation)
 // =====================================================
 #include "OutputPathResolver.h"
+#include "Universal_Module/Console.h"
 #include <filesystem>
 #include <optional>
 #include <system_error>
+#include <string>
+
+namespace{
+  // 用來檢查與替換檔名中有影響的空格
+  std::wstring sanitizeFileName(const std::wstring& basename){
+    std::wstring result;
+    result.reserve(basename.size());
+
+    for(wchar_t c:basename){
+    //如果有找到全形或特別的空白
+    if(c == L'\u3000' || c == L'\u00A0' || c == L'\u2002' || c == L'\u2003' ||
+        c == L'\u2009' || c == L'\u202F' || c == L'\u205F' || c == L'\u200B')
+    {
+        result.push_back(L' ');
+    }else if(c == L' '){
+        result.push_back(L' ');
+    }else if(c == L'<' || c == L'>' || c == L':' || c == L'"' ||
+                c == L'/' || c == L'\\' || c == L'|' || c == L'?' || c == L'*') // 防止非法檔案名稱
+    {
+        result.push_back(L'_');
+    }else{
+        result.push_back(c);
+    }
+    }
+
+    // 去除開頭或結尾空白（避免 Windows 檔名非法）
+    while (!result.empty() && std::iswspace(result.front())) result.erase(result.begin());
+    while (!result.empty() && std::iswspace(result.back()))  result.pop_back();
+
+    //如果有對檔案名稱進行改動,傳入資料流
+    if(result != basename){
+    Console::ensureWcerr(L"[Notice] 檔名中包含不安全字元，已自動修正。\n");
+    }
+
+    return result;
+  } 
+}
 
 namespace OPResolver{
   
@@ -15,13 +53,33 @@ namespace OPResolver{
     result.relativeSubDir = buildRelativeSubDir(request);
     
     // 組裝路徑 用輸出資料夾 加上 中間路徑
-    result.parentDir = request.baseOutputDir / result.relativeSubDir;
+    std::filesystem::path baseDir = request.baseOutputDir / result.relativeSubDir;
     
-    // 取得目標的檔名(第一版先固定成 txt 檔)
-    std::filesystem::path outputFilename = request.inputFile.filename();
-    outputFilename.replace_extension(L".txt");
+    // 取得目標的檔名並進行基礎的檢查
+    std::filesystem::path basename = request.inputFile.stem();
+    std::wstring safeName = sanitizeFileName(basename.stem());
+    if(safeName.empty() || safeName == L"." || safeName == L".."){
+      safeName = L"output";
+    }
+    std::filesystem::path safeBaseName = safeName;
+    
+    // 將得到的路徑與檔名組合成 最終輸出檔案所在的資料夾路徑
+    result.parentDir = baseDir / safeBaseName;
+    
+    // 依據格式決定副檔名
+    std::wstring ext;
+    switch(request.format){
+      case OutputFormat::txt : ext = L".txt" ; break;
+      case OutputFormat::md  : ext = L".md"  ; break;
+      case OutputFormat::html: ext = L".html"; break;
+      default : ext = L".txt"; break;
+    }
+    
+    // 建立最終檔名(含有副檔名)
+    std::filesystem::path outputFilename = safeBaseName;
+    outputFilename += ext;
 
-    // 最終的結果 完整路徑含檔名
+    // 最終完整檔案路徑
     result.finalPath = result.parentDir / outputFilename;
 
     return result;

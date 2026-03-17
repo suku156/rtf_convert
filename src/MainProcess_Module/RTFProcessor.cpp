@@ -27,7 +27,7 @@
 // 使用 namespace 的隱常功能
 // 目前只要主流程會用到的類別與函式,先放在.cpp 中 有需求時在拆出去
 namespace{
-   // 用來檢查與替換檔名中有影響的空格
+  // 用來檢查與替換檔名中有影響的空格
   std::wstring sanitizeFileName(const std::wstring& basename){
     std::wstring result;
     result.reserve(basename.size());
@@ -355,6 +355,9 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     const std::filesystem::path& filePath = req.filePath;
     const std::filesystem::path& outputpath = req.outputRootDir;
     auto outputformat = req.outputFormat;
+
+    Console::ensureWcout(req.finalOutputPath);
+    Console::ensureWcout(req.finalOutputDir);
     
     // 擷取不含副檔名的檔案名稱
     std::wstring baseName = filePath.stem().wstring();
