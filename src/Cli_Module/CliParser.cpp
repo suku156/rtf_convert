@@ -69,6 +69,15 @@ namespace Cli{
         result.config.dirPolicy = Common::ExistingDirPolicy::RenameWithSuffix;
         hasDirPolicy = true;
       }
+      else if(arg == L"--reject"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
+        result.config.dirPolicy = Common::ExistingDirPolicy::Reject;
+        hasDirPolicy = true;
+      }
       else if(arg == L"--recursive"){
         result.recursive = true;
       }
@@ -121,6 +130,7 @@ namespace Cli{
     std::wcout << L"  --version 顯示目前的版本號\n";
     std::wcout << L"  --overwrite 碰到同名資料夾會採取覆蓋策略,不能與安全模式及新增檔案模式並存\n";
     std::wcout << L"  --renamewithsuffix 碰到同名資料夾會採取新增檔案策略,不能與安全模式及覆蓋檔案模式並存\n";
+    std::wcout << L"  --reject (為預設處理模式)碰到同名資料夾會採取安全策略,不能與新增檔案模式及覆蓋檔案模式並存\n";
     std::wcout << L"  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
     std::wcout << L"  --help      顯示此說明\n";
   }

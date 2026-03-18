@@ -3,7 +3,6 @@
 // =====================================================
 #include "OutputPathResolver.h"
 #include "Universal_Module/Console.h"
-
 #include <filesystem>
 #include <optional>
 #include <system_error>
@@ -61,14 +60,21 @@ namespace OPResolver{
     
     // 取得目標的檔名並進行基礎的檢查
     std::filesystem::path basename = request.inputFile.stem();
-    std::wstring safeName = sanitizeFileName(basename.stem());
+    std::wstring safeName = sanitizeFileName(basename.wstring());
     if(safeName.empty() || safeName == L"." || safeName == L".."){
       safeName = L"output";
     }
-    std::filesystem::path safeBaseName = safeName;
     
-    // 將得到的路徑與檔名組合成 最終輸出檔案所在的資料夾路徑
-    result.parentDir = baseDir / safeBaseName;
+    // 檢查有無同名資料夾
+    auto uniqueDir = registry_.reserveUniqueDir(baseDir,safeName,request.collisionPolicy);
+    
+    // 使用驗證函式的回傳結果
+    if(!uniqueDir.has_value()){
+      result.pathReserved = false;
+      return result;
+    }else{
+      result.parentDir = uniqueDir.value();
+    }
     
     // 依據格式決定副檔名
     std::wstring ext;
@@ -80,12 +86,14 @@ namespace OPResolver{
     }
     
     // 建立最終檔名(含有副檔名)
-    std::filesystem::path outputFilename = safeBaseName;
+    std::filesystem::path finalDirName = result.parentDir.filename();
+    std::filesystem::path outputFilename = finalDirName;
     outputFilename += ext;
 
     // 最終完整檔案路徑
     result.finalPath = result.parentDir / outputFilename;
 
+    result.pathReserved = true;
     return result;
   }
   
@@ -122,32 +130,68 @@ namespace OPResolver{
     std::filesystem::path candidate = parent / baseName;
     std::wstring key = candidate.wstring();
     
-    //名單放在記憶體比較快先檢查名單
-    if(reserved_.count(key) == 0){
-      std::error_code ec;
-      bool existsOnDisk = std::filesystem::exists(candidate, ec);
+    // 建立判斷名單或硬碟上是否存在的辨別變數
+    bool reserved = (reserved_.count(key) != 0);
+    std::error_code ec;
+    bool existsOnDisk = std::filesystem::exists(candidate,ec);
     
-      if(ec){
-        return std::nullopt; 
-      }
-      if(!existsOnDisk){ // 代表磁碟檢查也通過
-        reserved_.insert(key); // 登入名單中
-        return candidate;
-      }else{
-        switch(policy){
-          case CollisionPolicy::ErrorIfExists :
-          return std::nullopt;
-          break;
-          case CollisionPolicy::Overwrite :
-          break;
+    // 依照辦別變數判斷如何處裡
+    // 例外錯誤直接判定為失敗
+    if(ec){
+      return std::nullopt;
+    }
+
+    // 都沒有撞名的情況就直接使用
+    if(!reserved && !existsOnDisk){
+      reserved_.insert(key);
+      return candidate;
+    }
+
+    // 有撞名的情況就依據傳入的 Policy 處裡
+    switch(policy){
+      case CollisionPolicy::ErrorIfExists :
+        return std::nullopt;
+      case CollisionPolicy::Overwrite :
+        if(!reserved){
+          reserved_.insert(key);
+          return candidate;
         }
+        return std::nullopt;
+      case CollisionPolicy::RenameWithSuffix :
+        return pathToSuffixLoopLocked(parent,baseName);
+    }
+
+    return std::nullopt;// 保守作法
+  }
+  
+  // 使用前提:呼叫者必須已經持有 : mutex_;
+  // 此函式會存取 reserved_，因此不可在未上鎖情況下呼叫。
+  std::optional<std::filesystem::path> 
+  OutputPathRegistry::pathToSuffixLoopLocked(
+  const std::filesystem::path& parent,
+  const std::wstring& baseName)
+  {
+    for(size_t i =1;;++i){
+      std::wstring newName = baseName + L"_" + std::to_wstring(i);
+      std::filesystem::path candidate = parent / newName;
+      std::wstring key = candidate.wstring();
+
+      if(reserved_.count(key) != 0){
+        continue; // 重複直到找到可用數字編號
       }
 
-      
+      std::error_code ec;
+      bool exists = std::filesystem::exists(candidate,ec);
+      if(ec){
+        return std::nullopt;
+      }
+
+      if(!exists){
+        reserved_.insert(key);
+        return candidate;
+      }
     }
-      
-    // 會走到此處代表需要嘗試在檔名後方加上數字
-    
-    return std::nullopt;// 暫時放這個
-  } 
+
+    return std::nullopt;
+  }
 }

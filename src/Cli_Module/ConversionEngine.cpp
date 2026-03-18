@@ -98,8 +98,14 @@ namespace App{
       resolverReq.preserveRelativeStructure = false;
 
       //驗證得到的路徑並且將起寫入主流程的參數結構
-      OPResolver::OutputPathResolver resolver;
+      // 檢查同名資料夾用的類別
+      OPResolver::OutputPathRegistry registry;
+      OPResolver::OutputPathResolver resolver(registry);
       OPResolver::ResolverResult test = resolver.resolve(resolverReq);
+      if(!test.pathReserved){
+        Console::ensureWcout(L"因為資料夾同名碰裝問題程式中止!!");
+        return AppExitCode::Fail;
+      }
       FPrequest.finalOutputPath = test.finalPath;
       FPrequest.finalOutputDir  = test.parentDir;
 

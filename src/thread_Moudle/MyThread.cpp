@@ -7,6 +7,7 @@
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Cli_Module/CliParser.h"
 #include "I_O_Moudle/OutputPathResolver.h"
+#include "Universal_Module/CommonEnum.h"
 #include <thread>
 #include <cstddef>
 #include <system_error>
@@ -55,10 +56,14 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
     successCount_.store(0,std::memory_order_relaxed);
     failCount_.store(0,std::memory_order_relaxed);
 
+    // 一些由多執行緒總管持有的資源
     FileProcessRequest baseReq = req;
+    // 檢查同名資料夾用的類別
+    OPResolver::OutputPathRegistry registry;
     // 4. 用 lambda 執行某個任務
-    auto worker = [&index,&files,&baseReq,&ProOB,this,&templateResolverreq](){
+    auto worker = [&index,&files,&baseReq,&ProOB,this,&templateResolverreq,&registry](){
       RTFProcessor  localprocessor;
+      OPResolver::OutputPathResolver resolver(registry);
       
       while(true){
         size_t i = index.fetch_add(1);
@@ -72,8 +77,13 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
         useResolverreq.inputFile = file;
         
         //負責的類別驗證路徑
-        OPResolver::OutputPathResolver resolver;
         OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
+        if(!test.pathReserved){ // 檢查是否有同名檔案衝突問題
+          failCount_.fetch_add(1, std::memory_order_relaxed);
+          Console::ensureWcerr(L"[Path Resolve Failed] " + file.wstring() + L"\n");
+          ProOB.onUnitDone();
+          continue;
+        }
         fileReq.finalOutputPath = test.finalPath;
         fileReq.finalOutputDir  = test.parentDir; 
         

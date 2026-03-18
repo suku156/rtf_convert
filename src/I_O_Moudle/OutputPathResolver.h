@@ -5,6 +5,7 @@
 // Layer   : I/O
 //
 // Depend  :
+//   Console  
 //
 // Used by :
 //   ConversionEngine  
@@ -13,7 +14,7 @@
 // Notes :
 //   用於確保輸出檔案
 //   如果是資料夾遞迴模式可以放在不同資料夾時確保其會在各自的資料夾
-//   如果要放在同一個資料夾要確保不會有同名的情況
+//   如果要放在同一個資料夾要確保會依照資料夾同名策略處理的情況
 // =====================================================
 #pragma once
 #include <filesystem>
@@ -65,17 +66,7 @@ namespace OPResolver{
     std::filesystem::path finalPath;
     std::filesystem::path parentDir;
     std::filesystem::path relativeSubDir;
-    bool collisionResolved = false;
-  };
-
-  // 負責處裡的類別
-  class OutputPathResolver{
-  public:
-    ResolverResult resolve(const ResolverRequest& request) const;  
-  
-  private:
-    // 再資料夾遞迴模式下用來算出子資料夾與目標資料夾中間的路徑
-    std::filesystem::path buildRelativeSubDir(const ResolverRequest& request) const;
+    bool pathReserved = false;
   };
 
   // 共用的輸出資料夾名稱分配器
@@ -85,7 +76,26 @@ namespace OPResolver{
   public:
     std::optional<std::filesystem::path> reserveUniqueDir(const std::filesystem::path& parent,
                                                           const std::wstring& baseName,
-                                                          CollisionPolicy policy); 
+                                                          CollisionPolicy policy);
+  private:
+    // 使用前提:呼叫者必須已經持有 : mutex_;
+    // 此函式會存取 reserved_，因此不可在未上鎖情況下呼叫。
+    std::optional<std::filesystem::path> pathToSuffixLoopLocked(const std::filesystem::path& parent,
+                                                          const std::wstring& baseName);                                                         
   };
+  
+  // 負責處裡的類別
+  class OutputPathResolver{
+    OutputPathRegistry& registry_;
+  public:
+    OutputPathResolver(OutputPathRegistry& registry) : registry_(registry) {}
+    ResolverResult resolve(const ResolverRequest& request) const;  
+  
+  private:
+    // 再資料夾遞迴模式下用來算出子資料夾與目標資料夾中間的路徑
+    std::filesystem::path buildRelativeSubDir(const ResolverRequest& request) const;
+  };
+
+  
   
 }
