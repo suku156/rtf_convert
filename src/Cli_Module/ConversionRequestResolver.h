@@ -15,6 +15,7 @@
 // =====================================================
 #pragma once
 #include <filesystem>
+#include <optional>
 #include "Universal_Module/CommonEnum.h"
 
 namespace Cli{
@@ -28,6 +29,7 @@ namespace Conversion {
     Common::OutputFormat format;
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
     bool recursive = false;
+    std::optional<bool> preserveRelativeStructure;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);

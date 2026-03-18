@@ -81,6 +81,22 @@ namespace Cli{
       else if(arg == L"--recursive"){
         result.recursive = true;
       }
+      else if(arg == L"--preserve-structure"){
+        if(result.config.preserveRelativeStructure.has_value()){
+          result.ok = false;
+          result.message = L"資料夾遞迴輸出結構選項不能同時指定多個。";
+          return result;
+        }
+        result.config.preserveRelativeStructure = true;
+      }
+      else if(arg == L"--flat-output"){
+        if(result.config.preserveRelativeStructure.has_value()){
+          result.ok = false;
+          result.message = L"資料夾遞迴輸出結構選項不能同時指定多個。";
+          return result;
+        }
+        result.config.preserveRelativeStructure = false;
+      }
       else if(arg == L"--format" ){
         if(i + 1 >= argc){
           result.message = L"--format 後面缺少格式名稱";
@@ -132,6 +148,10 @@ namespace Cli{
     std::wcout << L"  --renamewithsuffix 碰到同名資料夾會採取新增檔案策略,不能與安全模式及覆蓋檔案模式並存\n";
     std::wcout << L"  --reject (為預設處理模式)碰到同名資料夾會採取安全策略,不能與新增檔案模式及覆蓋檔案模式並存\n";
     std::wcout << L"  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
+    std::wcout << L"  --preserve-structure 設定資料夾遞迴模式下保留所有子資料夾中間路徑\n";
+    std::wcout << L"  --preserve-structure 補充:(不設定會用預設行為)(不能與不保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
+    std::wcout << L"  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑(不設定會用預設行為)(不能與保留中間路徑並存)\n";
+    std::wcout << L"  --flat-output 補充:(不設定會用預設行為)(不能與保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
     std::wcout << L"  --help      顯示此說明\n";
   }
 

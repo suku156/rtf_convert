@@ -129,14 +129,18 @@ namespace App{
       : OPResolver::PathResolveMode::DirectoryFlat;
 
       // 決定子資料夾的輸出資料夾是否要保有中間路徑
-      // 預設處裡如果使用者有指定在進行調整
-      if(!RlConfig.recursive){
+      // 先依照使用者設定決定沒有就用預設行為
+      if(!RlConfig.recursive){ // 非遞迴模式會無視保留中間值的指令
         resolverReq.preserveRelativeStructure = false;
       }else{
-        if(RlConfig.inputPath == RlConfig.outputDir){
-          resolverReq.preserveRelativeStructure = true;
-        }else{
-          resolverReq.preserveRelativeStructure = false;
+        if(RlConfig.preserveRelativeStructure.has_value()){
+          resolverReq.preserveRelativeStructure = RlConfig.preserveRelativeStructure.value();
+        }else{ // 預設行為
+          if(RlConfig.inputPath == RlConfig.outputDir){
+            resolverReq.preserveRelativeStructure = true;
+          }else{
+            resolverReq.preserveRelativeStructure = false;
+          }
         }
       }
       
