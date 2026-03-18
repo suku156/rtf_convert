@@ -150,7 +150,7 @@ namespace Cli{
     std::wcout << L"  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
     std::wcout << L"  --preserve-structure 設定資料夾遞迴模式下保留所有子資料夾中間路徑\n";
     std::wcout << L"  --preserve-structure 補充:(不設定會用預設行為)(不能與不保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
-    std::wcout << L"  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑(不設定會用預設行為)(不能與保留中間路徑並存)\n";
+    std::wcout << L"  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑\n";
     std::wcout << L"  --flat-output 補充:(不設定會用預設行為)(不能與保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
     std::wcout << L"  --help      顯示此說明\n";
   }
