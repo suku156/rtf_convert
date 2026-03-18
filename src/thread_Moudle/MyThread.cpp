@@ -80,7 +80,7 @@ void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& r
         OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
         if(!test.pathReserved){ // 檢查是否有同名檔案衝突問題
           failCount_.fetch_add(1, std::memory_order_relaxed);
-          Console::ensureWcerr(L"[Path Resolve Failed] " + file.wstring() + L"\n");
+          Console::ensureWcerr(L"路徑有同名衝突問題: " + file.wstring() + L"\n");
           ProOB.onUnitDone();
           continue;
         }

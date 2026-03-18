@@ -122,12 +122,22 @@ namespace App{
       // 依據判斷出來的模式再次調整 resolverReq
       // resolverReq.inputFile 先不設定資料夾模式要等到進函式內才會拿到
       resolverReq.taskRootDir = RlConfig.inputPath;// 給定輸入資料夾位置
+      
+      // 依據有無遞迴調整模式
+      resolverReq.mode = RlConfig.recursive
+      ? OPResolver::PathResolveMode::DirectoryRecursive
+      : OPResolver::PathResolveMode::DirectoryFlat;
+
+      // 決定子資料夾的輸出資料夾是否要保有中間路徑
+      // 預設處裡如果使用者有指定在進行調整
       if(!RlConfig.recursive){
-        resolverReq.mode = OPResolver::PathResolveMode::DirectoryFlat;
         resolverReq.preserveRelativeStructure = false;
       }else{
-        resolverReq.mode = OPResolver::PathResolveMode::DirectoryRecursive;
-        resolverReq.preserveRelativeStructure = true;
+        if(RlConfig.inputPath == RlConfig.outputDir){
+          resolverReq.preserveRelativeStructure = true;
+        }else{
+          resolverReq.preserveRelativeStructure = false;
+        }
       }
       
       RTFDirectoryRunner Drunner;
