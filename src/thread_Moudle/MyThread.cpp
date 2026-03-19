@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <system_error>
 #include <filesystem>
+#include <optional>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
@@ -35,18 +36,21 @@ void ProgressObserver::display() const{
 }
 
 // 多執行緒任務的總管 (函式定義)
-void RTFDirectoryRunner::run(ProgressObserver& ProOB,const FileProcessRequest& req,
-                             bool recursive , const OPResolver::ResolverRequest& templateResolverreq){
+void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive, 
+                             const OPResolver::ResolverRequest& templateResolverreq,
+                             const std::optional<size_t> threadCount)
+  {
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
     files = collectRtfFiles(req.filePath,recursive);
     if(files.empty()) return;
     
     // 設定進度條的總數
+    ProgressObserver ProOB;
     ProOB.Start(files.size());
 
-    // 2.決定執行緒數量
-    size_t threadNum = DecideThreadNum(files.size());
+    // 2.決定執行緒數量依照使用者有無指定決定是否啟用自動決定
+    size_t threadNum = ResolveThreadNum(files.size() , threadCount);
     if(threadNum == 0) return;//防呆
 
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
@@ -164,6 +168,28 @@ size_t RTFDirectoryRunner::DecideThreadNum(size_t resultCount){
     systemMax = std::min(systemMax,size_t(16)); // 最多就開十六條執行緒
 
     return std::min(systemMax,resultCount);
+}
+size_t RTFDirectoryRunner::ResolveThreadNum(size_t fileCount,
+                                            std::optional<size_t> threadCount)
+{
+  if(fileCount == 0) return 0;
+
+  constexpr size_t kMaxThreads = 16;
+
+  if(!threadCount.has_value()){
+      return DecideThreadNum(fileCount);
+  }
+
+  size_t n = threadCount.value();
+
+  if(n == 0){
+      return 0; // 或改成 DecideThreadNum(fileCount)
+  }
+
+  n = std::min(n, kMaxThreads);
+  n = std::min(n, fileCount);
+
+  return n;
 }
 size_t RTFDirectoryRunner::getSuccessNum() const{
   return successCount_.load(std::memory_order_relaxed);

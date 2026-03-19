@@ -192,7 +192,8 @@ namespace Cli{
     std::wcout << L"  --preserve-structure 補充:(不設定會用預設行為)(不能與不保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
     std::wcout << L"  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑\n";
     std::wcout << L"  --flat-output 補充:(不設定會用預設行為)(不能與保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
-    std::wcout << L"  --thread 用於決定遞迴模式有多少執行緒(非遞迴模式會無視)(設定數值需為正整數 1~16)\n";
+    std::wcout << L"  --thread 用於決定遞迴模式有多少執行緒(非遞迴模式會無視)\n";
+    std::wcout << L"  --thread 補充:(設定數值需為正整數 1~16)(指定數量多於目標檔案數量會自動調整)\n";
     std::wcout << L"  --help      顯示此說明\n";
   }
 

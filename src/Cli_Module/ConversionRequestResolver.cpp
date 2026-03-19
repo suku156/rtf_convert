@@ -50,8 +50,11 @@ Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& par
   // 依據指令決定是否要開啟遞迴輸入
   resultconfig.recursive = parConfig.recursive;
 
-  // 複製決定資料夾遞迴狀況下是否保留中間資料夾狀態的旗標
+  // 傳遞決定資料夾遞迴狀況下是否保留中間資料夾狀態的旗標
   resultconfig.preserveRelativeStructure = parConfig.config.preserveRelativeStructure;
+
+  // 傳遞執行緒數量變數
+  resultconfig.threadCount = parConfig.config.threadCount;
 
   return resultconfig;
 }

@@ -145,9 +145,8 @@ namespace App{
       }
       
       RTFDirectoryRunner Drunner;
-      ProgressObserver ProOB;
       // 須注意 resolverReq.inputFile 在資料夾模式中需要進入多執行緒類別中設定,不然為空
-      Drunner.run(ProOB,FPrequest,RlConfig.recursive,resolverReq);
+      Drunner.run(FPrequest,RlConfig.recursive,resolverReq,RlConfig.threadCount);
       Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
                            L" 多執行緒失敗數量: " + 

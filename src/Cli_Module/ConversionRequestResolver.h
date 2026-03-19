@@ -30,6 +30,7 @@ namespace Conversion {
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
     bool recursive = false;
     std::optional<bool> preserveRelativeStructure;
+    std::optional<size_t> threadCount;
   };
 
   ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);
