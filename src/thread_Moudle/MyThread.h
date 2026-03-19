@@ -59,5 +59,6 @@ private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t DecideThreadNum(size_t resultCount);
   size_t ResolveThreadNum(size_t fileCount,std::optional<size_t> threadCount);
+  void printThreadInfo(size_t threadNum,std::optional<size_t> userThread);
 };
 

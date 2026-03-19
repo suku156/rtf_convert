@@ -13,6 +13,7 @@
 #include <system_error>
 #include <filesystem>
 #include <optional>
+#include <iostream>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
@@ -190,6 +191,27 @@ size_t RTFDirectoryRunner::ResolveThreadNum(size_t fileCount,
   n = std::min(n, fileCount);
 
   return n;
+}
+void RTFDirectoryRunner::printThreadInfo(size_t threadNum,std::optional<size_t> userThread)
+{
+    if(!userThread.has_value()){
+        std::wcout << L"未指定執行緒數量，將自動使用 "
+                   << threadNum
+                   << L" 條執行緒。\n";
+        return;
+    }
+
+    if(userThread.value() != threadNum){
+        std::wcout << L"指定 "
+                   << userThread.value()
+                   << L" 條執行緒，但實際使用 "
+                   << threadNum
+                   << L" 條。\n";
+    }else{
+        std::wcout << L"使用 "
+                   << threadNum
+                   << L" 條執行緒。\n";
+    }
 }
 size_t RTFDirectoryRunner::getSuccessNum() const{
   return successCount_.load(std::memory_order_relaxed);
