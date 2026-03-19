@@ -53,6 +53,8 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     // 2.決定執行緒數量依照使用者有無指定決定是否啟用自動決定
     size_t threadNum = ResolveThreadNum(files.size() , threadCount);
     if(threadNum == 0) return;//防呆
+    //印出多執行緒狀況
+    printThreadInfo(threadNum,threadCount);
 
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
     std::atomic_size_t index{0};

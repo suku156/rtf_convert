@@ -105,37 +105,53 @@ namespace Cli{
           return result;
         }
         
-        try{
-          std::wstring threadstring = argv[++i];
-          size_t pos = 0;
-          unsigned long long raw = std::stoull(threadstring,&pos);
-
-          if(pos != threadstring.size()){
-            result.ok = false;
-            result.message = L"--thread 的值必須是正整數";
-            return result;
-          }
-          
-          size_t threadresult = static_cast<size_t>(raw);
-          
-          if(threadresult == 0){
-            result.ok = false;
-            result.message = L"多執行緒數量不可設置為 0";
-            return result;
-          }
-
-          if(threadresult > 16){
-            result.ok = false;
-            result.message = L"多執行緒數量不可超過 16。";
-            return result;
-          }
-          result.config.threadCount = threadresult;
-        }
-        catch(const std::exception&){
+        //擷取並檢查字串
+        std::wstring threadstring = argv[++i];
+        //檢查是否為空或純數字
+        if(threadstring.empty()){
           result.ok = false;
           result.message = L"--thread 的值必須是正整數";
           return result;
         }
+        for(wchar_t c : threadstring){
+          if(!iswdigit(c)){
+            result.ok = false;
+            result.message = L"--thread 的值必須是正整數";
+            return result;
+          }
+        }
+        
+        // 轉換出數字
+        size_t pos = 0;
+        unsigned long long raw = 0;
+        
+        try{
+          raw = std::stoull(threadstring,&pos);
+        }
+        catch(...){
+          result.ok = false;
+          result.message = L"--thread 數值錯誤";
+          return result;
+        }
+        
+        if(pos != threadstring.size()){
+          result.ok = false;
+          result.message = L"--thread 格式錯誤";
+          return result;
+        }
+        size_t threadresult = static_cast<size_t>(raw);
+
+        if(threadresult == 0){
+          result.ok = false;
+          result.message = L"多執行緒數量不可設置為 0";
+          return result;
+        }
+        if(threadresult > 16){
+          result.ok = false;
+          result.message = L"多執行緒數量不可超過 16。";
+          return result;
+        }
+        result.config.threadCount = threadresult;  
       }
       else if(arg == L"--format" ){
         if(i + 1 >= argc){
