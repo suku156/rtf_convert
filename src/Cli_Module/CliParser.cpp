@@ -8,7 +8,8 @@
 #include<cwctype>
 #include<algorithm>
 #include<iostream>
-
+#include<exception>
+#include<system_error>
 
 namespace{
   std::wstring toLower(std::wstring s){
@@ -97,6 +98,45 @@ namespace Cli{
         }
         result.config.preserveRelativeStructure = false;
       }
+      else if(arg == L"--thread"){
+        if(i+1 >= argc){
+          result.ok = false;
+          result.message = L" --thread 需指定執行緒數量。";
+          return result;
+        }
+        
+        try{
+          std::wstring threadstring = argv[++i];
+          size_t pos = 0;
+          unsigned long long raw = std::stoull(threadstring,&pos);
+
+          if(pos != threadstring.size()){
+            result.ok = false;
+            result.message = L"--thread 的值必須是正整數";
+            return result;
+          }
+          
+          size_t threadresult = static_cast<size_t>(raw);
+          
+          if(threadresult == 0){
+            result.ok = false;
+            result.message = L"多執行緒數量不可設置為 0";
+            return result;
+          }
+
+          if(threadresult > 16){
+            result.ok = false;
+            result.message = L"多執行緒數量不可超過 16。";
+            return result;
+          }
+          result.config.threadCount = threadresult;
+        }
+        catch(const std::exception&){
+          result.ok = false;
+          result.message = L"--thread 的值必須是正整數";
+          return result;
+        }
+      }
       else if(arg == L"--format" ){
         if(i + 1 >= argc){
           result.message = L"--format 後面缺少格式名稱";
@@ -152,6 +192,7 @@ namespace Cli{
     std::wcout << L"  --preserve-structure 補充:(不設定會用預設行為)(不能與不保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
     std::wcout << L"  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑\n";
     std::wcout << L"  --flat-output 補充:(不設定會用預設行為)(不能與保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
+    std::wcout << L"  --thread 用於決定遞迴模式有多少執行緒(非遞迴模式會無視)(設定數值需為正整數 1~16)\n";
     std::wcout << L"  --help      顯示此說明\n";
   }
 

@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <string>
 #include <optional>
+#include <cstddef>
 
 namespace Cli{
   
@@ -29,6 +30,7 @@ namespace Cli{
     std::optional<Common::OutputFormat> format;
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
     std::optional<bool> preserveRelativeStructure;
+    std::optional<size_t> threadCount;
   };
 
   //真正使用的資訊
