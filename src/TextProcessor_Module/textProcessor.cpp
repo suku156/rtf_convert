@@ -49,54 +49,64 @@ void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     }
 }
 void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
-  // 找找看有無目標群組開頭
-  size_t pos = Cleaned.find("{\\shp");
-  if(pos == std::string::npos) return;
-  
-  size_t n = pos +1;
-  int flag = 1;
-  while(n < Cleaned.size()){
-    if(Cleaned[n] == '{'){
-      flag++;
-    }
-    else if(Cleaned[n] == '}'){
-      flag--;
-    }
-    n++;
-    if(flag == 0) break;
-  }
-  
-  if(flag != 0) return;
-  // 拿取 {\shp 群組去做檢查
-  std::string groupResult = Cleaned.substr(pos,n-pos);
-  // 拿來記錄標記符 沒有就會為空直接替換掉 shape 群組
-  std::string result;
-  for(size_t i = 0; i < groupResult.size();++i){
-    if(groupResult.compare(i,12,"{\\*\\imgblock") == 0){
-      
-      size_t j = i+1;
-      int reflag = 1;
+  size_t searchPos = 0;
+  while(true){
+    
+    // 找找看有無目標群組開頭
+    size_t pos = Cleaned.find("{\\shp",searchPos);
+    if(pos == std::string::npos) break;
+    
+    size_t n = pos +1;
+    int flag = 1;
 
-      result += groupResult[i]; 
-
-      while(j < groupResult.size()){
-        if(groupResult[j] == '{'){
-          reflag++; 
-        }
-        else if(groupResult[j] == '}'){
-          reflag--;
-        }
-        result += groupResult[j];
-        j++;
-        if(reflag <= 0) break;
+    while(n < Cleaned.size()){
+      if(Cleaned[n] == '{'){
+        flag++;
       }
-
-      break;
+      else if(Cleaned[n] == '}'){
+        flag--;
+      }
+      n++;
+      if(flag == 0) break;
     }
-  }
+    
+    if(flag != 0) break;
+    // 拿取 {\shp 群組去做檢查
+    std::string groupResult = Cleaned.substr(pos,n-pos);
+    // 拿來記錄標記符 沒有就會為空直接替換掉 shape 群組
+    std::string result;
+    for(size_t i = 0; i < groupResult.size();++i){
+      if(groupResult.compare(i,12,"{\\*\\imgblock") == 0){
+        
+        size_t j = i+1;
+        int reflag = 1;
 
-  // 執行替換的動作
-  Cleaned.replace(pos,n-pos,result);
+        result += groupResult[i]; 
+
+        while(j < groupResult.size()){
+          if(groupResult[j] == '{'){
+            reflag++; 
+          }
+          else if(groupResult[j] == '}'){
+            reflag--;
+          }
+          result += groupResult[j];
+          j++;
+          if(reflag <= 0) break;
+        }
+
+        break;
+      }
+    }
+
+    // 執行替換的動作
+    Cleaned.replace(pos,n-pos,result);
+
+    // 更新搜尋的位置(從替換後的長度開始)
+    searchPos = pos + result.size();
+  }
+  
+  
 }
 
 //用來確認傳入的字串的指定範圍內的byte 都在ASCII的範圍內
