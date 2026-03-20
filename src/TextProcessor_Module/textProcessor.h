@@ -47,5 +47,6 @@ private:
   void removeOuterBraces(std::string& Cleaned);
   void trimLeadingNewlines(std::string& Cleaned);
   void removeProtectionSymbol(std::string& Cleaned);
+  void replaceShapeGroupsWithImageMarkers(std::string& rtf);
 
 };
