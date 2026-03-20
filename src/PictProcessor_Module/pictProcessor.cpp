@@ -343,7 +343,8 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
         continue;
       }
       info.outputPath = *outPathOpt;
-      if(!imgProcessor_.process(info,true)){
+      // 觸發圖檔建立處
+      if(!imgProcessor_.process(info,false)){
         std::wstring ws = L"第" + std::to_wstring(pictCount_);
         PictErrorInfo.add(ErrorSystem::ErrorType::Picture_File_Creation_Failed,
                           ErrorSystem::ErrorLevel::Recoverable,
