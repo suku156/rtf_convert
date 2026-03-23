@@ -1,7 +1,7 @@
 ﻿// =====================================================
 // Module : ConversionTaskBuilder (implementation)
 // =====================================================
-#pragma once
+
 #include "ConversionTaskBuilder.h"
 #include "ConversionTask.h"
 #include "NormalizedConversionRequest.h"
@@ -14,7 +14,7 @@
 
 
 namespace taskBuilder{
-   BuildResult ConversionTaskBuilder::build(NormalizedConversionRequest request){
+   BuildResult ConversionTaskBuilder::build(const NormalizedConversionRequest& request){
       BuildResult result;
       
       if(request.inputPath.empty()){

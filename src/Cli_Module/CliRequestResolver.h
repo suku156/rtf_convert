@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <optional>
 #include "Universal_Module/CommonEnum.h"
+#include "Task_Module/NormalizedConversionRequest.h"
 
 namespace Cli{
    struct ParseResult;
@@ -33,6 +34,6 @@ namespace Conversion {
     std::optional<size_t> threadCount;
   };
 
-  ResolvedConfig resolveConfig(const Cli::ParseResult& parConfig);
+  NormalizedConversionRequest resolveConfig(const Cli::ParseResult& parConfig);
 };
 

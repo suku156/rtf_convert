@@ -3,13 +3,14 @@
 // =====================================================
 #include "CliRequestResolver.h"
 #include "Universal_Module/CommonEnum.h"
+#include "Task_Module/NormalizedConversionRequest.h"
 #include "CliParser.h"
 #include <filesystem>
 #include <system_error>
 #include <string>
 #include <cwctype>
 
-Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& parConfig){
+NormalizedConversionRequest Conversion::resolveConfig(const Cli::ParseResult& parConfig){
   Conversion::ResolvedConfig resultconfig;
 
   // 先把相對路徑轉成絕對路徑
@@ -56,5 +57,14 @@ Conversion::ResolvedConfig Conversion::resolveConfig(const Cli::ParseResult& par
   // 傳遞執行緒數量變數
   resultconfig.threadCount = parConfig.config.threadCount;
 
-  return resultconfig;
+  NormalizedConversionRequest request;
+  request.inputPath = resultconfig.inputPath;
+  request.outputDir = resultconfig.outputDir;
+  request.format    = resultconfig.format;
+  request.dirPolicy = resultconfig.dirPolicy;
+  request.recursive = resultconfig.recursive;
+  request.preserveRelativeStructure = resultconfig.preserveRelativeStructure;
+  request.threadCount = resultconfig.threadCount;
+
+  return request;
 }

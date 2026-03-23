@@ -23,7 +23,7 @@
 namespace taskBuilder{
    class ConversionTaskBuilder{
    public:
-     BuildResult build(NormalizedConversionRequest);
+     BuildResult build(const NormalizedConversionRequest& request);
    private:
      size_t normalizeThreadCount(std::optional<size_t> requested);
    };
