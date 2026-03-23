@@ -1,11 +1,11 @@
 ﻿// =====================================================
-// Module  : Executor
+// Module  : ConversionExecutor
 // Author  : suku156
-// Purpose : 依據資料建構層輸入之資料決定如何呼叫主流程
+// Purpose : 依據任務建構層輸入之資料決定如何呼叫主流程
 // Layer   : Executor
 //
 // Depend  :
-//   CliRequestResolver
+//   ConversionTaskBuilder
 //   RTFProcessor
 //   MyThread  
 // Used by :
@@ -16,11 +16,15 @@
 // =====================================================
 
 #pragma once
+#include <Task_Module/ConversionTask.h>
 
 // forward declaration
+/*
 namespace Conversion{
   struct  ResolvedConfig; 
 }
+*/
+
 
 namespace App{
   enum class AppExitCode : int{
@@ -33,7 +37,7 @@ namespace App{
 
   class ConversionEngine{
   public:
-  AppExitCode run(const Conversion::ResolvedConfig& RlConfig);
+  AppExitCode run(const BuildResult& result);
   private:
   }; 
 }

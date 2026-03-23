@@ -3,6 +3,7 @@
 // =====================================================
 #include "ConversionExecutor.h"
 #include "Cli_Module/CliRequestResolver.h"
+#include "Task_Module/ConversionTask.h"
 #include "Universal_Module/OutputDirGuard.h"
 #include "MainProcess_Module/RTFProcessor.h"
 #include "thread_Moudle/MyThread.h"
@@ -16,10 +17,17 @@
 #include <optional>
 
 namespace App{
-  AppExitCode ConversionEngine::run(const Conversion::ResolvedConfig& RlConfig){
+  AppExitCode ConversionEngine::run(const BuildResult& result){
     
-    auto input  = RlConfig.inputPath;
-    auto output = RlConfig.outputDir;
+    if(!result.ok){
+      std::wcout << L"[Error]" << result.message << L"\n";
+      return AppExitCode::Fail;
+    }
+
+    auto task = result.task;
+
+    auto input  = task.inputPath;
+    auto output = task.outputDir;
     
     // 確認是否真的是可以用的input
     {
@@ -41,7 +49,7 @@ namespace App{
     }
     
     // 確保 outputDir 存在 使用原有模組達成
-    OutputDirGuard fileOut(output,RlConfig.dirPolicy);
+    OutputDirGuard fileOut(output,task.dirPolicy);
     auto st = fileOut.checkDirectory(output);
 
     if(st != DirCheckResult::Ok){ // 檢查給定的指定資料夾
@@ -53,13 +61,13 @@ namespace App{
     FileProcessRequest FPrequest;
     FPrequest.filePath = input;
     FPrequest.outputRootDir = output;
-    FPrequest.outputFormat = RlConfig.format;
-    FPrequest.dirPolicy = RlConfig.dirPolicy;
+    FPrequest.outputFormat = task.format;
+    FPrequest.dirPolicy = task.dirPolicy;
 
     // 確保輸出檔案的資料結構
     OPResolver::ResolverRequest resolverReq;
-    resolverReq.baseOutputDir = RlConfig.outputDir;
-    switch(RlConfig.format){
+    resolverReq.baseOutputDir = task.outputDir;
+    switch(task.format){
       case Common::OutputFormat::Txt :
       resolverReq.format = OPResolver::OutputFormat::txt;
       break;
@@ -73,7 +81,7 @@ namespace App{
       resolverReq.format = OPResolver::OutputFormat::txt;
       break;
     }
-    switch(RlConfig.dirPolicy){
+    switch(task.dirPolicy){
       case Common::ExistingDirPolicy::Reject :
       resolverReq.collisionPolicy = OPResolver::CollisionPolicy::ErrorIfExists;
       break;
@@ -92,7 +100,7 @@ namespace App{
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
       // 依據判斷出來的模式再次調整 resolverReq
-      resolverReq.inputFile = RlConfig.inputPath;
+      resolverReq.inputFile = task.inputPath;
       resolverReq.taskRootDir = std::nullopt;
       resolverReq.mode = OPResolver::PathResolveMode::SingleFile;
       resolverReq.preserveRelativeStructure = false;
@@ -121,32 +129,24 @@ namespace App{
     else if (std::filesystem::is_directory(input, ec)) {
       // 依據判斷出來的模式再次調整 resolverReq
       // resolverReq.inputFile 先不設定資料夾模式要等到進函式內才會拿到
-      resolverReq.taskRootDir = RlConfig.inputPath;// 給定輸入資料夾位置
+      resolverReq.taskRootDir = task.inputPath;// 給定輸入資料夾位置
       
       // 依據有無遞迴調整模式
-      resolverReq.mode = RlConfig.recursive
+      resolverReq.mode = task.recursive
       ? OPResolver::PathResolveMode::DirectoryRecursive
       : OPResolver::PathResolveMode::DirectoryFlat;
 
       // 決定子資料夾的輸出資料夾是否要保有中間路徑
       // 先依照使用者設定決定沒有就用預設行為
-      if(!RlConfig.recursive){ // 非遞迴模式會無視保留中間值的指令
+      if(!task.recursive){ // 非遞迴模式會無視保留中間值的指令
         resolverReq.preserveRelativeStructure = false;
       }else{
-        if(RlConfig.preserveRelativeStructure.has_value()){
-          resolverReq.preserveRelativeStructure = RlConfig.preserveRelativeStructure.value();
-        }else{ // 預設行為
-          if(RlConfig.inputPath == RlConfig.outputDir){
-            resolverReq.preserveRelativeStructure = true;
-          }else{
-            resolverReq.preserveRelativeStructure = false;
-          }
-        }
+        resolverReq.preserveRelativeStructure = task.preserveRelativeStructure;
       }
       
       RTFDirectoryRunner Drunner;
       // 須注意 resolverReq.inputFile 在資料夾模式中需要進入多執行緒類別中設定,不然為空
-      Drunner.run(FPrequest,RlConfig.recursive,resolverReq,RlConfig.threadCount);
+      Drunner.run(FPrequest,task.recursive,resolverReq,task.threadCount);
       Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
                            L" 多執行緒失敗數量: " + 

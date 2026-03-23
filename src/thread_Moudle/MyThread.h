@@ -52,13 +52,11 @@ std::atomic<size_t> failCount_{0};
 public:
   void run(const FileProcessRequest& req,bool recursive , 
            const OPResolver::ResolverRequest& templateResolverreq,
-           const std::optional<size_t> threadCount);
+           size_t threadCount);
   size_t getSuccessNum() const;
   size_t getFailNum() const;  
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
-  size_t DecideThreadNum(size_t resultCount);
-  size_t ResolveThreadNum(size_t fileCount,std::optional<size_t> threadCount);
-  void printThreadInfo(size_t threadNum,std::optional<size_t> userThread);
+  size_t ResolveThreadNum(size_t fileCount,size_t threadCount);
 };
 

@@ -39,7 +39,7 @@ void ProgressObserver::display() const{
 // 多執行緒任務的總管 (函式定義)
 void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive, 
                              const OPResolver::ResolverRequest& templateResolverreq,
-                             const std::optional<size_t> threadCount)
+                             size_t threadCount)
   {
     // 1.建立工作清單
     std::vector<std::filesystem::path> files;
@@ -50,12 +50,10 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     ProgressObserver ProOB;
     ProOB.Start(files.size());
 
-    // 2.決定執行緒數量依照使用者有無指定決定是否啟用自動決定
+    // 2.執行緒數量比對預設數量與實際需求
     size_t threadNum = ResolveThreadNum(files.size() , threadCount);
     if(threadNum == 0) return;//防呆
-    //印出多執行緒狀況
-    printThreadInfo(threadNum,threadCount);
-
+    
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
     std::atomic_size_t index{0};
 
@@ -160,61 +158,20 @@ RTFDirectoryRunner::collectRtfFiles(
     }
     return files;
   }
-size_t RTFDirectoryRunner::DecideThreadNum(size_t resultCount){
-    if(resultCount == 0) return 0;
 
-    size_t systemMax = std::thread::hardware_concurrency();
-    if(systemMax == 0){ // 防呆
-      systemMax = 4;
-    }
-
-    systemMax = std::min(systemMax,size_t(16)); // 最多就開十六條執行緒
-
-    return std::min(systemMax,resultCount);
-}
-size_t RTFDirectoryRunner::ResolveThreadNum(size_t fileCount,
-                                            std::optional<size_t> threadCount)
+size_t RTFDirectoryRunner::ResolveThreadNum(size_t fileCount,size_t threadCount)
 {
   if(fileCount == 0) return 0;
 
-  constexpr size_t kMaxThreads = 16;
-
-  if(!threadCount.has_value()){
-      return DecideThreadNum(fileCount);
+  if(threadCount == 0){
+    return 0; 
   }
 
-  size_t n = threadCount.value();
-
-  if(n == 0){
-      return 0; // 或改成 DecideThreadNum(fileCount)
-  }
-
-  n = std::min(n, kMaxThreads);
-  n = std::min(n, fileCount);
-
-  return n;
+  size_t result = std::min(threadCount, fileCount);
+  
+  return result;
 }
-void RTFDirectoryRunner::printThreadInfo(size_t threadNum,std::optional<size_t> userThread)
-{
-    if(!userThread.has_value()){
-        std::wcout << L"未指定執行緒數量，將自動使用 "
-                   << threadNum
-                   << L" 條執行緒。\n";
-        return;
-    }
 
-    if(userThread.value() != threadNum){
-        std::wcout << L"指定 "
-                   << userThread.value()
-                   << L" 條執行緒，但實際使用 "
-                   << threadNum
-                   << L" 條。\n";
-    }else{
-        std::wcout << L"使用 "
-                   << threadNum
-                   << L" 條執行緒。\n";
-    }
-}
 size_t RTFDirectoryRunner::getSuccessNum() const{
   return successCount_.load(std::memory_order_relaxed);
 }
