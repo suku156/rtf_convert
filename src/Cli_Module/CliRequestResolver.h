@@ -1,5 +1,5 @@
 ﻿// =====================================================
-// Module  : ConversionRequestResolver
+// Module  : CliRequestResolver
 // Author  : suku156
 // Purpose : 負責轉換固定資料給執行層
 // Layer   : Cli
@@ -8,10 +8,10 @@
 //   CliParser
 //
 // Used by :
-//   ConversionEngine   
+//   ConversionEngine(要改)   
 //
 // Notes :
-//   將 CliParser 解析得到的資料,確定成固定形式給 ConversionEngine 使用
+//   將 CliParser 解析得到的資料,清理成沒有 UI 痕跡的共用資料
 // =====================================================
 #pragma once
 #include <filesystem>

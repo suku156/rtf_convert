@@ -19,8 +19,8 @@
 #include "ErrorSystem_Module/ErrorHandle.h"
 #include "Universal_Module/Console.h"
 #include "Cli_Module/CliParser.h"           // Cli 命令列選項模組 (將命令列資訊拆解成可用的容器)
-#include "Cli_Module/ConversionEngine.h"   // Cli 模組 根據輸入的 Cli 決定如何呼叫主流程
-#include "Cli_Module/ConversionRequestResolver.h" // Cli模組 轉譯層
+#include "Executor_Module/ConversionExecutor.h"   // Cli 模組 根據輸入的 Cli 決定如何呼叫主流程
+#include "Cli_Module/CliRequestResolver.h" // Cli模組 轉譯層
 
 int wmain(int argc,wchar_t* argv[]){
   // 強制讓 wcout 用 UTF-16 (Windows 本地寬字輸出)

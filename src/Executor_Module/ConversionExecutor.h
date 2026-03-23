@@ -1,18 +1,18 @@
 ﻿// =====================================================
-// Module  : CliParser
+// Module  : Executor
 // Author  : suku156
-// Purpose : 依據終端機輸入之資料決定如何呼叫
-// Layer   : Cli
+// Purpose : 依據資料建構層輸入之資料決定如何呼叫主流程
+// Layer   : Executor
 //
 // Depend  :
-//   ConversionRequestResolver
+//   CliRequestResolver
 //   RTFProcessor
 //   MyThread  
 // Used by :
 //   rtfconvert   
 //
 // Notes :
-//   依據終端機給定的資料進行判斷如何呼叫主流程
+//   依據共用任務建構層給定的資料進行判斷如何呼叫主流程
 // =====================================================
 
 #pragma once

@@ -1,8 +1,8 @@
 ﻿// =====================================================
-// Module : ConversionEngine (implementation)
+// Module : ConversionExecutor (implementation)
 // =====================================================
-#include "Cli_Module/ConversionEngine.h"
-#include "Cli_Module/ConversionRequestResolver.h"
+#include "ConversionExecutor.h"
+#include "Cli_Module/CliRequestResolver.h"
 #include "Universal_Module/OutputDirGuard.h"
 #include "MainProcess_Module/RTFProcessor.h"
 #include "thread_Moudle/MyThread.h"
