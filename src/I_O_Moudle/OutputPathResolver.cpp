@@ -10,6 +10,7 @@
 #include <mutex>
 #include <mutex>
 #include <unordered_set>
+#include <cwctype>
 
 namespace{
   // 用來檢查與替換檔名中有影響的空格
