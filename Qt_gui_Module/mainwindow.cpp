@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "GuiFormData.h"
 #include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -14,9 +15,26 @@ MainWindow::MainWindow(QWidget *parent)
 
 }
 
+GuiFormData MainWindow::collectFormData() const{
+    GuiFormData form;
+    form.inputPath = ui->InputInfo->text();
+    form.outputDir = ui->OutputInfo->text();
+    form.formatText = ui->conboFormat->currentText();
+    return form;
+}
+
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_btnConvert_clicked(){
+    GuiFormData form = collectFormData();
+    //auto result = GuiRequestTranslator::translate(form);
+    //if(!result.ok){
+        //QMessageBox::warning(this, "錯誤", result.errorMessage);
+        //return;
+    //}
 }
 
 void MainWindow::on_btnSelectInput_clicked(){

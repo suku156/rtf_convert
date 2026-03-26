@@ -4,6 +4,7 @@
 #pragma once
 #include <filesystem>
 #include <optional>
+#include "Universal_Module/CommonEnum.h"
 
 struct NormalizedConversionRequest{
     std::filesystem::path inputPath;
