@@ -62,6 +62,7 @@ qt_add_executable(rtfconvert_gui
     Qt_gui_Module/mainwindow.ui
     Qt_gui_Module/GuiFormData.h
     Qt_gui_Module/GuiRequestTranslator.h
+    Qt_gui_Module/GuiRequestTranslator.cpp
 )
 
 target_link_libraries(rtfconvert_gui PRIVATE

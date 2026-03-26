@@ -1,7 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "GuiFormData.h"
+#include "GuiRequestTranslator.h"
 #include <QFileDialog>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -30,11 +32,15 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_btnConvert_clicked(){
     GuiFormData form = collectFormData();
-    //auto result = GuiRequestTranslator::translate(form);
-    //if(!result.ok){
-        //QMessageBox::warning(this, "錯誤", result.errorMessage);
-        //return;
-    //}
+    GuiRequestTranslator request;
+    auto result = request.translate(form);
+    if(!result.ok){
+        QMessageBox::warning(
+            this,
+            QStringLiteral("錯誤"),
+            QString::fromStdWString(result.message));
+        return;
+    }
 }
 
 void MainWindow::on_btnSelectInput_clicked(){
