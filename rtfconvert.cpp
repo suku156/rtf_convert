@@ -1,7 +1,7 @@
 ﻿// ======================================================
 // Module  : rtfconvert
 // author  : suku156
-// Purpose : 程式主入口，負責啟動 CLI 與 ConversionEngine
+// Purpose : Cli 線程式主入口
 // layer   : main
 //
 // Depend(依賴對象) :
@@ -21,7 +21,7 @@
 #include "ErrorSystem_Module/ErrorHandle.h"
 #include "Universal_Module/Console.h"
 #include "Cli_Module/CliParser.h"           // Cli 命令列選項模組 (將命令列資訊拆解成可用的容器)
-#include "Executor_Module/ConversionExecutor.h"   // Cli 模組 根據輸入的 Cli 決定如何呼叫主流程
+#include "Executor_Module/ConversionExecutor.h"   // 核心模組中決定如何呼叫主流程
 #include "Cli_Module/CliRequestResolver.h" // Cli模組 轉譯層
 #include "Task_Module/NormalizedConversionRequest.h"
 #include "Task_Module/ConversionTaskBuilder.h"

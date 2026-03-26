@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 #include "GuiFormData.h"
 #include "GuiRequestTranslator.h"
+#include "Executor_Module/ConversionExecutor.h"
+#include "Task_Module/ConversionTaskBuilder.h"
+#include "Task_Module/ConversionTask.h"
 #include <QFileDialog>
 #include <QMessageBox>
 
@@ -41,6 +44,24 @@ void MainWindow::on_btnConvert_clicked(){
             QString::fromStdWString(result.message));
         return;
     }
+
+    auto& req = result.Normalizedrequest;
+    qDebug() << "input:"
+             << QString::fromStdWString(req.inputPath.wstring());
+
+    qDebug() << "output:"
+             << QString::fromStdWString(req.outputDir.wstring());
+
+    qDebug() << "format:"
+             << static_cast<int>(req.format);
+
+    // 呼叫並連結核心功能
+    App::ConversionEngine conversionengine;
+    taskBuilder::ConversionTaskBuilder builder;
+    BuildResult BDresult = builder.build(req);
+    App::AppExitCode resultCode = conversionengine.run(BDresult);
+    qDebug() << "AppExitCode:"
+             << static_cast<int>(resultCode);
 }
 
 void MainWindow::on_btnSelectInput_clicked(){
