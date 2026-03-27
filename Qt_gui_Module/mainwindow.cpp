@@ -46,14 +46,6 @@ void MainWindow::on_btnConvert_clicked(){
     }
 
     auto& req = result.Normalizedrequest;
-    qDebug() << "input:"
-             << QString::fromStdWString(req.inputPath.wstring());
-
-    qDebug() << "output:"
-             << QString::fromStdWString(req.outputDir.wstring());
-
-    qDebug() << "format:"
-             << static_cast<int>(req.format);
 
     // 呼叫並連結核心功能
     App::ConversionEngine conversionengine;

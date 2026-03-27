@@ -8,8 +8,8 @@
 
 struct NormalizedConversionRequest{
     std::filesystem::path inputPath;
-    std::filesystem::path outputDir;
-    Common::OutputFormat format;
+    std::optional<std::filesystem::path> outputDir;
+    std::optional<Common::OutputFormat> format;
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
     bool recursive = false;
     std::optional<bool> preserveRelativeStructure;

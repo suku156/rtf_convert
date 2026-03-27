@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <thread>
 #include <iostream>
+#include <system_error>
 
 
 namespace taskBuilder{
@@ -22,17 +23,37 @@ namespace taskBuilder{
         result.message = L"inputPath is empty(輸入路徑為空)";
         return result;
       }
-      if(request.outputDir.empty()){
-        result.ok = false;
-        result.message = L"outputDir is empty(輸出資料夾路徑為空)";
-        return result;
-      }
+      // 保底做一次輸入路徑絕對路徑化
+       std::filesystem::path input  = std::filesystem::absolute(request.inputPath);
 
-      result.task.inputPath = request.inputPath;
-      result.task.outputDir = request.outputDir;
+      // 檢查有無給定指定 outputDir　路徑
+      std::error_code ec;
+      if(request.outputDir.has_value()){
+        result.task.outputDir = *request.outputDir;
+      }else{
+          if (std::filesystem::is_regular_file(input, ec)){
+            result.task.outputDir = input.parent_path(); 
+          }
+          else if(std::filesystem::is_directory(input, ec)){
+            result.task.outputDir = input;  
+          }
+          else{
+            result.task.outputDir = input.parent_path();  
+          }
+      }
+      
+      // output 補做正規化
+      result.task.outputDir = std::filesystem::absolute(result.task.outputDir);
+      result.task.inputPath = input;
+      
+      // 檢查並補預設 format
+      if(!request.format){
+        result.task.format = Common::OutputFormat::Txt;
+      }else{
+        result.task.format = *request.format;
+      }
       
       // 直接傳遞的資料
-      result.task.format = request.format;
       result.task.dirPolicy = request.dirPolicy;
       result.task.recursive = request.recursive;
 
@@ -40,15 +61,13 @@ namespace taskBuilder{
       if(request.preserveRelativeStructure.has_value()){
         result.task.preserveRelativeStructure = request.preserveRelativeStructure.value();
       }else{
-        if(result.task.inputPath == result.task.outputDir){
-            result.task.preserveRelativeStructure = true;
-        }else{
-            result.task.preserveRelativeStructure = false;
-        }
+        result.task.preserveRelativeStructure = 
+        (result.task.recursive && result.task.inputPath == result.task.outputDir);
       }
       
       result.task.threadCount = normalizeThreadCount(request.threadCount);
       
+      result.ok = true;
       return result;
     }
 
