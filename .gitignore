@@ -23,6 +23,8 @@ haveProblem/
 
 # 常見 build 目錄 (未來用)
 bin/
+build_cli/
+build_gui/
 build/
 logs/
 output/
@@ -32,3 +34,6 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+
+# Qt 相關
+.qtcreator/
