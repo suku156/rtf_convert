@@ -63,7 +63,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>choose_output</string>
+     <string>outputpath</string>
     </property>
    </widget>
    <widget class="QLabel" name="format_label">
@@ -79,12 +79,12 @@
      <string>choose_format : </string>
     </property>
    </widget>
-   <widget class="QComboBox" name="conboFormat">
+   <widget class="QComboBox" name="comboFormat">
     <property name="geometry">
      <rect>
       <x>120</x>
       <y>160</y>
-      <width>72</width>
+      <width>91</width>
       <height>23</height>
      </rect>
     </property>
@@ -94,6 +94,26 @@
     <property name="minimumContentsLength">
      <number>0</number>
     </property>
+    <item>
+     <property name="text">
+      <string>default</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>txt</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>md</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>html</string>
+     </property>
+    </item>
    </widget>
    <widget class="QPushButton" name="btnConvert">
     <property name="geometry">

@@ -13,18 +13,13 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-
-    ui->conboFormat->addItem("txt");
-    ui->conboFormat->addItem("md");
-    ui->conboFormat->addItem("html");
-
 }
 
 GuiFormData MainWindow::collectFormData() const{
     GuiFormData form;
-    form.inputPath = ui->InputInfo->text();
-    form.outputDir = ui->OutputInfo->text();
-    form.formatText = ui->conboFormat->currentText();
+    form.inputPath = selectedInputPath_;
+    form.outputDir = selectedOutputPath_;
+    form.formatText = ui->comboFormat->currentText();
     return form;
 }
 
@@ -47,7 +42,7 @@ void MainWindow::on_btnConvert_clicked(){
 
     auto& req = result.Normalizedrequest;
 
-    // 呼叫並連結核心功能
+     // 呼叫並連結核心功能
     App::ConversionEngine conversionengine;
     taskBuilder::ConversionTaskBuilder builder;
     BuildResult BDresult = builder.build(req);
@@ -63,11 +58,13 @@ void MainWindow::on_btnSelectInput_clicked(){
       "",
       "RTF Files (*.rtf);;All Files (*)"
     );
+    if(file.isEmpty()) return;
 
-    if(!file.isEmpty()){
-        ui->InputInfo->setText(file);
-        ui->InputInfo->adjustSize();
-    }
+    selectedInputPath_ = file;
+
+    ui->InputInfo->setText(file);
+    ui->InputInfo->adjustSize();
+
 }
 
 void MainWindow::on_btnSelectOutput_clicked(){
@@ -77,8 +74,11 @@ void MainWindow::on_btnSelectOutput_clicked(){
         ""
     );
 
-    if(!outputdir.isEmpty()){
-        ui->OutputInfo->setText(outputdir);
-        ui->OutputInfo->adjustSize();
-    }
+    if(outputdir.isEmpty()) return;
+
+    selectedOutputPath_ = outputdir;
+
+    ui->OutputInfo->setText(outputdir);
+    ui->OutputInfo->adjustSize();
+
 }

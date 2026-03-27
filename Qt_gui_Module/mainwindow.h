@@ -27,5 +27,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QString selectedInputPath_;
+    QString selectedOutputPath_;
 };
 #endif // MAINWINDOW_H
