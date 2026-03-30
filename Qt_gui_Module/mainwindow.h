@@ -23,9 +23,11 @@ public:
     GuiFormData collectFormData() const;
 
 private slots:
-    void on_btnSelectInput_clicked();
+    void on_btnSelectInputFile_clicked();
+    void on_btnSelectInputDir_clicked();
     void on_btnSelectOutput_clicked();
     void on_btnConvert_clicked();
+    void on_btnCleanOutput_clicked();
 
 private:
     Ui::MainWindow *ui;
@@ -34,6 +36,7 @@ private:
 
 private:
     void debugPrintRequest(const NormalizedConversionRequest& req);
+    void updateOutputDisplay();
 
 };
 #endif // MAINWINDOW_H

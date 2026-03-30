@@ -15,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    updateOutputDisplay();
     ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
     ui->lineEdit_threadNum->setPlaceholderText("預設自動(可以不填)");
 }
@@ -49,10 +50,6 @@ void MainWindow::on_btnConvert_clicked(){
     }
 
     auto& req = result.Normalizedrequest;
-    debugPrintRequest(req);
-
-    // 測試用的停止指令
-    return;
 
     // 呼叫並連結核心功能
     App::ConversionEngine conversionengine;
@@ -63,7 +60,7 @@ void MainWindow::on_btnConvert_clicked(){
              << static_cast<int>(resultCode);
 }
 
-void MainWindow::on_btnSelectInput_clicked(){
+void MainWindow::on_btnSelectInputFile_clicked(){
     QString file = QFileDialog::getOpenFileName(
       this,
       "選擇輸入檔案",
@@ -79,6 +76,21 @@ void MainWindow::on_btnSelectInput_clicked(){
 
 }
 
+void MainWindow::on_btnSelectInputDir_clicked(){
+    QString dir = QFileDialog::getExistingDirectory(
+        this,
+        "選擇輸入資料夾",
+        ""
+        );
+
+    if(dir.isEmpty()) return;
+
+    selectedInputPath_ = dir;
+
+    ui->InputInfo->setText(dir);
+    ui->InputInfo->adjustSize();
+}
+
 void MainWindow::on_btnSelectOutput_clicked(){
     QString outputdir = QFileDialog::getExistingDirectory(
         this,
@@ -89,10 +101,21 @@ void MainWindow::on_btnSelectOutput_clicked(){
     if(outputdir.isEmpty()) return;
 
     selectedOutputPath_ = outputdir;
+    updateOutputDisplay();
+}
 
-    ui->OutputInfo->setText(outputdir);
-    ui->OutputInfo->adjustSize();
+void MainWindow::on_btnCleanOutput_clicked(){
+    selectedOutputPath_.clear();
+    updateOutputDisplay();
+}
 
+void MainWindow::updateOutputDisplay(){
+    if(selectedOutputPath_.isEmpty()){
+        ui->OutputInfo->setText("未指定 (使用預設) ");
+    }else{
+        ui->OutputInfo->setText(selectedOutputPath_);
+        ui->OutputInfo->adjustSize();
+    }
 }
 
 void MainWindow::debugPrintRequest(const NormalizedConversionRequest& req){

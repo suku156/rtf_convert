@@ -14,24 +14,24 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QPushButton" name="btnSelectInput">
+   <widget class="QPushButton" name="btnSelectInputFile">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>60</y>
-      <width>91</width>
+      <width>111</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
-     <string>Select input</string>
+     <string>Select input_file</string>
     </property>
    </widget>
    <widget class="QLabel" name="InputInfo">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>60</y>
+      <x>300</x>
+      <y>10</y>
       <width>111</width>
       <height>21</height>
      </rect>
@@ -44,7 +44,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>100</y>
+      <y>120</y>
       <width>91</width>
       <height>23</height>
      </rect>
@@ -56,8 +56,8 @@
    <widget class="QLabel" name="OutputInfo">
     <property name="geometry">
      <rect>
-      <x>120</x>
-      <y>100</y>
+      <x>300</x>
+      <y>50</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -239,6 +239,58 @@
       <string>flat-output</string>
      </property>
     </item>
+   </widget>
+   <widget class="QPushButton" name="btnSelectInputDir">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>90</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Select input_dir</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>50</y>
+      <width>53</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>output :</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>10</y>
+      <width>71</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>input :</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="btnCleanOutput">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>120</y>
+      <width>111</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Clean_output</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
