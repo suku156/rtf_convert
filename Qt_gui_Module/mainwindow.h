@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include "GuiFormData.h"
 
+struct NormalizedConversionRequest;
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -29,5 +31,9 @@ private:
     Ui::MainWindow *ui;
     QString selectedInputPath_;
     QString selectedOutputPath_;
+
+private:
+    void debugPrintRequest(const NormalizedConversionRequest& req);
+
 };
 #endif // MAINWINDOW_H

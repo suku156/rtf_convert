@@ -9,4 +9,8 @@ struct GuiFormData{
     QString inputPath;
     QString outputDir;
     QString formatText;
+    QString dirPolicy;
+    QString threadtext;
+    QString preserveRelativeStructure;
+    bool recursive;
 };

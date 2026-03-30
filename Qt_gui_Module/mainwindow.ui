@@ -128,6 +128,118 @@
      <string>ConvertStart</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="recursiveCheckBox">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>210</y>
+      <width>191</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>recursive</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="dirPolicy_label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>250</y>
+      <width>111</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>choose_dirPolicy : </string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="comboBox_dirPolicy">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>250</y>
+      <width>161</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <item>
+     <property name="text">
+      <string>reject</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>overwrite</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>renamewithsuffix</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_threadNum">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>300</y>
+      <width>161</width>
+      <height>23</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="thread_label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>300</y>
+      <width>111</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>set_thread_num :</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="preserveRelativeStructure_label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>350</y>
+      <width>151</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>preserveRelativeStructure :</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="comboBox_preserveRelativeStructure">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>350</y>
+      <width>171</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <item>
+     <property name="text">
+      <string>default</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>preserve-structure</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>flat-output</string>
+     </property>
+    </item>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

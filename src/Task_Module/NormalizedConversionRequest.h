@@ -13,5 +13,8 @@ struct NormalizedConversionRequest{
     Common::ExistingDirPolicy dirPolicy = Common::ExistingDirPolicy::Reject;
     bool recursive = false;
     std::optional<bool> preserveRelativeStructure;
+    // nullopt = 未指定，交由後續預設策略決定
+    // true    = 保留相對中間路徑
+    // false   = 不保留相對中間路徑
     std::optional<size_t> threadCount;
 }; 
