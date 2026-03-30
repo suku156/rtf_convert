@@ -10,6 +10,33 @@
 #include <QMessageBox>
 #include <QIntValidator>
 
+class ConvertUiGuard{
+private:
+    QPushButton* button_;
+    QLabel* label_;
+public:
+    ConvertUiGuard(QPushButton* button,QLabel* label)
+        : button_(button),label_(label)
+    {
+        if(button_) button_->setEnabled(false);
+        if(label_)  label_ ->setText("處裡中...");
+        qApp->processEvents();
+    }
+
+    ~ConvertUiGuard()
+    {
+        if(button_) button_->setEnabled(true);
+        if(label_)  label_ ->setText("準備中");
+    }
+
+    // 禁止複製
+    ConvertUiGuard(const ConvertUiGuard&) = delete;
+    ConvertUiGuard& operator=(const ConvertUiGuard&) = delete;
+    // 禁止移動
+    ConvertUiGuard(ConvertUiGuard&&) = delete;
+    ConvertUiGuard& operator=(ConvertUiGuard&&) = delete;
+};
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -18,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     updateOutputDisplay();
     ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
     ui->lineEdit_threadNum->setPlaceholderText("預設自動(可以不填)");
+    ui->label_status->setText("準備中");
 }
 
 GuiFormData MainWindow::collectFormData() const{
@@ -38,6 +66,9 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::on_btnConvert_clicked(){
+
+    ConvertUiGuard guard(ui->btnConvert,ui->label_status);
+
     GuiFormData form = collectFormData();
     GuiRequestTranslator request;
     auto result = request.translate(form);
@@ -56,8 +87,23 @@ void MainWindow::on_btnConvert_clicked(){
     taskBuilder::ConversionTaskBuilder builder;
     BuildResult BDresult = builder.build(req);
     App::AppExitCode resultCode = conversionengine.run(BDresult);
-    qDebug() << "AppExitCode:"
-             << static_cast<int>(resultCode);
+
+    // 依據回傳結果做出回饋
+    switch (resultCode) {
+    case App::AppExitCode::Success :
+        QMessageBox::information(this, "完成", "轉換成功");
+        break;
+    case App::AppExitCode::Fail :
+    case App::AppExitCode::RunTimeError:
+        QMessageBox::critical(this, "轉換失敗", "轉換過程發生錯誤");
+        break;
+    case App::AppExitCode::PartialSuccess:
+        QMessageBox::warning(this, "部分完成", "部分檔案轉換成功，部分失敗");
+        break;
+    defult:
+        QMessageBox::warning(this, "未知狀態", "發生未知錯誤");
+        break;
+    }
 }
 
 void MainWindow::on_btnSelectInputFile_clicked(){

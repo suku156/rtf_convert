@@ -38,13 +38,13 @@ namespace App{
                  << input.wstring()
                  << L"\n";
 
-      return AppExitCode::CliError;
+      return AppExitCode::Fail;
      }
      if (!std::filesystem::exists(st)) {
       std::wcout << L"[Error] 輸入目標不存在: "
                  << input.wstring()
                  << L"\n";
-      return AppExitCode::CliError;
+      return AppExitCode::Fail;
      }
     }
     

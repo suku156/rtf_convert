@@ -30,7 +30,7 @@
    <widget class="QLabel" name="InputInfo">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>370</x>
       <y>10</y>
       <width>111</width>
       <height>21</height>
@@ -56,7 +56,7 @@
    <widget class="QLabel" name="OutputInfo">
     <property name="geometry">
      <rect>
-      <x>300</x>
+      <x>370</x>
       <y>50</y>
       <width>101</width>
       <height>21</height>
@@ -256,7 +256,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>300</x>
       <y>50</y>
       <width>53</width>
       <height>16</height>
@@ -269,7 +269,7 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>220</x>
+      <x>300</x>
       <y>10</y>
       <width>71</width>
       <height>21</height>
@@ -290,6 +290,19 @@
     </property>
     <property name="text">
      <string>Clean_output</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_status">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>15</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
     </property>
    </widget>
   </widget>

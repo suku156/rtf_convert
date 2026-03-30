@@ -30,9 +30,8 @@ namespace App{
   enum class AppExitCode : int{
     Success = 0,
     Fail = 1,
-    CliError = 2,
-    RunTimeError = 3,
-    PartialSuccess = 4
+    RunTimeError = 2,
+    PartialSuccess = 3
   };
 
   class ConversionEngine{
