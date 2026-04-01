@@ -17,6 +17,7 @@
 
 #pragma once
 #include <Task_Module/ConversionTask.h>
+#include <Feedback_Module/IProgressObserver.h>
 
 // forward declaration
 /*
@@ -36,7 +37,7 @@ namespace App{
 
   class ConversionEngine{
   public:
-  AppExitCode run(const BuildResult& result);
+  AppExitCode run(const BuildResult& result,IProgressObserver* observer = nullptr);
   private:
   }; 
 }

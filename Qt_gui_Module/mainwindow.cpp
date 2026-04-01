@@ -6,6 +6,7 @@
 #include "Task_Module/ConversionTaskBuilder.h"
 #include "Task_Module/ConversionTask.h"
 #include "Universal_Module/CommonEnum.h"
+#include "GuiObserver.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QIntValidator>
@@ -100,7 +101,8 @@ void MainWindow::on_btnConvert_clicked(){
     appendLog("轉換任務建立成功");
     appendLogToBuildResult(BDresult);
     appendLog("開始核心轉換流程");
-    App::AppExitCode resultCode = conversionengine.run(BDresult);
+    GuiObserver guiObserver;
+    App::AppExitCode resultCode = conversionengine.run(BDresult,&guiObserver);
 
     // 依據回傳結果做出回饋
     switch (resultCode) {

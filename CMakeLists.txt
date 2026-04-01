@@ -40,7 +40,7 @@ add_executable(rtfconvert_cli
     rtfconvert.cpp
     src/Cli_Module/CliParser.cpp
     src/Cli_Module/CliRequestResolver.cpp
-    
+    src/Cli_Module/ConsoleObserver.cpp
 )
 
 target_link_libraries(rtfconvert_cli PRIVATE rtfcore)
@@ -63,6 +63,8 @@ qt_add_executable(rtfconvert_gui
     Qt_gui_Module/GuiFormData.h
     Qt_gui_Module/GuiRequestTranslator.h
     Qt_gui_Module/GuiRequestTranslator.cpp
+    Qt_gui_Module/GuiObserver.h
+    Qt_gui_Module/GuiObserver.cpp
 )
 
 target_link_libraries(rtfconvert_gui PRIVATE

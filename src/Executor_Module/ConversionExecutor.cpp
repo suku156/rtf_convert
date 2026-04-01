@@ -17,11 +17,14 @@
 #include <optional>
 
 namespace App{
-  AppExitCode ConversionEngine::run(const BuildResult& result){
+  AppExitCode ConversionEngine::run(const BuildResult& result,IProgressObserver* observer){
     
     if(!result.ok){
       std::wcout << L"[Error]" << result.message << L"\n";
       return AppExitCode::Fail;
+    }
+    if(observer){
+      observer->onLog(L"開始轉換");
     }
 
     auto task = result.task;
@@ -99,6 +102,9 @@ namespace App{
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
+      if(observer){
+        observer->onLog(L"進入單檔轉換流層");
+      }
       // 依據判斷出來的模式再次調整 resolverReq
       resolverReq.inputFile = task.inputPath;
       resolverReq.taskRootDir = std::nullopt;
@@ -121,8 +127,14 @@ namespace App{
       RTFProcessor rtfprocessor;
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
+        if(observer){
+         observer->onLog(L"單檔轉換結束");
+        }
         return AppExitCode::Success;  
       }else{
+        if(observer){
+         observer->onLog(L"單檔轉換結束");
+        }
         return AppExitCode::Fail;
       }
     }

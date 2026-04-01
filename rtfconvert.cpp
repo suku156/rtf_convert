@@ -26,6 +26,7 @@
 #include "Task_Module/NormalizedConversionRequest.h"
 #include "Task_Module/ConversionTaskBuilder.h"
 #include "Task_Module/ConversionTask.h"
+#include "Cli_Module/ConsoleObserver.h"
 
 int wmain(int argc,wchar_t* argv[]){
   // 強制讓 wcout 用 UTF-16 (Windows 本地寬字輸出)
@@ -67,7 +68,9 @@ int wmain(int argc,wchar_t* argv[]){
   App::ConversionEngine conversionengine;
   taskBuilder::ConversionTaskBuilder builder;
   BuildResult BDresult = builder.build(request);
-  App::AppExitCode resultCode = conversionengine.run(BDresult);
+  // 新增 cli 線的 observer
+  ConsoleObserver consoleObserver;
+  App::AppExitCode resultCode = conversionengine.run(BDresult,&consoleObserver);
   int result = static_cast<int>(resultCode);
   
   return result;

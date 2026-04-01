@@ -1,3 +1,20 @@
+// =====================================================
+// Module  : mainwindow
+// Author  : suku156
+// Purpose : 負責gui運行的主要模組
+// Layer   : gui
+//
+// Depend  :
+//  GuiRequestTranslator
+//  GuiFormData
+//
+// Used by :
+//   main
+//
+// Notes :
+//   gui 中主要負責執行視窗相關所有指令的模組
+// =====================================================
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 

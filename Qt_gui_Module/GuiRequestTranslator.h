@@ -1,8 +1,23 @@
+// =====================================================
+// Module  : GuiRequestTranslator
+// Author  : suku156
+// Purpose : 負責將 gui 介面得到的資訊轉譯
+// Layer   : gui
+//
+// Depend  :
+//  GuiFormData
+//  NormalizedConversionRequest
+//
+// Used by :
+//  mainwindow
+//
+// Notes :
+//   gui 中主要負責將介面得到的資訊轉換成核心功能使用的結構
+// =====================================================
+
 #ifndef GUIREQUESTTRANSLATOR_H
 #define GUIREQUESTTRANSLATOR_H
 
-#endif // GUIREQUESTTRANSLATOR_H
-#pragma once
 #include "Task_Module/NormalizedConversionRequest.h"
 #include "GuiFormData.h"
 #include "Universal_Module/CommonEnum.h"
@@ -27,3 +42,7 @@ private:
     std::optional<size_t> threadStrToSizet(const QString& s);
     std::optional<bool> setPreserveRelativeStructure(const QString& s);
 };
+
+#endif // GUIREQUESTTRANSLATOR_H
+
+
