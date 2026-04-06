@@ -1,13 +1,12 @@
 #include "GuiObserver.h"
-#include <string>
-#include <cstddef>
+#include "Feedback_Module/ProgressEvent.h"
 #include <QDebug>
 
-void GuiObserver::onLog(const std::wstring& msg){
+void GuiObserver::onLog(const ProgressEvent& event){
     qDebug() << "[GuiObserver] onLog called:"
-             << QString::fromStdWString(msg);
+             << QString::fromStdWString(event.message);
 }
 
-void GuiObserver::onProgress(size_t done,size_t total){
+void GuiObserver::onProgress(const ProgressEvent& event){
 
 }

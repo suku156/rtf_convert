@@ -10,6 +10,7 @@
 #include "Universal_Module/Console.h"
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "I_O_Moudle/OutputPathResolver.h"
+#include "Feedback_Module/ProgressEvent.h"
 #include <system_error>
 #include <filesystem>
 #include <iostream>
@@ -24,7 +25,10 @@ namespace App{
       return AppExitCode::Fail;
     }
     if(observer){
-      observer->onLog(L"開始轉換");
+      ProgressEvent event;
+      event.type = ProgressEventType::Start;
+      event.message = L"observer資訊傳遞測試: 轉換開始";
+      observer->onLog(event);
     }
 
     auto task = result.task;
@@ -103,7 +107,10 @@ namespace App{
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
       if(observer){
-        observer->onLog(L"進入單檔轉換流層");
+        ProgressEvent event;
+        event.type = ProgressEventType::Info;
+        event.message = L"observer資訊傳遞測試: 進入單檔轉換流層";
+        observer->onLog(event);
       }
       // 依據判斷出來的模式再次調整 resolverReq
       resolverReq.inputFile = task.inputPath;
@@ -128,12 +135,18 @@ namespace App{
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
         if(observer){
-         observer->onLog(L"單檔轉換結束");
+          ProgressEvent event;
+          event.type = ProgressEventType::Finish;
+          event.message = L"observer資訊傳遞測試: 單檔轉換結束,轉換成功";
+          observer->onLog(event);
         }
         return AppExitCode::Success;  
       }else{
         if(observer){
-         observer->onLog(L"單檔轉換結束");
+          ProgressEvent event;
+          event.type = ProgressEventType::Finish;
+          event.message = L"observer資訊傳遞測試: 單檔轉換結束,轉換失敗";
+          observer->onLog(event);
         }
         return AppExitCode::Fail;
       }

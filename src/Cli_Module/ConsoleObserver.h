@@ -16,11 +16,11 @@
 // =====================================================
 #pragma once
 #include "Feedback_Module/IProgressObserver.h"
-#include <string>
-#include <cstddef>
+
+struct  ProgressEvent;
 
 class ConsoleObserver : public IProgressObserver{
 public:
-   void onLog(const std::wstring& msg) override;
-   void onProgress(size_t done,size_t total) override;
+   void onLog(const ProgressEvent& event) override;
+   void onProgress(const ProgressEvent& event) override;
 };

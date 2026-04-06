@@ -16,9 +16,11 @@
 #pragma once
 #include <string>
 
+struct ProgressEvent;
+
 class IProgressObserver{
 public:
   virtual ~IProgressObserver() = default;
-  virtual void onLog(const std::wstring& msg) = 0;
-  virtual void onProgress(size_t done,size_t total) = 0;
+  virtual void onLog(const ProgressEvent& event) = 0;
+  virtual void onProgress(const ProgressEvent& event) = 0;
 }; 
