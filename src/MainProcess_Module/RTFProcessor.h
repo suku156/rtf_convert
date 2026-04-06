@@ -32,11 +32,16 @@
 #include<optional>
 
 struct FileProcessRequest;
+struct IProgressObserver;
 
 // 主流程
 class RTFProcessor{
+  IProgressObserver* observer_ = nullptr;
 public:
+  explicit RTFProcessor(IProgressObserver* observer = nullptr) : observer_(observer) {}
   bool processFile(const FileProcessRequest& req);
+private:
+  void notify(const ProgressEvent& event);
 };
 
 

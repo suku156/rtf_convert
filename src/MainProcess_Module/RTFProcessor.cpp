@@ -17,6 +17,8 @@
 #include "SemanticStructure_Module/Renderer.h"       // 依據需求解讀語意結構用的模組
 #include "Universal_Module/CommonEnum.h"  // 多個模組共用的 enum
 #include "MainProcess_Module/FileProcessRequest.h"
+#include "Feedback_Module/ProgressEvent.h"
+#include "Feedback_Module/IProgressObserver.h"
 #include<filesystem>
 #include<optional>
 #include<iostream>
@@ -548,4 +550,10 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     
     logger.close();
     return true;
+}
+
+void RTFProcessor::notify(const ProgressEvent& event){
+  if(observer_){
+    observer_->onEvent(event);
+  }
 }

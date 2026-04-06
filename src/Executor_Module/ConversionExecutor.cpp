@@ -129,7 +129,7 @@ namespace App{
       FPrequest.finalOutputDir  = test.parentDir;
 
       // 單檔：直接呼叫 processor
-      RTFProcessor rtfprocessor;
+      RTFProcessor rtfprocessor(observer_);
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
         notify(ProgressEvent{
