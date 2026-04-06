@@ -64,13 +64,13 @@ int wmain(int argc,wchar_t* argv[]){
   // 將命令列解析後的資訊轉譯成預定型態
   NormalizedConversionRequest request = Conversion::resolveConfig(parseresult);
 
-  // 用命令列訊息決定如何呼叫
-  App::ConversionEngine conversionengine;
-  taskBuilder::ConversionTaskBuilder builder;
-  BuildResult BDresult = builder.build(request);
   // 新增 cli 線的 observer
   ConsoleObserver consoleObserver;
-  App::AppExitCode resultCode = conversionengine.run(BDresult,&consoleObserver);
+  // 用命令列訊息決定如何呼叫
+  App::ConversionEngine conversionengine(&consoleObserver);
+  taskBuilder::ConversionTaskBuilder builder;
+  BuildResult BDresult = builder.build(request);
+  App::AppExitCode resultCode = conversionengine.run(BDresult);
   int result = static_cast<int>(resultCode);
   
   return result;

@@ -36,8 +36,16 @@ namespace App{
   };
 
   class ConversionEngine{
+  IProgressObserver* observer_ = nullptr;
+
   public:
-  AppExitCode run(const BuildResult& result,IProgressObserver* observer = nullptr);
+  explicit ConversionEngine(IProgressObserver* observer = nullptr) : observer_(observer) {}
+  ConversionEngine(const ConversionEngine&) = delete;
+  ConversionEngine& operator=(const ConversionEngine&) = delete;
+  AppExitCode run(const BuildResult& result);
+  
   private:
+  void notify(const ProgressEvent& event);
+  
   }; 
 }

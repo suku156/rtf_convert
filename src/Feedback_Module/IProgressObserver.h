@@ -21,6 +21,6 @@ struct ProgressEvent;
 class IProgressObserver{
 public:
   virtual ~IProgressObserver() = default;
-  virtual void onLog(const ProgressEvent& event) = 0;
+  virtual void onEvent(const ProgressEvent& event) = 0;
   virtual void onProgress(const ProgressEvent& event) = 0;
 }; 

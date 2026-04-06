@@ -17,20 +17,20 @@
 #include <string>
 #include <optional>
 
+
+
 namespace App{
-  AppExitCode ConversionEngine::run(const BuildResult& result,IProgressObserver* observer){
+  AppExitCode ConversionEngine::run(const BuildResult& result){
     
     if(!result.ok){
       std::wcout << L"[Error]" << result.message << L"\n";
       return AppExitCode::Fail;
     }
-    if(observer){
-      ProgressEvent event;
-      event.type = ProgressEventType::Start;
-      event.message = L"observer資訊傳遞測試: 轉換開始";
-      observer->onLog(event);
-    }
-
+    notify(ProgressEvent{
+      ProgressEventType::Start,
+      L"observer資訊傳遞測試: 轉換開始"
+    });
+    
     auto task = result.task;
 
     auto input  = task.inputPath;
@@ -106,12 +106,10 @@ namespace App{
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
-      if(observer){
-        ProgressEvent event;
-        event.type = ProgressEventType::Info;
-        event.message = L"observer資訊傳遞測試: 進入單檔轉換流層";
-        observer->onLog(event);
-      }
+      notify(ProgressEvent{
+        ProgressEventType::Info,
+        L"observer資訊傳遞測試: 進入單檔轉換流層"
+      });
       // 依據判斷出來的模式再次調整 resolverReq
       resolverReq.inputFile = task.inputPath;
       resolverReq.taskRootDir = std::nullopt;
@@ -134,20 +132,16 @@ namespace App{
       RTFProcessor rtfprocessor;
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
-        if(observer){
-          ProgressEvent event;
-          event.type = ProgressEventType::Finish;
-          event.message = L"observer資訊傳遞測試: 單檔轉換結束,轉換成功";
-          observer->onLog(event);
-        }
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"observer資訊傳遞測試: 單檔轉換結束,轉換成功"
+        });
         return AppExitCode::Success;  
       }else{
-        if(observer){
-          ProgressEvent event;
-          event.type = ProgressEventType::Finish;
-          event.message = L"observer資訊傳遞測試: 單檔轉換結束,轉換失敗";
-          observer->onLog(event);
-        }
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"observer資訊傳遞測試: 單檔轉換結束,轉換失敗"
+        });
         return AppExitCode::Fail;
       }
     }
@@ -190,3 +184,8 @@ namespace App{
   }
 }
 
+void App::ConversionEngine::notify(const ProgressEvent& event){
+  if(observer_){
+    observer_->onEvent(event);
+  }
+}

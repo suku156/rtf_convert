@@ -93,16 +93,17 @@ void MainWindow::on_btnConvert_clicked(){
 
     auto& req = result.Normalizedrequest;
 
+    GuiObserver guiObserver;
     // 呼叫並連結核心功能
-    App::ConversionEngine conversionengine;
+    App::ConversionEngine conversionengine(&guiObserver);
     taskBuilder::ConversionTaskBuilder builder;
     appendLog("開始建立轉換任務...");
     BuildResult BDresult = builder.build(req);
     appendLog("轉換任務建立成功");
     appendLogToBuildResult(BDresult);
     appendLog("開始核心轉換流程");
-    GuiObserver guiObserver;
-    App::AppExitCode resultCode = conversionengine.run(BDresult,&guiObserver);
+
+    App::AppExitCode resultCode = conversionengine.run(BDresult);
 
     // 依據回傳結果做出回饋
     switch (resultCode) {

@@ -21,6 +21,6 @@ struct  ProgressEvent;
 
 class ConsoleObserver : public IProgressObserver{
 public:
-   void onLog(const ProgressEvent& event) override;
+   void onEvent(const ProgressEvent& event) override;
    void onProgress(const ProgressEvent& event) override;
 };

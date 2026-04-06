@@ -6,7 +6,7 @@
 #include "Universal_Module/Console.h"
 
 
-void ConsoleObserver::onLog(const ProgressEvent& event){
+void ConsoleObserver::onEvent(const ProgressEvent& event){
    Console::ensureWcout(event.message);
 }
 
