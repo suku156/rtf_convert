@@ -24,7 +24,11 @@
 //   
 // Notes :
 //   主要使用的流程模組
-//    
+//   IProgressObserver* observer_ = nullptr 
+//   如果維持預設的空指標狀態就會是安靜模式
+//   也就是建構時不給東西
+//   observer == nullptr 時，RTFProcessor 以安靜模式運作；
+//   適合批次/多執行緒情境，由外層統一負責進度輸出。
 // =====================================================
 #pragma once
 #include "Universal_Module/CommonEnum.h"  // 多個模組共用的 enum
