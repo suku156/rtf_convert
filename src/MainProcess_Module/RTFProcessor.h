@@ -33,6 +33,7 @@
 
 struct FileProcessRequest;
 struct IProgressObserver;
+struct ProgressEvent;
 
 // 主流程
 class RTFProcessor{

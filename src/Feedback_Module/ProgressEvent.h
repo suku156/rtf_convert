@@ -1,9 +1,11 @@
-#pragma once
+﻿#pragma once
 #include <string>
 
 
 enum class ProgressEventType {
     Info,
+    Error,
+    Warning,
     Start,
     Finish
 };

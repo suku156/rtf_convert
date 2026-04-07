@@ -326,15 +326,24 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
 
     // 簡單測試最終路徑
     if(req.finalOutputDir.empty()){
-      Console::ensureWcerr(L"輸出資料夾路徑為空\n");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"輸出資料夾路徑為空\n"
+      });
       return false;
     }
     if(req.finalOutputPath.empty()){
-      Console::ensureWcerr(L"輸出檔案路徑為空\n");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"輸出檔案路徑為空\n"
+      });
       return false;
     }
     if(req.finalOutputPath.parent_path() != req.finalOutputDir){
-      Console::ensureWcerr(L"輸出檔案路徑與輸出資料夾路徑不一致\n");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"輸出檔案路徑與輸出資料夾路徑不一致\n"
+      });
       return false;
     }
     
@@ -370,7 +379,11 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     logger.log(LogLevel::Info,"以確保有輸出資料夾");
 
-    Console::ensureWcout(L"正在處理檔案: " + filePath.wstring() + L"\n");
+    //Console::ensureWcout(L"正在處理檔案: " + filePath.wstring() + L"\n");
+    notify(ProgressEvent{
+      ProgressEventType::Start,
+      L"observer資訊傳遞測試: 正在處理檔案: " + filePath.wstring() + L"\n"
+    });
     logger.log(LogLevel::Info,std::string("正在處理檔案: ") + pathToUtf8(filePath));
 
     ErrorHandle errorhandler(logger);
@@ -455,7 +468,11 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
        if(!utf_decoded) return false;
        rtfContent = utf_decoded.value();
        utf8GroupProcessor().processGroups(rtfContent);//加入處理群組的功能
-       Console::ensureWcout(L"是UTF編碼體系的檔案\n");
+       
+       notify(ProgressEvent{
+          ProgressEventType::Info,
+          L"observer資訊傳遞測試: 是UTF編碼體系的檔案\n"
+       });
        logger.log(LogLevel::Info,"完成 UTF 體系的解碼與群組處理");
        break;
       }
@@ -466,7 +483,10 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
        auto ansi_decoded = ansiDe.setCodePage(filecontext.getCodepage()).decode(rtfContent,detector,errorhandler); // 使用串聯特性
        if(!ansi_decoded) return false; // 偵測結果錯誤就中斷函式執行
        rtfContent = ansi_decoded.value();
-       Console::ensureWcout(L"是ANSI編碼的檔案\n");
+       notify(ProgressEvent{
+          ProgressEventType::Info,
+          L"observer資訊傳遞測試: 是ANSI編碼的檔案\n"
+       });
        logger.log(LogLevel::Info,"完成 ANSI 體系的解碼");
        break;
       }
@@ -544,7 +564,10 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       return false;
     }
     
-    Console::ensureWcout(L"已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n");
+    notify(ProgressEvent{
+      ProgressEventType::Finish,
+      L"observer資訊傳遞測試: 已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n"
+    });
     output.close();
     logger.log(LogLevel::Info,"關閉輸出檔案");
     
