@@ -353,43 +353,64 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     if(dirResult != EnsureDirResult::Success){
       switch(dirResult){
         case EnsureDirResult::AlreadyExists:
-        Console::ensureWcerr(L"輸出資料夾已存在: " + req.finalOutputDir.wstring() + L"\n");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"輸出資料夾已存在: " + req.finalOutputDir.wstring() + L"\n"
+        });
         break;
         case EnsureDirResult::NotDirectory:
-        Console::ensureWcerr(L"輸出路徑已存在但不是資料夾: " + req.finalOutputDir.wstring() + L"\n");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"輸出路徑已存在但不是資料夾: " + req.finalOutputDir.wstring() + L"\n"
+        });
         break;
         case EnsureDirResult::CreateFailed:
-        Console::ensureWcerr(L"建立輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"建立輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n"
+        });
         break;
         case EnsureDirResult::VerifyFailed:
-        Console::ensureWcerr(L"建立後驗證輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"建立後驗證輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n"
+        });
         break;
         default:
-        Console::ensureWcerr(L"未知的輸出資料夾錯誤: " + req.finalOutputDir.wstring() + L"\n");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"未知的輸出資料夾錯誤: " + req.finalOutputDir.wstring() + L"\n"
+        });
         break;
       }
       return false;
     }
-    
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"輸出資料夾建立成功\n"
+    });
     logSystem logger;
     
     if(!logger.open(fileOut.path())){
-      std::wcout<< L"測試失敗,開啟有問題\n";
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"log 系統無法開啟"
+      });
       return false; 
     }
-    logger.log(LogLevel::Info,"以確保有輸出資料夾");
+    logger.log(LogLevel::Info,"以確保有輸出資料夾: " + req.finalOutputDir.string());
 
-    //Console::ensureWcout(L"正在處理檔案: " + filePath.wstring() + L"\n");
     notify(ProgressEvent{
-      ProgressEventType::Start,
-      L"observer資訊傳遞測試: 正在處理檔案: " + filePath.wstring() + L"\n"
+      ProgressEventType::Info,
+      L"開始處理目標檔案: " + filePath.wstring() + L"\n"
     });
     logger.log(LogLevel::Info,std::string("正在處理檔案: ") + pathToUtf8(filePath));
 
     ErrorHandle errorhandler(logger);
     errorhandler.beginFile();
     FileScopeGuard guard{errorhandler}; // 使用類別的解構功能自動呼叫endfile()
-    logger.log(LogLevel::Info,"錯誤系統啟用");
+    logger.log(LogLevel::Info,"錯誤系統啟用 :(ErrorHandle 模組)");
+    
     
     logger.log(LogLevel::Info,"嘗試開啟輸入檔案");
     // 開啟輸入檔案（用 binary 避免編碼問題）
@@ -403,7 +424,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       errorhandler.handle(info);
       return false;
      }
-     logger.log(LogLevel::Info,"成功開啟輸入檔案");
+     logger.log(LogLevel::Info,"成功開啟輸入檔案: " + pathToUtf8(filePath.string()));
      
      // 將輸入檔案讀成 string 好做之後的加工
     std::string rtfContent{
@@ -415,8 +436,9 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     //判斷檔案是用何種基礎編碼,並順便收集該基礎編碼所屬的資訊
     EncodingDetector detect;
     FileContext filecontext;
-    filecontext.setOutPut(detect.detectEncoding(input)); // 將得到到資料放入資料存放的類別中
-    logger.log(LogLevel::Info,"對輸入檔案進行偵測");
+    DetectOutput detectoutput = detect.detectEncoding(input);
+    filecontext.setOutPut(detectoutput); // 將得到到資料放入資料存放的類別中
+    logger.log(LogLevel::Info,"輸入檔案偵測開始");
      
     //偵測結果錯誤處理 
     auto result = filecontext.getDetectResult();
@@ -429,7 +451,37 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       return false;
       default: break;
     }
-    logger.log(LogLevel::Info,"輸入檔案偵測成功");
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"偵測輸入檔案資訊完成\n"
+    });
+    {
+      std::string detectStr;
+      switch(detectoutput.encoding){
+        case Encoding::UTF16_BE:
+        case Encoding::UTF16_LE:
+        case Encoding::UTF32_BE:
+        case Encoding::UTF32_LE:
+        case Encoding::UTF8_BOM:
+        case Encoding::UTF8_NoBOM:
+        detectStr = "UTF";
+        break;
+        case Encoding::Ansi_Big5:
+        case Encoding::Ansi_CEI:
+        case Encoding::Ansi_Cyrillic:
+        case Encoding::Ansi_GBK:
+        case Encoding::Ansi_JIS:
+        case Encoding::Ansi_Korean:
+        case Encoding::Ansi_Latin_1:
+        detectStr = "ANSI";
+        break;
+        default:
+        detectStr = "Not_Supported" ;
+        break;
+      }
+      logger.log(LogLevel::Info,"輸入檔案偵測結果: " + detectStr);
+    }
+    
      
     // 將目標檔案的資料放進專們的類別中
     filecontext.setFilePath(filePath); // 給定輸入路徑
@@ -440,15 +492,31 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     switch(picrResult){
       case PictProcessResult::OK :
       logger.log(LogLevel::Info,"圖片區塊正確結束");
+      notify(ProgressEvent{
+        ProgressEventType::Info,
+        L"圖片處理區塊完成\n"
+      });
       break;
       case PictProcessResult::SkipPict :
       logger.log(LogLevel::Warn,"圖片區塊有部份進行錯誤區塊跳過處理,但是可繼續後面流程");
+      notify(ProgressEvent{
+        ProgressEventType::Warning,
+        L"圖片處理區塊有部份區塊錯誤進行跳過處裡\n"
+      });
       break;
       case PictProcessResult::AbortFile:
       logger.log(LogLevel::Error,"圖片區塊有無法跳過處裡之錯誤!,終止後續流程");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"圖片處理區塊錯誤流程中止\n"
+      });
       return false;
       case PictProcessResult::AbortGlobal:
       logger.log(LogLevel::Error,"圖片區塊有破壞性之錯誤!,終止整個程序!");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"圖片處理區塊錯誤整體程序中止\n"
+      });
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
     }
   
@@ -468,11 +536,6 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
        if(!utf_decoded) return false;
        rtfContent = utf_decoded.value();
        utf8GroupProcessor().processGroups(rtfContent);//加入處理群組的功能
-       
-       notify(ProgressEvent{
-          ProgressEventType::Info,
-          L"observer資訊傳遞測試: 是UTF編碼體系的檔案\n"
-       });
        logger.log(LogLevel::Info,"完成 UTF 體系的解碼與群組處理");
        break;
       }
@@ -483,14 +546,14 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
        auto ansi_decoded = ansiDe.setCodePage(filecontext.getCodepage()).decode(rtfContent,detector,errorhandler); // 使用串聯特性
        if(!ansi_decoded) return false; // 偵測結果錯誤就中斷函式執行
        rtfContent = ansi_decoded.value();
-       notify(ProgressEvent{
-          ProgressEventType::Info,
-          L"observer資訊傳遞測試: 是ANSI編碼的檔案\n"
-       });
        logger.log(LogLevel::Info,"完成 ANSI 體系的解碼");
        break;
       }
     }
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"解碼完成\n"
+    });
     
     logger.log(LogLevel::Info,"開始檢查檔案是否符合 RTF 文法");
     //檢查 圖檔區域處裡完的純文字是否符合 rtf　文法,並將結果放給統一函式處裡 
@@ -506,11 +569,18 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       logger.log(LogLevel::Error,"輸入檔案不符合 RTF 之文法");
       return false;
     }
-    
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"文法檢查通過\n"
+    });
+
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //用類別的功能來清除文字中剩餘的控制碼等等
     textRtfProcessor().Processor(rtfContent,logger);
-    
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"完成多餘控制符清理\n"
+    });
 
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
     
@@ -526,6 +596,10 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       return false;
     }
     logger.log(LogLevel::Info,"輸出檔案開啟成功");
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"成功建立輸出檔案\n"
+    });
 
     // .txt 檔案寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
     if(outputformat == Common::OutputFormat::Txt){
@@ -560,13 +634,16 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       }
       
       default:
-      Console::ensureWcerr(L"[Unknown OutputFormat]");
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"[Unknown OutputFormat]"
+      });
       return false;
     }
     
     notify(ProgressEvent{
-      ProgressEventType::Finish,
-      L"observer資訊傳遞測試: 已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n"
+      ProgressEventType::Info,
+      L"已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n"
     });
     output.close();
     logger.log(LogLevel::Info,"關閉輸出檔案");

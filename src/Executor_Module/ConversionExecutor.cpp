@@ -28,7 +28,7 @@ namespace App{
     }
     notify(ProgressEvent{
       ProgressEventType::Start,
-      L"observer資訊傳遞測試: 轉換開始"
+      L"轉換開始"
     });
     
     auto task = result.task;
@@ -106,10 +106,6 @@ namespace App{
     std::error_code ec;
     //目標如果是單獨檔案的話
     if (std::filesystem::is_regular_file(input, ec)) {
-      notify(ProgressEvent{
-        ProgressEventType::Info,
-        L"observer資訊傳遞測試: 進入單檔轉換流層"
-      });
       // 依據判斷出來的模式再次調整 resolverReq
       resolverReq.inputFile = task.inputPath;
       resolverReq.taskRootDir = std::nullopt;
@@ -132,16 +128,8 @@ namespace App{
       RTFProcessor rtfprocessor(observer_);
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
-        notify(ProgressEvent{
-          ProgressEventType::Finish,
-          L"observer資訊傳遞測試: 單檔轉換結束,轉換成功"
-        });
         return AppExitCode::Success;  
       }else{
-        notify(ProgressEvent{
-          ProgressEventType::Finish,
-          L"observer資訊傳遞測試: 單檔轉換結束,轉換失敗"
-        });
         return AppExitCode::Fail;
       }
     }
