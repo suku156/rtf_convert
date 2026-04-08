@@ -24,14 +24,14 @@ void ProgressObserver::Start(size_t num){
     done_.store(0,std::memory_order_relaxed);
     notify(ProgressEvent{
       ProgressEventType::BatchStart,
-      L"開始多執行緒任務共有: "  + std::to_wstring(total_) + L" 個目標"
+      L"多執行緒批次開始共有: "  + std::to_wstring(total_) + L" 個目標"
     });
 }
 void ProgressObserver::onUnitDone(){
     size_t current =  done_.fetch_add(1,std::memory_order_relaxed) + 1;
     notify(ProgressEvent{
       ProgressEventType::UnitDone,
-      L"執行狀況 : ",
+      L"處理進度 : ",
       current,
       total_
     });
@@ -99,7 +99,6 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
         OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
         if(!test.pathReserved){ // 檢查是否有同名檔案衝突問題
           failCount_.fetch_add(1, std::memory_order_relaxed);
-          Console::ensureWcerr(L"路徑有同名衝突問題: " + file.wstring() + L"\n");
           ProOB.onUnitDone();
           continue;
         }

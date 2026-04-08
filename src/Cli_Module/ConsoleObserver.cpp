@@ -25,8 +25,8 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
       return;
       case ProgressEventType::UnitDone:
       Console::ensureWcout(L"[UNITDONE]: "  + event.message
-             +  L"已完成 " + std::to_wstring(event.done) 
-             +  L" / 總數: " + std::to_wstring(event.total));
+            + std::to_wstring(event.done) 
+            +  L" / " + std::to_wstring(event.total));
       return;    
       case ProgressEventType::Warning:
       Console::ensureWcerr(L"[WARNING]: "  + event.message);

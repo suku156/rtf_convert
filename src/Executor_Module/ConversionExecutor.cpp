@@ -28,7 +28,7 @@ namespace App{
     }
     notify(ProgressEvent{
       ProgressEventType::Start,
-      L"轉換開始"
+      L"啟動轉換流程"
     });
     
     auto task = result.task;
