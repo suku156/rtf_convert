@@ -128,8 +128,16 @@ namespace App{
       RTFProcessor rtfprocessor(observer_);
       bool flag = rtfprocessor.processFile(FPrequest);
       if(flag){
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"轉換成功"
+        });
         return AppExitCode::Success;  
       }else{
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"轉換失敗"
+        });
         return AppExitCode::Fail;
       }
     }
@@ -151,20 +159,34 @@ namespace App{
         resolverReq.preserveRelativeStructure = task.preserveRelativeStructure;
       }
       
-      RTFDirectoryRunner Drunner;
+      RTFDirectoryRunner Drunner(observer_);
       // 須注意 resolverReq.inputFile 在資料夾模式中需要進入多執行緒類別中設定,不然為空
       Drunner.run(FPrequest,task.recursive,resolverReq,task.threadCount);
-      Console::ensureWcout(std::wstring(L"多執行緒成功數量: ") + 
+      notify(ProgressEvent{
+        ProgressEventType::Info,
+        std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
                            L" 多執行緒失敗數量: " + 
-                           std::to_wstring(Drunner.getFailNum())+
-                           L"\n");
+                           std::to_wstring(Drunner.getFailNum())
+      });
       if(Drunner.getFailNum() == 0){
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"多執行緒轉換成功"
+        });
         return AppExitCode::Success;
       }
       else if(Drunner.getSuccessNum() == 0){
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"多執行緒轉換失敗"
+        });
         return AppExitCode::RunTimeError;
       }
+      notify(ProgressEvent{
+        ProgressEventType::Finish,
+        L"多執行緒轉換部份成功"
+      });
       return AppExitCode::PartialSuccess;                       
     }
 

@@ -16,7 +16,18 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
       return;
       case ProgressEventType::Finish:
       Console::ensureWcout(L"[FINISH]: "  + event.message);
-      return; 
+      return;
+      case ProgressEventType::BatchStart:
+      Console::ensureWcout(L"[BATCHSTART]: "  + event.message);
+      return;
+      case ProgressEventType::BatchFinish:
+      Console::ensureWcout(L"[BATCHFINISH]: "  + event.message);
+      return;
+      case ProgressEventType::UnitDone:
+      Console::ensureWcout(L"[UNITDONE]: "  + event.message
+             +  L"已完成 " + std::to_wstring(event.done) 
+             +  L" / 總數: " + std::to_wstring(event.total));
+      return;    
       case ProgressEventType::Warning:
       Console::ensureWcerr(L"[WARNING]: "  + event.message);
       return;
@@ -30,5 +41,5 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
 }
 
 void ConsoleObserver::onProgress(const ProgressEvent& event){
-
+  
 }

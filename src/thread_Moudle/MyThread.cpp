@@ -8,33 +8,46 @@
 #include "Cli_Module/CliParser.h"
 #include "I_O_Moudle/OutputPathResolver.h"
 #include "Universal_Module/CommonEnum.h"
+#include "Feedback_Module/IProgressObserver.h"
+#include "Feedback_Module/ProgressEvent.h"
 #include <thread>
 #include <cstddef>
 #include <system_error>
 #include <filesystem>
 #include <optional>
 #include <iostream>
+#include <string>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
     total_ = num;
     done_.store(0,std::memory_order_relaxed);
-    display();
+    notify(ProgressEvent{
+      ProgressEventType::BatchStart,
+      L"開始多執行緒任務共有: "  + std::to_wstring(total_) + L" 個目標"
+    });
 }
 void ProgressObserver::onUnitDone(){
-    done_.fetch_add(1,std::memory_order_relaxed);
-    display();
+    size_t current =  done_.fetch_add(1,std::memory_order_relaxed) + 1;
+    notify(ProgressEvent{
+      ProgressEventType::UnitDone,
+      L"執行狀況 : ",
+      current,
+      total_
+    });
 }
 void ProgressObserver::Finish(){
-    display();
-    Console::ensureWcout( L" 已完成全部任務!\n");
+    notify(ProgressEvent{
+      ProgressEventType::BatchFinish,
+      L"多執行緒任務全部結束"
+    });
 }
-void ProgressObserver::display() const{
-    Console::ensureWcout(L"已完成 " +
-                         std::to_wstring(done_.load(std::memory_order_relaxed)) +
-                         L" / 總數: " +
-                         std::to_wstring(total_));
+void ProgressObserver::notify(const ProgressEvent& event){
+  if(observer_){
+    observer_->onEvent(event);
+  }
 }
+
 
 // 多執行緒任務的總管 (函式定義)
 void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive, 
@@ -47,7 +60,7 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     if(files.empty()) return;
     
     // 設定進度條的總數
-    ProgressObserver ProOB;
+    ProgressObserver ProOB(observer_);
     ProOB.Start(files.size());
 
     // 2.執行緒數量比對預設數量與實際需求
@@ -67,7 +80,8 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     OPResolver::OutputPathRegistry registry;
     // 4. 用 lambda 執行某個任務
     auto worker = [&index,&files,&baseReq,&ProOB,this,&templateResolverreq,&registry](){
-      RTFProcessor  localprocessor;
+      // 給予空指標代表使用安靜模式此主流程不會傳遞主流程內資訊
+      RTFProcessor  localprocessor(nullptr);
       OPResolver::OutputPathResolver resolver(registry);
       
       while(true){

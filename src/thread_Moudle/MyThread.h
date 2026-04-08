@@ -32,24 +32,31 @@ namespace Cli{
   struct ParseResult;
 }
 struct FileProcessRequest;
+struct ProgressEvent;
+class  IProgressObserver;
 
 // 用來接收進度資訊並決定如何呈現的類別
 class ProgressObserver{
   size_t total_{};
-  std::atomic_size_t done_{0}; 
+  std::atomic_size_t done_{0};
+  IProgressObserver* observer_ = nullptr; 
 public:
-   void Start(size_t num);
-   void onUnitDone();
-   void Finish();
+  explicit ProgressObserver(IProgressObserver* observer = nullptr) : observer_(observer) {}
+  void Start(size_t num);
+  void onUnitDone();
+  void Finish();
 private:
-   void display() const;
+  void notify(const ProgressEvent& event);
+  
 };
 
 // 多執行緒任務的總管
 class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
+IProgressObserver* observer_ = nullptr;
 public:
+  explicit RTFDirectoryRunner(IProgressObserver* observer = nullptr) : observer_(observer) {}
   void run(const FileProcessRequest& req,bool recursive , 
            const OPResolver::ResolverRequest& templateResolverreq,
            size_t threadCount);
@@ -58,5 +65,6 @@ public:
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t ResolveThreadNum(size_t fileCount,size_t threadCount);
+  
 };
 

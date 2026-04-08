@@ -36,7 +36,7 @@
 #include<optional>
 
 struct FileProcessRequest;
-struct IProgressObserver;
+class IProgressObserver;
 struct ProgressEvent;
 
 // 主流程
