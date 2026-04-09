@@ -166,7 +166,7 @@ namespace App{
         ProgressEventType::Info,
         std::wstring(L"多執行緒成功數量: ") + 
                            std::to_wstring(Drunner.getSuccessNum()) + 
-                           L" 多執行緒失敗數量: " + 
+                           L" 失敗數量: " + 
                            std::to_wstring(Drunner.getFailNum())
       });
       if(Drunner.getFailNum() == 0){

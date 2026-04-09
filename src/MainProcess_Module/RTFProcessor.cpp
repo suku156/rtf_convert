@@ -328,21 +328,21 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     if(req.finalOutputDir.empty()){
       notify(ProgressEvent{
         ProgressEventType::Error,
-        L"輸出資料夾路徑為空\n"
+        L"輸出資料夾路徑為空"
       });
       return false;
     }
     if(req.finalOutputPath.empty()){
       notify(ProgressEvent{
         ProgressEventType::Error,
-        L"輸出檔案路徑為空\n"
+        L"輸出檔案路徑為空"
       });
       return false;
     }
     if(req.finalOutputPath.parent_path() != req.finalOutputDir){
       notify(ProgressEvent{
         ProgressEventType::Error,
-        L"輸出檔案路徑與輸出資料夾路徑不一致\n"
+        L"輸出檔案路徑與輸出資料夾路徑不一致"
       });
       return false;
     }
@@ -355,31 +355,31 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
         case EnsureDirResult::AlreadyExists:
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"輸出資料夾已存在: " + req.finalOutputDir.wstring() + L"\n"
+          L"輸出資料夾已存在: " + req.finalOutputDir.wstring()
         });
         break;
         case EnsureDirResult::NotDirectory:
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"輸出路徑已存在但不是資料夾: " + req.finalOutputDir.wstring() + L"\n"
+          L"輸出路徑已存在但不是資料夾: " + req.finalOutputDir.wstring()
         });
         break;
         case EnsureDirResult::CreateFailed:
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"建立輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n"
+          L"建立輸出資料夾失敗: " + req.finalOutputDir.wstring()
         });
         break;
         case EnsureDirResult::VerifyFailed:
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"建立後驗證輸出資料夾失敗: " + req.finalOutputDir.wstring() + L"\n"
+          L"建立後驗證輸出資料夾失敗: " + req.finalOutputDir.wstring() 
         });
         break;
         default:
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"未知的輸出資料夾錯誤: " + req.finalOutputDir.wstring() + L"\n"
+          L"未知的輸出資料夾錯誤: " + req.finalOutputDir.wstring()
         });
         break;
       }
@@ -387,7 +387,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"輸出資料夾建立成功\n"
+      L"輸出資料夾建立成功"
     });
     logSystem logger;
     
@@ -402,7 +402,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
 
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"開始處理目標檔案: " + filePath.wstring() + L"\n"
+      L"開始處理目標檔案: " + filePath.wstring()
     });
     logger.log(LogLevel::Info,std::string("正在處理檔案: ") + pathToUtf8(filePath));
 
@@ -453,7 +453,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"偵測輸入檔案資訊完成\n"
+      L"偵測輸入檔案資訊完成"
     });
     {
       std::string detectStr;
@@ -494,28 +494,28 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       logger.log(LogLevel::Info,"圖片區塊正確結束");
       notify(ProgressEvent{
         ProgressEventType::Info,
-        L"圖片處理區塊完成\n"
+        L"圖片處理區塊完成"
       });
       break;
       case PictProcessResult::SkipPict :
       logger.log(LogLevel::Warn,"圖片區塊有部份進行錯誤區塊跳過處理,但是可繼續後面流程");
       notify(ProgressEvent{
         ProgressEventType::Warning,
-        L"圖片處理區塊有部份區塊錯誤進行跳過處裡\n"
+        L"圖片處理區塊有部份區塊錯誤進行跳過處裡"
       });
       break;
       case PictProcessResult::AbortFile:
       logger.log(LogLevel::Error,"圖片區塊有無法跳過處裡之錯誤!,終止後續流程");
       notify(ProgressEvent{
         ProgressEventType::Error,
-        L"圖片處理區塊錯誤流程中止\n"
+        L"圖片處理區塊錯誤流程中止"
       });
       return false;
       case PictProcessResult::AbortGlobal:
       logger.log(LogLevel::Error,"圖片區塊有破壞性之錯誤!,終止整個程序!");
       notify(ProgressEvent{
         ProgressEventType::Error,
-        L"圖片處理區塊錯誤整體程序中止\n"
+        L"圖片處理區塊錯誤整體程序中止"
       });
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
     }
@@ -552,7 +552,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"解碼完成\n"
+      L"解碼完成"
     });
     
     logger.log(LogLevel::Info,"開始檢查檔案是否符合 RTF 文法");
@@ -571,7 +571,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     }
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"文法檢查通過\n"
+      L"文法檢查通過"
     });
 
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
@@ -579,7 +579,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     textRtfProcessor().Processor(rtfContent,logger);
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"完成多餘控制符清理\n"
+      L"完成多餘控制符清理"
     });
 
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
@@ -598,7 +598,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     logger.log(LogLevel::Info,"輸出檔案開啟成功");
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"成功建立輸出檔案\n"
+      L"成功建立輸出檔案"
     });
 
     // .txt 檔案寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
@@ -643,7 +643,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"已輸出至: " + req.finalOutputPath.stem().wstring() + L"\n"
+      L"已輸出至: " + req.finalOutputPath.stem().wstring()
     });
     output.close();
     logger.log(LogLevel::Info,"關閉輸出檔案");

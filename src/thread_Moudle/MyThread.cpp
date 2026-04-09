@@ -24,7 +24,7 @@ void ProgressObserver::Start(size_t num){
     done_.store(0,std::memory_order_relaxed);
     notify(ProgressEvent{
       ProgressEventType::BatchStart,
-      L"多執行緒批次開始共有: "  + std::to_wstring(total_) + L" 個目標"
+      L"批次開始,共有 "  + std::to_wstring(total_) + L" 個目標"
     });
 }
 void ProgressObserver::onUnitDone(){

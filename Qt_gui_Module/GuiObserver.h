@@ -6,6 +6,7 @@
 //
 // Depend  :
 //  IProgressObserver
+//  mainwindow
 //
 // Used by :
 //   mainwindow
@@ -22,10 +23,12 @@
 #include "Feedback_Module/IProgressObserver.h"
 
 struct ProgressEvent;
-
+class MainWindow;
 
 class GuiObserver : public IProgressObserver{
+    MainWindow* mainWindow_ = nullptr;
 public:
+    explicit GuiObserver(MainWindow* mainWindow = nullptr) : mainWindow_(mainWindow) {}
     void onEvent(const ProgressEvent& event) override;
     void onProgress(const ProgressEvent& event) override;
 };

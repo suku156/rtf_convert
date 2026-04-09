@@ -44,6 +44,7 @@ public:
     ~MainWindow() override;
 
     GuiFormData collectFormData() const;
+    void appendLog(const QString& text);
 
 private slots:
     void on_btnSelectInputFile_clicked();
@@ -62,7 +63,6 @@ private:
 private:
     void debugPrintRequest(const NormalizedConversionRequest& req);
     void updateOutputDisplay();
-    void appendLog(const QString& text);
     void appendLogToBuildResult(const BuildResult& buildresult);
 
 };
