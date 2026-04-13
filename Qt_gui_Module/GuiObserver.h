@@ -15,22 +15,26 @@
 //
 // Notes :
 //   gui 中主要負責接收並決定如和處裡核心傳遞內容的模組
+//   使用 Qt signal/slot 傳遞訊息給 mainwindow
 // =====================================================
 
 #ifndef GUIOBSERVER_H
 #define GUIOBSERVER_H
 
 #include "Feedback_Module/IProgressObserver.h"
+#include <qobject.h>
 
 struct ProgressEvent;
-class MainWindow;
 
-class GuiObserver : public IProgressObserver{
-    MainWindow* mainWindow_ = nullptr;
+class GuiObserver : public QObject,public IProgressObserver{
+Q_OBJECT
 public:
-    explicit GuiObserver(MainWindow* mainWindow = nullptr) : mainWindow_(mainWindow) {}
+    explicit GuiObserver(QObject* parent = nullptr);
     void onEvent(const ProgressEvent& event) override;
     void onProgress(const ProgressEvent& event) override;
+signals:
+    void logMessage(QString text);
+    void progressChanged(int done,int total);
 };
 
 #endif // GUIOBSERVER_H

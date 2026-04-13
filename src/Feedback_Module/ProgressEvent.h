@@ -6,7 +6,7 @@
 enum class ProgressEventType {
     Info,
     Error,
-    Warning,
+    Warring,
     Start,
     Finish,
     BatchStart,

@@ -1,76 +1,53 @@
 #include "GuiObserver.h"
 #include "Feedback_Module/ProgressEvent.h"
-#include "mainwindow.h"
 #include <QString>
+#include <QDebug>
 
+GuiObserver::GuiObserver(QObject* parent) : QObject(parent){}
 
 void GuiObserver::onEvent(const ProgressEvent& event){
-    if(!mainWindow_) return;
+    QString prefix;
+
     switch (event.type) {
-      case ProgressEventType::Start :
-      {
-        QString eventStr = "[START]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::Info :
-      {
-        QString eventStr = "[INFO]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::Finish :
-      {
-        QString eventStr = "[FINISH]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::Warning :
-      {
-        QString eventStr = "[WARRING]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::Error :
-      {
-        QString eventStr = "[ERROR]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::BatchStart :
-      {
-        QString eventStr = "[BATCHSTART]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::UnitDone :
-      {
-        QString eventStr = QString("[UNITDONE]: 已處理 %1 / %2")
-                                .arg(static_cast<qulonglong>(event.done))
-                                .arg(static_cast<qulonglong>(event.total));
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
-      case ProgressEventType::BatchFinish :
-      {
-        QString eventStr = "[BATCHFINISH]: ";
-        eventStr += QString::fromStdWString(event.message);
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
+      case ProgressEventType::Start:
+        prefix = "Gui [START]: ";
+        break;
+      case ProgressEventType::Info:
+        prefix = "Gui [INFO]: ";
+        break;
+      case ProgressEventType::Finish:
+        prefix = "Gui [FINISH]: ";
+        break;
+      case ProgressEventType::Warring:
+        prefix = "Gui [WARRING]: ";
+        break;
+      case ProgressEventType::Error:
+        prefix = "Gui [ERROR]: ";
+        break;
+      case ProgressEventType::BatchStart:
+        prefix = "Gui [BATCHSTART]: ";
+        emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
+        break;
+      case ProgressEventType::UnitDone:
+        {
+          QString text = QString("Gui [UNITDONE]: 已完成 %1 / %2 ")
+                          .arg(static_cast<int>(event.done))
+                          .arg(static_cast<int>(event.total));
+          emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
+          emit logMessage(text);
+          return;
+        }
+      case ProgressEventType::BatchFinish:
+        prefix = "Gui [BATCHFINISH]: ";
+        emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
+        break;
       defult:
-      {
-        QString eventStr = "[UNKNOWTYPE]";
-        mainWindow_ -> appendLog(eventStr);
-        return;
-      }
+        prefix = "Gui [UNKNOW]";
+        break;
     }
+
+    QString eventStr  = prefix + QString::fromStdWString(event.message);
+    emit logMessage(eventStr);
 }
 
 void GuiObserver::onProgress(const ProgressEvent& event){

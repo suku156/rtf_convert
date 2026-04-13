@@ -500,7 +500,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       case PictProcessResult::SkipPict :
       logger.log(LogLevel::Warn,"圖片區塊有部份進行錯誤區塊跳過處理,但是可繼續後面流程");
       notify(ProgressEvent{
-        ProgressEventType::Warning,
+        ProgressEventType::Warring,
         L"圖片處理區塊有部份區塊錯誤進行跳過處裡"
       });
       break;

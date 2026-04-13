@@ -295,8 +295,8 @@
    <widget class="QLabel" name="label_status">
     <property name="geometry">
      <rect>
-      <x>160</x>
-      <y>15</y>
+      <x>140</x>
+      <y>10</y>
       <width>71</width>
       <height>20</height>
      </rect>
@@ -326,6 +326,19 @@
     </property>
     <property name="text">
      <string>CleanLog</string>
+    </property>
+   </widget>
+   <widget class="QProgressBar" name="progressBar">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>30</y>
+      <width>118</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="value">
+     <number>0</number>
     </property>
    </widget>
   </widget>

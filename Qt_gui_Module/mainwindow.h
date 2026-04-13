@@ -20,6 +20,7 @@
 
 #include <QMainWindow>
 #include "GuiFormData.h"
+#include "GuiObserver.h"
 
 struct NormalizedConversionRequest;
 struct BuildResult;
@@ -44,7 +45,7 @@ public:
     ~MainWindow() override;
 
     GuiFormData collectFormData() const;
-    void appendLog(const QString& text);
+
 
 private slots:
     void on_btnSelectInputFile_clicked();
@@ -53,17 +54,23 @@ private slots:
     void on_btnConvert_clicked();
     void on_btnCleanOutput_clicked();
     void on_btnCleanLog_clicked();
+    void observerAppendLog(QString text);
+    void observerUpdateProgressBar(int done,int total);
 
 private:
     Ui::MainWindow *ui;
     QString selectedInputPath_;
     QString selectedOutputPath_;
     InputTargetType inputTargetType_ = InputTargetType::None;
+    GuiObserver* guiObserver_ =  nullptr;
+
 
 private:
     void debugPrintRequest(const NormalizedConversionRequest& req);
     void updateOutputDisplay();
     void appendLogToBuildResult(const BuildResult& buildresult);
+    void appendLog(const QString& text);
+
 
 };
 #endif // MAINWINDOW_H

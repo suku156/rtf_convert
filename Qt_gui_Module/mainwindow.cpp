@@ -43,6 +43,15 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    guiObserver_ = new GuiObserver(this);
+
+    connect(guiObserver_, &GuiObserver::logMessage,this,
+            &MainWindow::observerAppendLog,Qt::QueuedConnection);
+
+    connect(guiObserver_, &GuiObserver::progressChanged,this,
+            &MainWindow::observerUpdateProgressBar,Qt::QueuedConnection);
+
     updateOutputDisplay();
     ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
     ui->lineEdit_threadNum->setPlaceholderText("預設自動(可以不填)");
@@ -51,6 +60,8 @@ MainWindow::MainWindow(QWidget *parent)
     // 詳細資訊欄顯示
     ui->plainTextEdit_log->setReadOnly(true);
     ui->plainTextEdit_log->setLineWrapMode(QPlainTextEdit::NoWrap);
+
+    ui->progressBar->setRange(0,0);
 }
 
 GuiFormData MainWindow::collectFormData() const{
@@ -88,10 +99,10 @@ void MainWindow::on_btnConvert_clicked(){
 
     auto& req = result.Normalizedrequest;
 
-    GuiObserver guiobserver(this);
+
 
     // 呼叫並連結核心功能
-    App::ConversionEngine conversionengine(&guiobserver);
+    App::ConversionEngine conversionengine(guiObserver_);
     taskBuilder::ConversionTaskBuilder builder;
     BuildResult BDresult = builder.build(req);
     appendLogToBuildResult(BDresult);
@@ -241,7 +252,6 @@ void MainWindow::debugPrintRequest(const NormalizedConversionRequest& req){
 void MainWindow::appendLog(const QString& text){
     QString line = QTime::currentTime().toString("[HH:mm:ss] ") + text;
     ui->plainTextEdit_log->appendPlainText(line);
-    QCoreApplication::processEvents();
 }
 
 void MainWindow::on_btnCleanLog_clicked(){
@@ -299,3 +309,19 @@ void MainWindow::appendLogToBuildResult(const BuildResult& buildresult){
     ui->plainTextEdit_log->appendPlainText("");
 }
 
+void MainWindow::observerAppendLog(QString text){
+    appendLog(text);
+}
+
+void MainWindow::observerUpdateProgressBar(int done,int total){
+    if (total <= 0) {
+        ui->progressBar->setMinimum(0);
+        ui->progressBar->setMaximum(1);
+        ui->progressBar->setValue(0);
+        return;
+    }
+
+    ui->progressBar->setMinimum(0);
+    ui->progressBar->setMaximum(total);
+    ui->progressBar->setValue(done);
+}
