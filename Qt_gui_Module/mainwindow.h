@@ -21,9 +21,20 @@
 #include <QMainWindow>
 #include "GuiFormData.h"
 #include "GuiObserver.h"
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrentRun>
+#include <optional>
+#include "Task_Module/NormalizedConversionRequest.h"
+#include "Task_Module/ConversionTask.h"
 
-struct NormalizedConversionRequest;
-struct BuildResult;
+namespace App {
+enum class AppExitCode : int;
+}
+
+struct ConvertRunResult {
+    App::AppExitCode exitCode;
+};
+
 enum class InputTargetType{
    None,
    File,
@@ -56,6 +67,7 @@ private slots:
     void on_btnCleanLog_clicked();
     void observerAppendLog(QString text);
     void observerUpdateProgressBar(int done,int total);
+    void onConvertFinished();
 
 private:
     Ui::MainWindow *ui;
@@ -63,6 +75,9 @@ private:
     QString selectedOutputPath_;
     InputTargetType inputTargetType_ = InputTargetType::None;
     GuiObserver* guiObserver_ =  nullptr;
+    QFutureWatcher<ConvertRunResult>* convertWatcher_ = nullptr;
+    std::optional<BuildResult> lastBuildResult_;
+    std::optional<NormalizedConversionRequest> lastReq_;
 
 
 private:

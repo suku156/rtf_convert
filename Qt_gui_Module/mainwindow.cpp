@@ -11,33 +11,6 @@
 #include <QMessageBox>
 #include <QIntValidator>
 
-class ConvertUiGuard{
-private:
-    QPushButton* button_;
-    QLabel* label_;
-public:
-    ConvertUiGuard(QPushButton* button,QLabel* label)
-        : button_(button),label_(label)
-    {
-        if(button_) button_->setEnabled(false);
-        if(label_)  label_ ->setText("處裡中...");
-        qApp->processEvents();
-    }
-
-    ~ConvertUiGuard()
-    {
-        if(button_) button_->setEnabled(true);
-        if(label_)  label_ ->setText("準備中");
-    }
-
-    // 禁止複製
-    ConvertUiGuard(const ConvertUiGuard&) = delete;
-    ConvertUiGuard& operator=(const ConvertUiGuard&) = delete;
-    // 禁止移動
-    ConvertUiGuard(ConvertUiGuard&&) = delete;
-    ConvertUiGuard& operator=(ConvertUiGuard&&) = delete;
-};
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -45,12 +18,16 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     guiObserver_ = new GuiObserver(this);
+    convertWatcher_ = new QFutureWatcher<ConvertRunResult>(this);
 
     connect(guiObserver_, &GuiObserver::logMessage,this,
             &MainWindow::observerAppendLog,Qt::QueuedConnection);
 
     connect(guiObserver_, &GuiObserver::progressChanged,this,
             &MainWindow::observerUpdateProgressBar,Qt::QueuedConnection);
+
+    connect(convertWatcher_, &QFutureWatcher<ConvertRunResult>::finished,
+            this, &MainWindow::onConvertFinished);
 
     updateOutputDisplay();
     ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
@@ -83,8 +60,6 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_btnConvert_clicked(){
 
-    ConvertUiGuard guard(ui->btnConvert,ui->label_status);
-
     GuiFormData form = collectFormData();
     GuiRequestTranslator request;
     auto result = request.translate(form);
@@ -98,49 +73,36 @@ void MainWindow::on_btnConvert_clicked(){
     }
 
     auto& req = result.Normalizedrequest;
-
-
-
-    // 呼叫並連結核心功能
-    App::ConversionEngine conversionengine(guiObserver_);
     taskBuilder::ConversionTaskBuilder builder;
     BuildResult BDresult = builder.build(req);
     appendLogToBuildResult(BDresult);
-
-    App::AppExitCode resultCode = conversionengine.run(BDresult);
-
-    // 依據回傳結果做出回饋
-    switch (resultCode) {
-    case App::AppExitCode::Success :
-        {
-
-            QString pathresult = QString::fromStdWString(req.inputPath.filename().wstring());
-            QString successresult = "轉換成功,已處理目標: " + pathresult ;
-            QMessageBox::information(this, "完成",successresult);
-            break;
-        }
-    case App::AppExitCode::Fail :
-    case App::AppExitCode::RunTimeError:
-        {
-
-            QMessageBox::critical(this, "轉換失敗", "轉換過程發生錯誤");
-            break;
-        }
-    case App::AppExitCode::PartialSuccess:
-        {
-
-            QMessageBox::warning(this, "部分完成", "部分檔案轉換成功，部分失敗");
-            break;
-        }
-    defult:
-        {
-
-            QMessageBox::warning(this, "未知狀態", "發生未知錯誤");
-            break;
-        }
+    if(!BDresult.ok){
+        QMessageBox::warning(this, "建立任務失敗", QString::fromStdWString(BDresult.message));
+        return;
     }
 
-    ui->plainTextEdit_log->appendPlainText("");
+    lastBuildResult_ = BDresult;
+    lastReq_ = req;
+
+    // 手動上鎖
+    ui->btnConvert->setEnabled(false);
+    ui->label_status->setText("處裡中...");
+    ui->progressBar->setValue(0);
+    qApp->processEvents();
+
+    // 複製核心會用到的參數做使用
+    auto bdresult = BDresult;
+    auto observer = guiObserver_;
+
+    // 將核心功能放到背景執行緒
+    QFuture<ConvertRunResult> future = QtConcurrent::run([bdresult, observer]() -> ConvertRunResult {
+       App::ConversionEngine conversionengine(observer);
+       ConvertRunResult runResult;
+       runResult.exitCode = conversionengine.run(bdresult);
+       return runResult;
+    });
+
+    convertWatcher_->setFuture(future);
 }
 
 void MainWindow::on_btnSelectInputFile_clicked(){
@@ -325,3 +287,52 @@ void MainWindow::observerUpdateProgressBar(int done,int total){
     ui->progressBar->setMaximum(total);
     ui->progressBar->setValue(done);
 }
+
+void MainWindow::onConvertFinished(){
+    const ConvertRunResult runResult = convertWatcher_->result();
+
+    // 解鎖動作
+    ui->btnConvert->setEnabled(true);
+    ui->label_status->setText("準備中");
+
+    if (!lastReq_) {
+        QMessageBox::warning(this, "未知狀態", "缺少請求資訊");
+        return;
+    }
+
+    const auto& req = *lastReq_;
+
+    // 依據回傳結果做出回饋
+    switch (runResult.exitCode) {
+    case App::AppExitCode::Success :
+    {
+
+        QString pathresult = QString::fromStdWString(req.inputPath.filename().wstring());
+        QString successresult = "轉換成功,已處理目標: " + pathresult ;
+        QMessageBox::information(this, "完成",successresult);
+        break;
+    }
+    case App::AppExitCode::Fail :
+    case App::AppExitCode::RunTimeError:
+    {
+
+        QMessageBox::critical(this, "轉換失敗", "轉換過程發生錯誤");
+        break;
+    }
+    case App::AppExitCode::PartialSuccess:
+    {
+
+        QMessageBox::warning(this, "部分完成", "部分檔案轉換成功，部分失敗");
+        break;
+    }
+    default:
+    {
+
+        QMessageBox::warning(this, "未知狀態", "發生未知錯誤");
+        break;
+    }
+    }
+
+    ui->plainTextEdit_log->appendPlainText("");
+}
+
