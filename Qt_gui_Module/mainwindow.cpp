@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     guiObserver_ = new GuiObserver(this);
     convertWatcher_ = new QFutureWatcher<ConvertRunResult>(this);
+    finishResetTimer_ = new QTimer(this);
+    finishResetTimer_ ->setSingleShot(true);
 
     connect(guiObserver_, &GuiObserver::logMessage,this,
             &MainWindow::observerAppendLog,Qt::QueuedConnection);
@@ -29,16 +31,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(convertWatcher_, &QFutureWatcher<ConvertRunResult>::finished,
             this, &MainWindow::onConvertFinished);
 
+    connect(finishResetTimer_, &QTimer::timeout,this,&MainWindow::resetToIdle);
+
     updateOutputDisplay();
     ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
     ui->lineEdit_threadNum->setPlaceholderText("預設自動(可以不填)");
-    ui->label_status->setText("準備中");
+
 
     // 詳細資訊欄顯示
     ui->plainTextEdit_log->setReadOnly(true);
     ui->plainTextEdit_log->setLineWrapMode(QPlainTextEdit::NoWrap);
 
-    ui->progressBar->setRange(0,0);
+    // 設定狀態欄根進度條為待機
+    resetToIdle();
 }
 
 GuiFormData MainWindow::collectFormData() const{
@@ -84,11 +89,8 @@ void MainWindow::on_btnConvert_clicked(){
     lastBuildResult_ = BDresult;
     lastReq_ = req;
 
-    // 手動上鎖
-    ui->btnConvert->setEnabled(false);
-    ui->label_status->setText("處裡中...");
-    ui->progressBar->setValue(0);
-    qApp->processEvents();
+    // 使用轉換開始狀態函式
+    enterRunningState();
 
     // 複製核心會用到的參數做使用
     auto bdresult = BDresult;
@@ -283,6 +285,9 @@ void MainWindow::observerUpdateProgressBar(int done,int total){
         return;
     }
 
+    if(done < 0) done = 0;
+    if(done > total) done = total;
+
     ui->progressBar->setMinimum(0);
     ui->progressBar->setMaximum(total);
     ui->progressBar->setValue(done);
@@ -291,9 +296,9 @@ void MainWindow::observerUpdateProgressBar(int done,int total){
 void MainWindow::onConvertFinished(){
     const ConvertRunResult runResult = convertWatcher_->result();
 
-    // 解鎖動作
-    ui->btnConvert->setEnabled(true);
-    ui->label_status->setText("準備中");
+    // 結束後執行的狀態函式
+    QString finishshowtext = "完成";
+    showFinishedStateAndDelayReset(finishshowtext);
 
     if (!lastReq_) {
         QMessageBox::warning(this, "未知狀態", "缺少請求資訊");
@@ -334,5 +339,52 @@ void MainWindow::onConvertFinished(){
     }
 
     ui->plainTextEdit_log->appendPlainText("");
+}
+
+void MainWindow::enterRunningState(){
+    // 停掉舊的完成延遲
+    if(finishResetTimer_->isActive()){
+        finishResetTimer_->stop();
+    }
+
+    // 手動上鎖
+    ui->btnConvert->setEnabled(false);
+    ui->label_status->setText("處裡中...");
+    ui->progressBar->setVisible(true);
+
+
+    if(inputTargetType_ == InputTargetType::File){
+        ui->progressBar->setRange(0,0);
+    }
+    else if(inputTargetType_ == InputTargetType::Directory){
+        ui->progressBar->setMinimum(0);
+        ui->progressBar->setMaximum(1);
+        ui->progressBar->setValue(0);
+    }
+    else if(inputTargetType_ == InputTargetType::None){
+        ui->progressBar->setRange(0,0);
+    }
+}
+
+void MainWindow::showFinishedStateAndDelayReset(const QString& text){
+    ui ->label_status->setText(text);
+
+    // 顯示 100%
+    if (ui->progressBar->maximum() == 0) {
+        ui->progressBar->setRange(0, 1);
+        ui->progressBar->setValue(1);
+    } else {
+        ui->progressBar->setValue(ui->progressBar->maximum());
+    }
+
+    ui->btnConvert->setEnabled(true);
+
+    // 計時1秒後回到待機
+    finishResetTimer_-> start(1250);
+}
+
+void MainWindow::resetToIdle(){
+   ui->label_status->setText("準備中");
+    ui->progressBar->setVisible(false);
 }
 

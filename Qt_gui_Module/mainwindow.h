@@ -23,6 +23,7 @@
 #include "GuiObserver.h"
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
+#include <QTimer>
 #include <optional>
 #include "Task_Module/NormalizedConversionRequest.h"
 #include "Task_Module/ConversionTask.h"
@@ -68,6 +69,7 @@ private slots:
     void observerAppendLog(QString text);
     void observerUpdateProgressBar(int done,int total);
     void onConvertFinished();
+    void resetToIdle();
 
 private:
     Ui::MainWindow *ui;
@@ -78,13 +80,15 @@ private:
     QFutureWatcher<ConvertRunResult>* convertWatcher_ = nullptr;
     std::optional<BuildResult> lastBuildResult_;
     std::optional<NormalizedConversionRequest> lastReq_;
-
+    QTimer* finishResetTimer_ = nullptr;
 
 private:
     void debugPrintRequest(const NormalizedConversionRequest& req);
     void updateOutputDisplay();
     void appendLogToBuildResult(const BuildResult& buildresult);
     void appendLog(const QString& text);
+    void enterRunningState();
+    void showFinishedStateAndDelayReset(const QString& text);
 
 
 };
