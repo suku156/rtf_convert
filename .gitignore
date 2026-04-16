@@ -37,3 +37,12 @@ Makefile
 
 # Qt 相關
 .qtcreator/
+*.user
+*.pro.user
+
+# 跨平台預備用
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
