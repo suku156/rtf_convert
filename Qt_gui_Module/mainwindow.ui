@@ -15,6 +15,21 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
+    <property name="leftMargin">
+     <number>12</number>
+    </property>
+    <property name="topMargin">
+     <number>12</number>
+    </property>
+    <property name="rightMargin">
+     <number>12</number>
+    </property>
+    <property name="bottomMargin">
+     <number>12</number>
+    </property>
+    <property name="spacing">
+     <number>15</number>
+    </property>
     <item row="2" column="0">
      <widget class="QPushButton" name="btnAdvanced">
       <property name="text">
@@ -34,6 +49,24 @@
        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTop|Qt::AlignmentFlag::AlignTrailing</set>
       </property>
       <layout class="QFormLayout" name="formLayout">
+       <property name="horizontalSpacing">
+        <number>8</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>8</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
        <item row="0" column="0">
         <widget class="QComboBox" name="comboFormat">
          <property name="mouseTracking">
@@ -78,7 +111,7 @@
           </font>
          </property>
          <property name="text">
-          <string>choose_format : </string>
+          <string>選擇輸出格式 : </string>
          </property>
         </widget>
        </item>
@@ -112,7 +145,7 @@
           </font>
          </property>
          <property name="text">
-          <string>choose_dirPolicy : </string>
+          <string>遇到同名資料夾的安全策略選擇 : </string>
          </property>
         </widget>
        </item>
@@ -146,12 +179,16 @@
           </font>
          </property>
          <property name="text">
-          <string>preserveRelativeStructure :</string>
+          <string>遞迴模式下是否保留中間資料夾路徑策略選擇 :</string>
          </property>
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QLineEdit" name="lineEdit_threadNum"/>
+        <widget class="QLineEdit" name="lineEdit_threadNum">
+         <property name="text">
+          <string>(可不填)</string>
+         </property>
+        </widget>
        </item>
        <item row="3" column="1">
         <widget class="QLabel" name="thread_label">
@@ -161,7 +198,7 @@
           </font>
          </property>
          <property name="text">
-          <string>set_thread_num :</string>
+          <string>設定多執行緒數量 :</string>
          </property>
         </widget>
        </item>
@@ -176,7 +213,7 @@
           <enum>Qt::LayoutDirection::LeftToRight</enum>
          </property>
          <property name="text">
-          <string>recursive</string>
+          <string>啟用遞迴模式</string>
          </property>
         </widget>
        </item>
@@ -186,6 +223,21 @@
     <item row="5" column="0" colspan="2">
      <widget class="QWidget" name="widget_FeedBack" native="true">
       <layout class="QGridLayout" name="gridLayout">
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <property name="spacing">
+        <number>8</number>
+       </property>
        <item row="3" column="0">
         <widget class="QProgressBar" name="progressBar">
          <property name="value">
@@ -201,7 +253,7 @@
           </font>
          </property>
          <property name="text">
-          <string>TextLabel</string>
+          <string>準備中</string>
          </property>
         </widget>
        </item>
@@ -211,7 +263,7 @@
        <item row="4" column="0" colspan="2">
         <widget class="QPushButton" name="btnCleanLog">
          <property name="text">
-          <string>CleanLog</string>
+          <string>清除 log 區文字</string>
          </property>
         </widget>
        </item>
@@ -229,31 +281,49 @@
        <string>輸入</string>
       </property>
       <layout class="QFormLayout" name="formLayout_3">
+       <property name="horizontalSpacing">
+        <number>8</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>8</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="topMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
        <item row="0" column="0">
         <widget class="QLabel" name="label_showinput">
          <property name="text">
-          <string>input :</string>
+          <string>輸入 :</string>
          </property>
         </widget>
        </item>
        <item row="0" column="1">
         <widget class="QLabel" name="InputInfo">
          <property name="text">
-          <string>choose_input</string>
+          <string>未指定(必選)</string>
          </property>
         </widget>
        </item>
        <item row="2" column="0" colspan="2">
         <widget class="QPushButton" name="btnSelectInputFile">
          <property name="text">
-          <string>Select input_file</string>
+          <string>選擇檔案</string>
          </property>
         </widget>
        </item>
        <item row="3" column="0" colspan="2">
         <widget class="QPushButton" name="btnSelectInputDir">
          <property name="text">
-          <string>Select input_dir</string>
+          <string>選擇資料夾</string>
          </property>
         </widget>
        </item>
@@ -272,13 +342,22 @@
       </property>
       <layout class="QFormLayout" name="formLayout_2">
        <property name="horizontalSpacing">
-        <number>9</number>
+        <number>8</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>8</number>
        </property>
        <property name="leftMargin">
-        <number>9</number>
+        <number>10</number>
        </property>
        <property name="topMargin">
-        <number>9</number>
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
        </property>
        <item row="0" column="0">
         <widget class="QLabel" name="label_showOutput">
@@ -288,7 +367,7 @@
           </font>
          </property>
          <property name="text">
-          <string>output :</string>
+          <string>輸出 :</string>
          </property>
         </widget>
        </item>
@@ -300,21 +379,21 @@
           </font>
          </property>
          <property name="text">
-          <string>未指定(使用預設)</string>
+          <string>未指定(可不選將使用預設)</string>
          </property>
         </widget>
        </item>
        <item row="1" column="0" colspan="2">
         <widget class="QPushButton" name="btnSelectOutput">
          <property name="text">
-          <string>SelectOutput</string>
+          <string>選擇位置</string>
          </property>
         </widget>
        </item>
        <item row="3" column="0" colspan="2">
         <widget class="QPushButton" name="btnCleanOutput">
          <property name="text">
-          <string>Clean_output</string>
+          <string>清空位置</string>
          </property>
         </widget>
        </item>
@@ -329,7 +408,7 @@
        </font>
       </property>
       <property name="text">
-       <string>ConvertStart</string>
+       <string>轉換開始</string>
       </property>
      </widget>
     </item>
