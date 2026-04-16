@@ -66,6 +66,7 @@ private slots:
     void on_btnConvert_clicked();
     void on_btnCleanOutput_clicked();
     void on_btnCleanLog_clicked();
+    void on_btnAdvanced_clicked();
     void observerAppendLog(QString text);
     void observerUpdateProgressBar(int done,int total);
     void onConvertFinished();

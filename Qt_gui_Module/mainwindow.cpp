@@ -44,6 +44,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 設定狀態欄根進度條為待機
     resetToIdle();
+
+    // 進階設設定顯示區
+    ui ->groupBox_advanced->setVisible(false);
+    ui->btnAdvanced->setText("顯示進階設定 ▼");
 }
 
 GuiFormData MainWindow::collectFormData() const{
@@ -384,7 +388,16 @@ void MainWindow::showFinishedStateAndDelayReset(const QString& text){
 }
 
 void MainWindow::resetToIdle(){
-   ui->label_status->setText("準備中");
+    ui->label_status->setText("準備中");
     ui->progressBar->setVisible(false);
 }
 
+void MainWindow::on_btnAdvanced_clicked(){
+    bool visible = ui->groupBox_advanced->isVisible();
+    ui->groupBox_advanced->setVisible(!visible);
+    if(visible){
+        ui->btnAdvanced->setText("顯示進階設定 ▼");
+    }else{
+        ui->btnAdvanced->setText("隱藏進階設定 ▲");
+    }
+}
