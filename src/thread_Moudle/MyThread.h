@@ -22,6 +22,7 @@
 #include<filesystem>
 #include<vector>
 #include<optional>
+#include<mutex>
 #include "Universal_Module/CommonEnum.h"
 
 // forward delecration
@@ -55,13 +56,17 @@ class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
 IProgressObserver* observer_ = nullptr;
+std::mutex failedFilesMutex_;
+std::vector<std::filesystem::path> failedFiles_;
 public:
   explicit RTFDirectoryRunner(IProgressObserver* observer = nullptr) : observer_(observer) {}
   void run(const FileProcessRequest& req,bool recursive , 
            const OPResolver::ResolverRequest& templateResolverreq,
            size_t threadCount);
   size_t getSuccessNum() const;
-  size_t getFailNum() const;  
+  size_t getFailNum() const;
+  bool hasFailedFiles() const;
+  std::vector<std::filesystem::path> getFailedFiles() const;  
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t ResolveThreadNum(size_t fileCount,size_t threadCount);

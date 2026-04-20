@@ -17,6 +17,7 @@
 #include <optional>
 #include <iostream>
 #include <string>
+#include <mutex>
 
 // 用來接收進度資訊並決定如何呈現的類別 (函式定義)
 void ProgressObserver::Start(size_t num){
@@ -111,6 +112,10 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
             successCount_.fetch_add(1,std::memory_order_relaxed);
           }else{
             failCount_.fetch_add(1,std::memory_order_relaxed);
+            {
+              std::lock_guard<std::mutex> lock(failedFilesMutex_);
+              failedFiles_.push_back(fileReq.filePath);
+            }
           }
         }catch(const std::exception& e){
           failCount_.fetch_add(1,std::memory_order_relaxed);
@@ -190,4 +195,11 @@ size_t RTFDirectoryRunner::getSuccessNum() const{
 }
 size_t RTFDirectoryRunner::getFailNum() const{
   return failCount_.load(std::memory_order_relaxed);
+}
+
+bool RTFDirectoryRunner::hasFailedFiles() const{
+  return !failedFiles_.empty();
+}
+std::vector<std::filesystem::path> RTFDirectoryRunner::getFailedFiles() const{
+  return failedFiles_;
 }

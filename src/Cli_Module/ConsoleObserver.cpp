@@ -34,6 +34,9 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
       case ProgressEventType::Error:
       Console::ensureWcerr(L"[ERROR]: "  + event.message);
       return;
+      case ProgressEventType::Fail:
+      Console::ensureWcerr(L"[FAIL]: "  + event.message);
+      return;
       default:
       Console::ensureWcerr(L"[UNKNOWN_TYPE]");
       return;

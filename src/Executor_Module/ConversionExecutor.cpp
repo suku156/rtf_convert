@@ -169,6 +169,24 @@ namespace App{
                            L" 失敗數量: " + 
                            std::to_wstring(Drunner.getFailNum())
       });
+      if(Drunner.hasFailedFiles()){
+        std::vector<std::filesystem::path> failedFiles = Drunner.getFailedFiles();
+        notify(ProgressEvent{
+          ProgressEventType::Info,
+          L"以下檔案轉換失敗:"
+        });
+        for(const auto& path : failedFiles){
+          notify(ProgressEvent{
+            ProgressEventType::Fail,
+            path.filename().wstring()
+          });
+        }
+        notify(ProgressEvent{
+          ProgressEventType::Info,
+          L"詳細錯誤請查看輸出資料夾內的 log.txt"
+        });
+      }
+
       if(Drunner.getFailNum() == 0){
         notify(ProgressEvent{
           ProgressEventType::Finish,
