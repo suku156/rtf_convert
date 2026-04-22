@@ -48,4 +48,5 @@ public:
 private:
   void cleanTargetGroup(std::string& content,const std::string& target);
   void handleSpecialSymbolGroups(std::string& content);
+  size_t findGroupEnd(const std::string& content, size_t start);
 };

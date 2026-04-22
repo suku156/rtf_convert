@@ -4,6 +4,7 @@
 #include "GroupProcessor.h"
 #include<string>
 #include<cstddef>
+#include<cctype>
 
 // 判斷該群組中是否都是 utf 特殊符號 函式定義
 bool utfSymbolJudgment::judgment(const std::string& content){
@@ -59,7 +60,7 @@ void utf8GroupProcessor::processGroups(std::string& content){
 void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string& target){
     size_t pos = 0;
     while((pos = content.find(target,pos)) != std::string::npos){
-      size_t end = content.find('}',pos);
+      size_t end = findGroupEnd(content,pos);
       if(end == std::string::npos) break;
 
       //取出開頭與結尾範圍內的文字進行判斷與加工
@@ -74,6 +75,56 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
 
       //去除群組中的控制符
       std::string cleaned;
+      for(size_t i = 0;i<group.size();i++){
+        char c = group[i];
+        if(c == '\\' && i+1 < group.size()){
+          size_t j = i + 1;
+          char c2 = group[j];
+          // 處理可能的 \{ \} \\ 符號
+          if(c2 == '{' || c2 == '}' || c2 == '\\'){
+            cleaned.push_back(c2);
+            i = j;
+            continue;
+          }
+
+          // 控制符號，例如 \~ \- \_ 這種單字元控制符
+          if (!std::isalpha(static_cast<unsigned char>(c2))) {
+            // 目前先略過整個控制符號
+            i = j;
+            continue;
+          }
+
+          while(j < group.size() && 
+                std::isalpha(static_cast<unsigned char>(group[j]))){
+            j++;
+          } 
+            
+          // 可選正負號
+          if (j < group.size() && (group[j] == '-' || group[j] == '+')) {
+            j++;
+          }
+
+          while(j < group.size() &&
+                std::isdigit(static_cast<unsigned char>(group[j]))){
+            j++;
+          }
+
+          if(j < group.size() && 
+             std::isspace(static_cast<unsigned char>(group[j]))){
+            j++;
+          }
+          
+          i = j - 1; // 上面迴圈會加所以這裡先減
+          continue;
+        }
+        
+        if(c != '{' && c != '}'){ // 忽略非正文內的結構性大括號
+          cleaned.push_back(c);
+        }
+        
+      }  
+      /*
+      std::string cleaned;
       bool inCtrl = false;
       for(size_t i = 0;i<group.size();i++){
         char c = group[i];
@@ -83,10 +134,12 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
           if(!std::isalpha(static_cast<unsigned char>(c)) && !std::isdigit(static_cast<unsigned char>(c))){
             inCtrl = false;
           }
-        }else if(c != '{' && c != '}'){ // 大括號也不要
+        }else if(c != '{' && c != '}'){ // 大括號也不要 
           cleaned.push_back(c);
         }
       }
+      */
+      
 
       //如果清出來的字串的開頭或結尾有多餘的換行或空白就清除它
       while(!cleaned.empty() && (cleaned.front() == '\n' || cleaned.front() == '\r' || cleaned.front() == ' ')){
@@ -136,4 +189,30 @@ void utf8GroupProcessor::handleSpecialSymbolGroups(std::string& content){
         pos = end+1;
       }
     }
+}
+
+size_t utf8GroupProcessor::findGroupEnd(const std::string& content, size_t start){
+  int depth = 0;
+
+  for(size_t i = start; i < content.size(); i++){
+    char c = content[i];
+
+    if(c == '\\'){
+      i++; // 用來跳過 \ 後面的控制符如 \{ \} 等等
+      continue;
+    }
+
+    if(c == '{'){
+      depth++;
+    }
+    else if(c == '}'){
+      depth--;
+
+      if(depth == 0){
+        return i;
+      }
+    }
+  }
+
+  return std::string::npos;
 }

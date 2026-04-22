@@ -645,7 +645,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"已輸出至: " + req.finalOutputPath.stem().wstring()
+      L"已輸出至: " + req.finalOutputPath.parent_path().wstring()
     });
     output.close();
     logger.log(LogLevel::Info,"關閉輸出檔案");

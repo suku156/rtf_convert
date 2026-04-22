@@ -41,8 +41,11 @@ void GuiObserver::onEvent(const ProgressEvent& event){
         prefix = "Gui [BATCHFINISH]: ";
         emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
         break;
+      case ProgressEventType::Fail:
+        prefix = "Gui [FAIL]: ";
+        break;
       default:
-        prefix = "Gui [UNKNOW]";
+        prefix = "Gui [UNKNOWN]";
         break;
     }
 

@@ -353,6 +353,15 @@ void MainWindow::enterRunningState(){
 
     // 手動上鎖
     ui->btnConvert->setEnabled(false);
+    ui->btnSelectInputFile->setEnabled(false);
+    ui->btnSelectInputDir->setEnabled(false);
+    ui->btnSelectOutput->setEnabled(false);
+    ui->btnCleanOutput->setEnabled(false);
+    ui->comboFormat->setEnabled(false);
+    ui->comboBox_dirPolicy->setEnabled(false);
+    ui->comboBox_preserveRelativeStructure->setEnabled(false);
+    ui->lineEdit_threadNum->setEnabled(false);
+    ui->recursiveCheckBox->setEnabled(false);
     ui->label_status->setText("處裡中...");
     ui->progressBar->setVisible(true);
 
@@ -382,6 +391,15 @@ void MainWindow::showFinishedStateAndDelayReset(const QString& text){
     }
 
     ui->btnConvert->setEnabled(true);
+    ui->btnSelectInputFile->setEnabled(true);
+    ui->btnSelectInputDir->setEnabled(true);
+    ui->btnSelectOutput->setEnabled(true);
+    ui->btnCleanOutput->setEnabled(true);
+    ui->comboFormat->setEnabled(true);
+    ui->comboBox_dirPolicy->setEnabled(true);
+    ui->comboBox_preserveRelativeStructure->setEnabled(true);
+    ui->lineEdit_threadNum->setEnabled(true);
+    ui->recursiveCheckBox->setEnabled(true);
 
     // 計時1秒後回到待機
     finishResetTimer_-> start(1250);
