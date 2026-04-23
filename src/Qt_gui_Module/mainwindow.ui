@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>867</height>
+    <height>916</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -183,13 +183,6 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
-        <widget class="QLineEdit" name="lineEdit_threadNum">
-         <property name="text">
-          <string>(可不填)</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="1">
         <widget class="QLabel" name="thread_label">
          <property name="font">
@@ -198,7 +191,7 @@
           </font>
          </property>
          <property name="text">
-          <string>設定多執行緒數量 :</string>
+          <string>設定多執行緒數量(1~16) :</string>
          </property>
         </widget>
        </item>
@@ -214,6 +207,16 @@
          </property>
          <property name="text">
           <string>啟用遞迴模式</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QSpinBox" name="spinBox_threadNum">
+         <property name="minimumSize">
+          <size>
+           <width>41</width>
+           <height>24</height>
+          </size>
          </property>
         </widget>
        </item>

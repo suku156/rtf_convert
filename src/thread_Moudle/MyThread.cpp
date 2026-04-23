@@ -67,6 +67,14 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     // 2.執行緒數量比對預設數量與實際需求
     size_t threadNum = ResolveThreadNum(files.size() , threadCount);
     if(threadNum == 0) return;//防呆
+    {
+      std::wstring result = L"實際使用執行緒數量 : " + std::to_wstring(static_cast<int>(threadNum));
+      notify(ProgressEvent{
+        ProgressEventType::Info,
+        result
+      });
+    }
+    
     
     // 3. atomic index 任務分配器 確保各執行緒之間不會因隨機執行搶任務
     std::atomic_size_t index{0};
@@ -119,11 +127,17 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
           }
         }catch(const std::exception& e){
           failCount_.fetch_add(1,std::memory_order_relaxed);
-          Console::ensureWcerr(L"[Exception] " + file.wstring() + L"\n ");
+          notify(ProgressEvent{
+            ProgressEventType::Error,
+            L"[Exception] " + file.wstring()
+          });
         }
         catch(...){
           failCount_.fetch_add(1,std::memory_order_relaxed);
-          Console::ensureWcerr(L"[Unknown Exception] " + file.wstring() +  L"\n");
+          notify(ProgressEvent{
+            ProgressEventType::Error,
+            L"[Unknown Exception] " + file.wstring()
+          });
         }
         
         
@@ -202,4 +216,9 @@ bool RTFDirectoryRunner::hasFailedFiles() const{
 }
 std::vector<std::filesystem::path> RTFDirectoryRunner::getFailedFiles() const{
   return failedFiles_;
+}
+void RTFDirectoryRunner::notify(const ProgressEvent& event){
+  if(observer_){
+    observer_->onEvent(event);
+  }
 }

@@ -24,7 +24,7 @@
 #include <string>
 #include <filesystem>
 #include <optional>
-#include <cstddef>
+
 
 struct GuiRequestResult{
     bool ok = false;
@@ -39,7 +39,6 @@ private:
     std::optional<std::filesystem::path> checkAndToPath(const QString& s);
     std::optional<Common::OutputFormat> parseFormat(const QString& s);
     std::optional<Common::ExistingDirPolicy> parseDirPolicy(const QString& s);
-    std::optional<size_t> threadStrToSizet(const QString& s);
     std::optional<bool> setPreserveRelativeStructure(const QString& s);
 };
 

@@ -70,6 +70,7 @@ public:
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t ResolveThreadNum(size_t fileCount,size_t threadCount);
+  void notify(const ProgressEvent& event);
   
 };
 

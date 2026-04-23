@@ -7,13 +7,15 @@
 #endif // GUIFORMDATA_H
 #pragma once
 #include <QString>
+#include <optional>
+#include <cstddef>
 
 struct GuiFormData{
     QString inputPath;
     QString outputDir;
     QString formatText;
     QString dirPolicy;
-    QString threadtext;
+    std::optional<size_t> threadnum;
     QString preserveRelativeStructure;
     bool recursive;
 };

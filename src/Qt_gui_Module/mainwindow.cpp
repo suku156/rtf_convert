@@ -34,9 +34,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(finishResetTimer_, &QTimer::timeout,this,&MainWindow::resetToIdle);
 
     updateOutputDisplay();
-    ui->lineEdit_threadNum->setValidator(new QIntValidator(1,16,this));
-    ui->lineEdit_threadNum->setPlaceholderText("預設自動(可以不填)");
 
+    ui->spinBox_threadNum->setRange(0,16);
+    ui->spinBox_threadNum->setSpecialValueText("自動");
+    ui->spinBox_threadNum->setValue(0);
 
     // 詳細資訊欄顯示
     ui->plainTextEdit_log->setReadOnly(true);
@@ -57,7 +58,15 @@ GuiFormData MainWindow::collectFormData() const{
     form.formatText = ui->comboFormat->currentText();
     form.recursive = ui->recursiveCheckBox->isChecked();
     form.dirPolicy = ui->comboBox_dirPolicy->currentText();
-    form.threadtext = ui->lineEdit_threadNum->text();
+
+    int value = ui->spinBox_threadNum->value();
+
+    if(value == 0){
+        form.threadnum = std::nullopt;
+    }else{
+        form.threadnum = static_cast<size_t>(value);
+    }
+
     form.preserveRelativeStructure = ui->comboBox_preserveRelativeStructure->currentText();
     return form;
 }
@@ -272,6 +281,13 @@ void MainWindow::appendLogToBuildResult(const BuildResult& buildresult){
         }else{
             appendLog("[GUI] 遞迴模式 : 關閉");
         }
+
+        int value = ui->spinBox_threadNum->value();
+        if(value == 0){
+           appendLog("[GUI] 預定使用執行緒數量 : 自動");
+        }else{
+           appendLog(QString("[GUI] 預定使用執行緒數量 : %1").arg(value));
+        }
     }
 
     ui->plainTextEdit_log->appendPlainText("");
@@ -360,7 +376,7 @@ void MainWindow::enterRunningState(){
     ui->comboFormat->setEnabled(false);
     ui->comboBox_dirPolicy->setEnabled(false);
     ui->comboBox_preserveRelativeStructure->setEnabled(false);
-    ui->lineEdit_threadNum->setEnabled(false);
+    ui->spinBox_threadNum->setEnabled(false);
     ui->recursiveCheckBox->setEnabled(false);
     ui->label_status->setText("處裡中...");
     ui->progressBar->setVisible(true);
@@ -398,7 +414,7 @@ void MainWindow::showFinishedStateAndDelayReset(const QString& text){
     ui->comboFormat->setEnabled(true);
     ui->comboBox_dirPolicy->setEnabled(true);
     ui->comboBox_preserveRelativeStructure->setEnabled(true);
-    ui->lineEdit_threadNum->setEnabled(true);
+    ui->spinBox_threadNum->setEnabled(true);
     ui->recursiveCheckBox->setEnabled(true);
 
     // 計時1秒後回到待機

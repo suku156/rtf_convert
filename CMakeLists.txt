@@ -16,5 +16,5 @@ if(BUILD_CLI)
 endif()
 
 if(BUILD_GUI)
-    add_subdirectory(Qt_gui_Module)
+    add_subdirectory(src/Qt_gui_Module)
 endif()

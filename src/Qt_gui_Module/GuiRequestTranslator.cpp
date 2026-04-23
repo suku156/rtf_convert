@@ -5,6 +5,7 @@
 #include <optional>
 
 
+
 GuiRequestResult GuiRequestTranslator::translate(const GuiFormData& form){
     GuiRequestResult result;
 
@@ -36,7 +37,7 @@ GuiRequestResult GuiRequestTranslator::translate(const GuiFormData& form){
     result.Normalizedrequest.dirPolicy = *dirPolicyOpt;
 
     // 將執行緒數量由字串轉為預定型態
-    result.Normalizedrequest.threadCount = threadStrToSizet(form.threadtext);
+    result.Normalizedrequest.threadCount = form.threadnum;
 
     // 設定遞迴模式下是否保留輸出資料夾中間路徑
     result.Normalizedrequest.preserveRelativeStructure = setPreserveRelativeStructure(form.preserveRelativeStructure);
@@ -76,23 +77,6 @@ std::optional<Common::ExistingDirPolicy> GuiRequestTranslator::parseDirPolicy(co
    return std::nullopt;
 }
 
-std::optional<size_t> GuiRequestTranslator::threadStrToSizet(const QString& s){
-    QString t = s.trimmed();
-
-    if(t.isEmpty()){
-        return std::nullopt;
-    }
-
-    bool ok = false;
-    int v = t.toInt(&ok);
-
-    // 轉換失敗或輸入值有錯誤就走預設路線
-    if(!ok || v <= 0 || v > 16){
-        return std::nullopt;
-    }
-
-    return static_cast<size_t>(v);
-}
 
 std::optional<bool> GuiRequestTranslator::setPreserveRelativeStructure(const QString& s){
     QString t = s.trimmed().toLower();

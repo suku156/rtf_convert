@@ -10,27 +10,27 @@ void GuiObserver::onEvent(const ProgressEvent& event){
 
     switch (event.type) {
       case ProgressEventType::Start:
-        prefix = "Gui [START]: ";
+        prefix = "[CORE] [START]: ";
         break;
       case ProgressEventType::Info:
-        prefix = "Gui [INFO]: ";
+        prefix = "[CORE] [INFO]: ";
         break;
       case ProgressEventType::Finish:
-        prefix = "Gui [FINISH]: ";
+        prefix = "[CORE] [FINISH]: ";
         break;
       case ProgressEventType::Warring:
-        prefix = "Gui [WARRING]: ";
+        prefix = "[CORE] [WARRING]: ";
         break;
       case ProgressEventType::Error:
-        prefix = "Gui [ERROR]: ";
+        prefix = "[CORE] [ERROR]: ";
         break;
       case ProgressEventType::BatchStart:
-        prefix = "Gui [BATCHSTART]: ";
+        prefix = "[CORE] [BATCHSTART]: ";
         emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
         break;
       case ProgressEventType::UnitDone:
         {
-          QString text = QString("Gui [UNITDONE]: 已完成 %1 / %2 ")
+          QString text = QString("[CORE] [UNITDONE]: 已完成 %1 / %2 ")
                           .arg(static_cast<int>(event.done))
                           .arg(static_cast<int>(event.total));
           emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
@@ -38,14 +38,14 @@ void GuiObserver::onEvent(const ProgressEvent& event){
           return;
         }
       case ProgressEventType::BatchFinish:
-        prefix = "Gui [BATCHFINISH]: ";
+        prefix = "[CORE] [BATCHFINISH]: ";
         emit progressChanged(static_cast<int>(event.done),static_cast<int>(event.total));
         break;
       case ProgressEventType::Fail:
-        prefix = "Gui [FAIL]: ";
+        prefix = "[CORE] [FAIL]: ";
         break;
       default:
-        prefix = "Gui [UNKNOWN]";
+        prefix = "[CORE] [UNKNOWN]";
         break;
     }
 
