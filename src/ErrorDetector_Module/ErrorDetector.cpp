@@ -35,6 +35,30 @@ ErrorSystem::ErrorInfo GeneralErrorDetector::detect(const std::string& content){
 }
 bool GeneralErrorDetector::checkBraceBalance(const std::string& content){
     int depth = 0;
+    for (size_t i = 0; i < content.size(); ++i) {
+      char c = content[i];
+
+      if (c == '\\') {
+        if (i + 1 < content.size()) {
+          char next = content[i + 1];
+
+          if (next == '{' || next == '}') {
+            ++i;        // 跳過 escaped brace
+            continue;
+          }
+        }
+      }
+
+      if (c == '{') {
+          ++depth;
+      } else if (c == '}') {
+          --depth;
+          if (depth < 0) return false;
+      }
+    }
+
+    return depth == 0;
+    /*
     for(char c : content){
       if(c == '{'){
         depth++;
@@ -51,6 +75,7 @@ bool GeneralErrorDetector::checkBraceBalance(const std::string& content){
     }
     
     return false;
+    */
 }
 void GeneralErrorDetector::checkControlWord(const std::string& content , ErrorSystem::ErrorInfo& info){
     const size_t maxSize = content.size();

@@ -238,7 +238,14 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
     
     for(size_t i = pos;i<Cleaned.size();){
       unsigned char c = static_cast<unsigned char>(Cleaned[i]);
-      
+
+      if(c == '\\' && isSkippableRtfEscape(Cleaned,i)){
+        result.push_back(Cleaned[i]);
+        result.push_back(Cleaned[i + 1]);
+        i += 2;
+        continue;
+      }
+
       if(c < 0x80 && c == '{' && i+1 < Cleaned.size()){
         unsigned char c1 = static_cast<unsigned char>(Cleaned[i+1]);
         if(c1 < 0x80 && c1 == '\\'){
@@ -479,30 +486,10 @@ void textRtfProcessor::removeOuterBraces(std::string& Cleaned){
       end--;
     }
    
-    //防呆 如果不是定位到最外圍的大括號就停止
-    if(end - start < 2 || Cleaned[start] != '{' || Cleaned[end-1] != '}') return;
-
-    //確認整體大括號處於平衡狀態
-    int depth = 0;
+    if(end -start < 2) return;
+    if(Cleaned[start] != '{' || Cleaned[end-1] != '}') return;
     
-    for (size_t i = start; i < end; ++i) {
-        if (Cleaned[i] == '{') depth++;
-        else if (Cleaned[i] == '}') {
-            depth--;
-            if (depth == 0 && i != end - 1) {
-                // 代表外層在結尾前就關閉了，不是整體包覆
-                return;
-            }
-        }
-    }
-
-    if(depth == 0){
-      std::string result = Cleaned.substr(start +1 ,(end -1) - (start + 1));
-      Cleaned.swap(result);
-    }else{
-      return; // 代表不平衡
-    }
-
+    Cleaned = Cleaned.substr(start + 1, end - start - 2);
 }
 //清除開頭多餘的換行符
 void textRtfProcessor::trimLeadingNewlines(std::string& Cleaned){
@@ -515,6 +502,22 @@ void textRtfProcessor::trimLeadingNewlines(std::string& Cleaned){
 }
 //等清理完成,移除保護符號
 void textRtfProcessor::removeProtectionSymbol(std::string& Cleaned) {
-    Cleaned.erase(std::remove(Cleaned.begin(), Cleaned.end(), '\x01'), Cleaned.end());
+  Cleaned.erase(std::remove(Cleaned.begin(), Cleaned.end(), '\x01'), Cleaned.end());
 }
 
+// 用來判斷是否是 \{ \} \\ 等等 控制符
+bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
+  if(pos >= s.size() || s[pos] != '\\') return false;
+  if(pos + 1 >= s.size()) return false;
+  
+  char next = s[pos + 1];
+
+  switch (next) {
+    case '{':
+    case '}':
+    case '\\':
+    return true;
+  }
+
+  return false;
+}

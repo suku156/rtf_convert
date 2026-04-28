@@ -608,7 +608,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
-    
+
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -642,6 +642,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       });
       return false;
     }
+    
     
     notify(ProgressEvent{
       ProgressEventType::Info,

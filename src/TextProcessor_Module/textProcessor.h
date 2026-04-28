@@ -48,5 +48,5 @@ private:
   void trimLeadingNewlines(std::string& Cleaned);
   void removeProtectionSymbol(std::string& Cleaned);
   void replaceShapeGroupsWithImageMarkers(std::string& rtf);
-
+  bool isSkippableRtfEscape(const std::string& s, size_t pos);
 };

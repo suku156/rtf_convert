@@ -8,7 +8,6 @@
 #include <system_error>
 #include <string>
 #include <mutex>
-#include <mutex>
 #include <unordered_set>
 #include <cwctype>
 
@@ -38,11 +37,6 @@ namespace{
     // 去除開頭或結尾空白（避免 Windows 檔名非法）
     while (!result.empty() && std::iswspace(result.front())) result.erase(result.begin());
     while (!result.empty() && std::iswspace(result.back()))  result.pop_back();
-
-    //如果有對檔案名稱進行改動,傳入資料流
-    if(result != basename){
-    Console::ensureWcerr(L"[Notice] 檔名中包含不安全字元，已自動修正。\n");
-    }
 
     return result;
   } 

@@ -30,9 +30,7 @@ void ParagraphBlock::addText(std::unique_ptr<TextNode> text){
 const std::vector<std::unique_ptr<TextNode>>& ParagraphBlock::texts() const{
     return texts_;
 }
-int ParagraphBlock::indentLevel() const{
-    return identLevel_;
-}
+
 
 // 存放圖片節點專用的段落空間函式定義
 const ImageNode& ImageBlock::image() const{
@@ -61,7 +59,7 @@ Document DocumentBuilder::build(const std::string& content){
 
     while(std::getline(isss,line)){
       
-      std::string text = trimLeft(line);
+      std::string text = line;
       
       if(text.empty()){
         parblock = nullptr;
@@ -74,36 +72,14 @@ Document DocumentBuilder::build(const std::string& content){
         doc.addBlock<ImageBlock>(std::make_unique<ImageNode>(imgid));
         continue;
       }else{
-        int indent = calcIndentLevel(line);
-
-        if(!parblock || parblock ->indentLevel() != indent){ // 沒有指向段落 或 前方空格階層不同時 指向新段落
-          parblock = &doc.addBlock<ParagraphBlock>(indent);
-        }
-
+        parblock = &doc.addBlock<ParagraphBlock>(0);
         parblock -> addText(std::make_unique<TextNode>(text));
       }
     }
 
     return doc;
 }
-int DocumentBuilder::calcIndentLevel(const std::string& line){
-    int space = 0;
-    for(char c : line){
-      if(c == ' '){
-        space++;
-      }else{
-        break;
-      }
-    }
-    return space / 2;
-}
-std::string DocumentBuilder::trimLeft(const std::string& line){
-    std::size_t i = 0; 
-    while(i<line.size() && (line[i] == ' ' || line[i] == '\t')){
-      i++;
-    }
-    return line.substr(i);
-}
+
 bool DocumentBuilder::isImageline(const std::string& line){
     if(line.size() < 8) return false;
     if(line.rfind("[[IMG_",0) != 0) return false;

@@ -59,10 +59,9 @@ class ParagraphBlock : public Block{
   int identLevel_ = 0;
   std::vector<std::unique_ptr<TextNode>> texts_;
 public:
-   explicit ParagraphBlock(int indent =0) : identLevel_(indent) {}
-   void addText(std::unique_ptr<TextNode> text);
-   const std::vector<std::unique_ptr<TextNode>>& texts() const;
-   int indentLevel() const;
+  explicit ParagraphBlock(int indent =0) : identLevel_(indent) {}
+  void addText(std::unique_ptr<TextNode> text);
+  const std::vector<std::unique_ptr<TextNode>>& texts() const;
 };
 
 // 存放圖片節點專用的段落空間
@@ -88,9 +87,6 @@ class DocumentBuilder{
 public:
   Document build(const std::string& content);
 private:
-  // 計算 indent 的小工具(先記錄好做排版)
-  int calcIndentLevel(const std::string& line);
-  std::string trimLeft(const std::string& line);
   bool isImageline(const std::string& line);
   std::string extractImageId(const std::string& text);
 };

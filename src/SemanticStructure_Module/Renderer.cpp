@@ -19,11 +19,9 @@ void TxtRenderer::render(const Document& Doc , std::ostream& out){
     }
 }
 void TxtRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
-    out << std::string(p.indentLevel() *2 , ' ');
-    
-    for(const auto& text : p.texts()){
-      out << text -> text();
-    }
+  for(const auto& text : p.texts()){
+    out << text -> text();
+  }
 }
 void TxtRenderer::renderImage(const ImageBlock& img,std::ostream& out){
     out << "[IMAGE: " << img.image().imageId() << "]";
@@ -42,11 +40,9 @@ void MarkdownRenderer::render(const Document& Doc , std::ostream& out){
     }
 }
 void MarkdownRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
-    out << std::string(p.indentLevel() *2 , ' ');
-
-    for(const auto& text : p.texts()){
-      out << text -> text();
-    }
+  for(const auto& text : p.texts()){
+    out << text -> text();
+  }
 }
 void MarkdownRenderer::renderImage(const ImageBlock& img,std::ostream& out){
     out << "![](IMG_" << img.image().imageId() << ".png)";
@@ -58,10 +54,9 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
     out << "<html>\n<head>\n";
     out << "<meta charset=\"utf-8\">\n";
     out << "<style>\n";
-    out << ".indent-0 { margin-left: 0em; }\n";
-    out << ".indent-1 { margin-left: 1em; }\n";
-    out << ".indent-2 { margin-left: 2em; }\n";
-    out << ".indent-3 { margin-left: 3em; }\n";
+    out << ".rtf-paragraph {";
+    out << " white-space: pre-wrap;\n";
+    out << "}\n";
     out << "</style>\n";
     out << "</head>\n<body>\n";
 
@@ -87,7 +82,7 @@ void HtmlRenderer::renderEscapedText(const std::string& text,std::ostream& out){
     }
 }
 void HtmlRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
-    out << "<p class=\"indent-" << p.indentLevel() << "\">";
+    out << "<p class=\"rtf-paragraph\">";
 
     for(const auto& text : p.texts()){
       renderEscapedText(text ->text(),out);
