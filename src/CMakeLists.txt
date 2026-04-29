@@ -17,6 +17,7 @@ add_library(rtfcore
     thread_Moudle/MyThread.cpp
     I_O_Moudle/OutputPathResolver.cpp
     Task_Module/ConversionTaskBuilder.cpp
+    SheetProcessor_Module/SheetProcessor.cpp
 )
 
 target_include_directories(rtfcore PUBLIC 

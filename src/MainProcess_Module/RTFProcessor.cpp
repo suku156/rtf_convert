@@ -18,6 +18,7 @@
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Feedback_Module/ProgressEvent.h"
 #include "Feedback_Module/IProgressObserver.h"
+#include "SheetProcessor_Module/SheetProcessor.h"
 #include<filesystem>
 #include<optional>
 #include<iostream>
@@ -524,6 +525,11 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       logger.log(LogLevel::Warn,"編碼偵測為: UTF-16 非RTF支援之編碼類型嘗試改走utf-8的路線");
     }
     
+    // 測試看看 utf 表格處裡效果
+    sheetProcessor sheetprocessor;
+    sheetprocessor.processor(rtfContent);
+    
+    
     logger.log(LogLevel::Info,"依照編碼體系進行 解碼 與 群組處理 並檢查其是否有錯誤");
     // 依照不同的編碼方式正確的將 ifstream 複製的陣列轉換成 std::string 
     switch(filecontext.getEncodingType()){
@@ -554,6 +560,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       L"解碼完成"
     });
     
+    /*
     logger.log(LogLevel::Info,"開始檢查檔案是否符合 RTF 文法");
     //檢查 圖檔區域處裡完的純文字是否符合 rtf　文法,並將結果放給統一函式處裡 
     auto GeneralInfo = GeneralErrorDetector().detect(rtfContent);
@@ -575,6 +582,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       ProgressEventType::Info,
       L"文法檢查通過"
     });
+    
 
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //用類別的功能來清除文字中剩餘的控制碼等等
@@ -585,7 +593,9 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     });
 
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
-    
+    */
+
+
     // 直接使用得到的最終檔案路徑
     std::ofstream output(req.finalOutputPath, std::ios::binary);
     if (!output) {
@@ -609,6 +619,9 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
 
+    output << rtfContent;
+    
+    /*
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -642,7 +655,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       });
       return false;
     }
-    
+    */
     
     notify(ProgressEvent{
       ProgressEventType::Info,
