@@ -12,11 +12,12 @@
 #include<vector>
 #include <utility>
 
-// 唯一公開入口的函式定義
+// 公開入口的函式定義
 void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     size_t before = Cleaned.size();
     
     replaceShapeGroupsWithImageMarkers(Cleaned);
+    sheetSymbolChange(Cleaned);
     controlGroupProcessor(Cleaned);
     pardPartClean(Cleaned);
     controlSymbolChange(Cleaned);
@@ -76,7 +77,7 @@ void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
     // 拿來記錄標記符 沒有就會為空直接替換掉 shape 群組
     std::string result;
     for(size_t i = 0; i < groupResult.size();++i){
-      if(groupResult.compare(i,12,"{\\*\\imgblock") == 0){
+      if(groupResult.compare(i,12,"{\\@@imgblock") == 0){
         
         size_t j = i+1;
         int reflag = 1;
@@ -165,9 +166,11 @@ bool textRtfProcessor::isKnownDroppableGroup(std::string_view g){
            start_with(g,"{\\colortbl")   ||
            start_with(g,"{\\stylesheet") ||
            start_with(g,"{\\info")       ||
-           start_with(g,"{\\*");          
-           
-           
+           start_with(g,"{\\*")          || 
+           start_with(g,"{\\themedata")        ||
+           start_with(g,"{\\colorschememapping") ||
+           start_with(g,"{\\xmlnstbl")         ||
+           start_with(g,"{\\rsidtbl"); 
 }
 bool textRtfProcessor::isHex(char c){
   return (c >= '0' && c <= '9') ||
@@ -208,7 +211,7 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
 textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view group){
     
     // 圖片群組 前面已經有處理 防呆一下
-    if(start_with(group, "{\\pict") || start_with(group, "{\\*\\imgblock")){
+    if(start_with(group, "{\\pict") || start_with(group, "{\\@@imgblock")){
        return GroupDecision::KeepAll;
     }
     
@@ -251,7 +254,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
         if(c1 < 0x80 && c1 == '\\'){
           
           // 圖片標記群組特別處理
-          if(i+12 < Cleaned.size() && Cleaned.compare(i,12,"{\\*\\imgblock") == 0){
+          if(i+11 < Cleaned.size() && Cleaned.compare(i,12,"{\\@@imgblock") == 0){
             size_t end = i+2;
             int depth = 1;
 
@@ -266,7 +269,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
             }
 
             if(depth != 0){
-              Console::ensureWcerr(L"[警告] 檔案中有大括號不平衡導致無法順利執行\n");
+              Console::ensureWcerr(L"[WARRING]: 檔案中有大括號不平衡導致無法順利執行\n");
               return;
             }else{ // 直接不留群組
               size_t markPos = Cleaned.find("[[IMG_",i);
@@ -293,7 +296,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
           }
           
           if(depth != 0){
-            Console::ensureWcerr(L"[警告] 檔案中有大括號不平衡導致無法順利執行\n");
+            Console::ensureWcerr(L"[警告] 檔案中有大括號不平衡導致無法正確清理全部控制符");
             return;
           }else{
             // 需要增加判斷來表是可不可以跳過
@@ -303,9 +306,14 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
               i = end;
               break;
               case GroupDecision::KeepText :
-              result.append(Cleaned, i + 1, end - i - 2);
-              i = end;
-              break;
+              {
+                std::string_view groupInner{Cleaned.data() + i + 1,end - i - 2};
+                std::string cleanStr  = processGroupInner(groupInner);
+                //result.append(Cleaned, i + 1, end - i - 2);
+                result.append(cleanStr);
+                i = end;
+                break;
+              }
               case GroupDecision::KeepAll :
               result.append(Cleaned, i, end - i);
               i = end;
@@ -329,19 +337,27 @@ void textRtfProcessor::pardPartClean(std::string& Cleaned){
     std::string target = "\\pard";
 
     for(size_t i = 0;i<Cleaned.size();){
-      if(i + target.size() < Cleaned.size() && Cleaned.compare(i,target.size(),target) == 0){
-        if(checkAsciiScope(Cleaned,i,target.size())){
-          size_t end = i + target.size();
-          while(end < Cleaned.size()){
-            if(isControlCharacter(Cleaned[end])){
-              end++;
-            }else{
-              break;
-            }
+      if(i + target.size() <= Cleaned.size() && 
+         Cleaned.compare(i,target.size(),target) == 0 &&
+         checkAsciiScope(Cleaned,i,target.size()))
+      {
+        
+        size_t end = i + target.size();
+        while(end < Cleaned.size()){
+          if(isControlCharacter(Cleaned[end])){
+            end++;
+          }else{
+            break;
           }
-          i = end;
-          continue;
         }
+          
+        // 吃掉控制符後方的空格
+        if (end < Cleaned.size() && Cleaned[end] == ' ') {
+          ++end;
+        }
+
+        i = end;
+        continue;
       }
 
       result.push_back(Cleaned[i]);
@@ -359,10 +375,30 @@ void textRtfProcessor::controlSymbolChange(std::string& Cleaned){
       {"\\par", "\n"},
       {"\\line", "\n"},
       {"\\tab", "\t"},
-      {"\\cell", "\t"},
-      {"\\row", "\n"},
       {"\\emdash", "—"},
       {"\\bullet", "•"}
+    };
+
+    // 用來避免對重名控制符誤判
+    auto isControlWordBoundary = [](const std::string& s, size_t pos) -> bool {
+      if (pos >= s.size()) {
+        return true;
+      }
+
+      unsigned char c = static_cast<unsigned char>(s[pos]);
+
+      // 後面仍是英文字母，代表控制字還沒結束，例如 \linex0
+      if (std::isalpha(c)) {
+        return false;
+      }
+
+      // 後面是數字或負號，可能是控制字參數，例如 \xxx123
+      // 對這批「純符號替換」來說，保守起見不直接匹配
+      if (std::isdigit(c) || c == '-') {
+        return false;
+      }
+
+      return true;
     };
 
     size_t i = 0;
@@ -371,11 +407,18 @@ void textRtfProcessor::controlSymbolChange(std::string& Cleaned){
 
       for(const auto& [key,value] : rtfReplacements){
         if(i + key.size() <= Cleaned.size() && 
-           Cleaned.compare(i,key.size(),key) == 0&&
-           checkAsciiScope(Cleaned,i,key.size(),true))
+           Cleaned.compare(i,key.size(),key) == 0 &&
+           checkAsciiScope(Cleaned,i,key.size(),true) &&
+           isControlWordBoundary(Cleaned,i+key.size()))
         {
           result += value;
           i += key.size();
+
+          // 用來吃掉控制符後方為空白的情況
+          if (i < Cleaned.size() && Cleaned[i] == ' ') {
+            ++i;
+          }
+
           matched = true;
           break;
         }
@@ -410,6 +453,12 @@ void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
             break;
           }
         }
+
+        // 吃掉控制符後方多出的空白
+        if(end < Cleaned.size() && Cleaned[end] == ' '){
+          ++end;
+        }
+
         i = end;
         continue;
       }
@@ -520,4 +569,173 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
   }
 
   return false;
+}
+
+void textRtfProcessor::sheetSymbolChange(std::string& Cleaned){
+  constexpr std::string_view TROWD_MARK  = "@@RTF_TABLE_TROWD@@";
+  constexpr std::string_view ROW_MARK    = "@@RTF_TABLE_ROW@@";
+  constexpr std::string_view CELL_MARK   = "@@RTF_TABLE_CELL@@";
+  constexpr std::string_view INTBL_MARK  = "@@RTF_TABLE_INTBL@@";
+  
+  std::string result;
+  result.reserve(Cleaned.size());
+
+  for(size_t i =0;i<Cleaned.size();i++){
+    
+    if(i + ROW_MARK.size() <= Cleaned.size() &&
+       Cleaned.compare(i,ROW_MARK.size(),ROW_MARK) == 0)
+    {
+      result.push_back('\n');
+      i += ROW_MARK.size() - 1;// 迴圈會在 +1 
+      continue;
+    }
+    
+    if(i + CELL_MARK.size() <= Cleaned.size() &&
+       Cleaned.compare(i,CELL_MARK.size(),CELL_MARK) == 0)
+    {
+      result.append(" | ");
+      i += CELL_MARK.size() - 1;// 迴圈會在 +1 
+      continue;
+    }
+
+    if(i + TROWD_MARK.size() <= Cleaned.size() &&
+       Cleaned.compare(i,TROWD_MARK.size(),TROWD_MARK) == 0)
+    {
+      result.append("| ");
+      i += TROWD_MARK.size() - 1;// 迴圈會在 +1 
+      continue;
+    }
+
+    if(i + INTBL_MARK.size() <= Cleaned.size() &&
+       Cleaned.compare(i,INTBL_MARK.size(),INTBL_MARK) == 0)
+    {
+      result.append("| ");
+      i += INTBL_MARK.size() - 1;// 迴圈會在 +1 
+      continue;
+    }
+
+    result.push_back(Cleaned[i]);
+  }
+
+  Cleaned.swap(result);
+}
+
+std::string textRtfProcessor::processGroupInner(std::string_view g){
+  std::string result;
+  constexpr std::string_view target = "{\\*\\";
+
+  result.reserve(g.size());
+
+  for(size_t i =0;i<g.size();i++){
+    if(i+ target.size() <= g.size() &&
+       g.compare(i,target.size(),target) == 0)
+    {
+      int depth = 0;
+      size_t j = i;
+      bool closed = false;
+
+      while(j < g.size()){
+        char c = g[j];
+        
+        if(c == '\\' && j + 1 < g.size() &&
+                   (g[j + 1] == '{' ||
+                    g[j + 1] == '}' ||
+                    g[j + 1] == '\\'))
+        {
+          j += 2;
+          continue;
+        }
+        
+        if(c == '{'){
+          depth++;
+        }else if( c == '}'){
+          depth--;
+        }
+        
+        j++;
+        
+        if(depth == 0){
+          closed = true;
+          break;
+        } 
+      }
+
+      if(closed){
+        i = j - 1;
+        continue;
+      }
+     
+      result.push_back(g[i]);
+      continue;
+    }
+    result.push_back(g[i]); 
+  }
+
+  return result;
+}
+
+std::string textRtfProcessor::removeIgnorableDestinations(std::string_view rtf){
+  std::string result;
+  result.reserve(rtf.size());
+
+  const std::string target = "{\\*\\";
+  const std::string imgMarker = "{\\@@imgblock";
+
+  auto findGroupEnd = [](std::string_view s, size_t start) -> size_t {
+    int depth = 1;
+    size_t j = start + 1;
+
+    while (j < s.size() && depth > 0) {
+      char c = s[j];
+
+      if (c == '\\' && j + 1 < s.size()) {
+        j += 2;
+        continue;
+      }
+
+      if (c == '{') {
+        ++depth;
+      } else if (c == '}') {
+        --depth;
+      }
+
+      ++j;
+    }
+
+    if (depth == 0) {
+      return j;
+    }
+
+    return std::string_view::npos;
+  };
+    
+  for (size_t i = 0; i < rtf.size(); ++i) {
+    if (i + target.size() <= rtf.size() &&
+          rtf.compare(i, target.size(), target) == 0)
+    {
+      size_t groupEnd = findGroupEnd(rtf,i);
+
+      if(groupEnd != std::string_view::npos){
+        std::string_view groupView{rtf.data() + i,groupEnd - i};
+
+        size_t markerPos = groupView.find(imgMarker);
+
+        if(markerPos != std::string_view::npos){
+          size_t markerStart = i + markerPos;
+          size_t markerEnd = findGroupEnd(rtf, markerStart);
+          if (markerEnd != std::string_view::npos && markerEnd <= groupEnd)
+          {
+            result.append(rtf.data() + markerStart,markerEnd - markerStart);
+          }
+        }
+
+        i = groupEnd - 1;
+        continue;
+      }
+    }
+
+    result.push_back(rtf[i]);
+  }
+
+  return result;
 }

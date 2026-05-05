@@ -209,9 +209,7 @@ namespace{
         case ErrorSystem::ErrorLevel::None:
             return HandleDecision::Continue;
         case ErrorSystem::ErrorLevel::Warning:
-            return HandleDecision::Continue;
         case ErrorSystem::ErrorLevel::Recoverable:
-            return HandleDecision::SkipFile;
         case ErrorSystem::ErrorLevel::FatalLocal:
             return HandleDecision::SkipFile;
         case ErrorSystem::ErrorLevel::FatalGlobal:
@@ -426,7 +424,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
      }
      logger.log(LogLevel::Info,"成功開啟輸入檔案: " + pathToUtf8(filePath.string()));
      
-     // 將輸入檔案讀成 string 好做之後的加工
+    // 將輸入檔案讀成 string 好做之後的加工
     std::string rtfContent{
       (std::istreambuf_iterator<char>(input)),
        std::istreambuf_iterator<char>()
@@ -528,7 +526,9 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
     // 測試看看 utf 表格處裡效果
     sheetProcessor sheetprocessor;
     sheetprocessor.processor(rtfContent);
-    
+
+    // 預先處理 {\* 開頭之控制群組避免轉換後的影響
+    rtfContent =  textRtfProcessor().removeIgnorableDestinations(rtfContent);
     
     logger.log(LogLevel::Info,"依照編碼體系進行 解碼 與 群組處理 並檢查其是否有錯誤");
     // 依照不同的編碼方式正確的將 ifstream 複製的陣列轉換成 std::string 
@@ -560,7 +560,15 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       L"解碼完成"
     });
     
-    /*
+    logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
+    //用類別的功能來清除文字中剩餘的控制碼等等
+    textRtfProcessor().Processor(rtfContent,logger);
+    notify(ProgressEvent{
+      ProgressEventType::Info,
+      L"完成多餘控制符清理"
+    });
+
+    
     logger.log(LogLevel::Info,"開始檢查檔案是否符合 RTF 文法");
     //檢查 圖檔區域處裡完的純文字是否符合 rtf　文法,並將結果放給統一函式處裡 
     auto GeneralInfo = GeneralErrorDetector().detect(rtfContent);
@@ -570,31 +578,26 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       logger.log(LogLevel::Info,"輸入檔案的 RTF文法檢查通過");
       break;
       case HandleDecision::SkipFile:
+      notify(ProgressEvent{
+        ProgressEventType::Warring,
+        L"輸入檔案 RTF 文法不完全正確,但仍可執行"
+      });
+      break;
       case HandleDecision::TerminateAll:
       notify(ProgressEvent{
         ProgressEventType::Error,
         L"輸入檔案不符合 RTF 之文法"
-      });;
+      });
       logger.log(LogLevel::Error,"輸入檔案不符合 RTF 之文法");
       return false;
     }
     notify(ProgressEvent{
       ProgressEventType::Info,
-      L"文法檢查通過"
+      L"文法檢查結束"
     });
     
-
-    logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
-    //用類別的功能來清除文字中剩餘的控制碼等等
-    textRtfProcessor().Processor(rtfContent,logger);
-    notify(ProgressEvent{
-      ProgressEventType::Info,
-      L"完成多餘控制符清理"
-    });
-
+    
     logger.log(LogLevel::Info,"嘗試開啟輸出檔案");
-    */
-
 
     // 直接使用得到的最終檔案路徑
     std::ofstream output(req.finalOutputPath, std::ios::binary);
@@ -618,10 +621,10 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       const unsigned char bom[] = {0xEF, 0xBB, 0xBF};
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
-
-    output << rtfContent;
+ 
+    //output << rtfContent;
     
-    /*
+    
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -655,7 +658,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       });
       return false;
     }
-    */
+    
     
     notify(ProgressEvent{
       ProgressEventType::Info,

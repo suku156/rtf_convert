@@ -31,6 +31,7 @@ class textRtfProcessor{
   };
 public:
   void Processor(std::string& Cleaned,logSystem& logger);
+  std::string removeIgnorableDestinations(std::string_view rtf);
 private:
   inline bool checkAsciiScope(const std::string& text, size_t pos ,size_t len,bool tailOnly = false);
   inline bool isControlCharacter(char c);
@@ -49,4 +50,6 @@ private:
   void removeProtectionSymbol(std::string& Cleaned);
   void replaceShapeGroupsWithImageMarkers(std::string& rtf);
   bool isSkippableRtfEscape(const std::string& s, size_t pos);
+  void sheetSymbolChange(std::string& Cleaned);
+  std::string processGroupInner(std::string_view g);
 };

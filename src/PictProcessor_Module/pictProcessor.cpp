@@ -359,7 +359,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
         pos = rtfContent.find("{\\pict",end);
         continue;
       }
-      tasks.push_back({start,end,"{\\*\\imgblock[[IMG_"+std::to_string(pictCount_)+"]]}"});
+      tasks.push_back({start,end,"{\\@@imgblock[[IMG_"+std::to_string(pictCount_)+"]]}"});
       pictCount_++;
       
       // 找到下一個的開頭

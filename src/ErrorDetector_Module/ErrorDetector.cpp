@@ -7,6 +7,10 @@
 #include<vector>
 #include<cstdint>
 #include<string>
+#include<iostream>
+#include<iomanip>
+#include<sstream>
+
 
 // RTF 文法層面函式定義
 ErrorSystem::ErrorInfo GeneralErrorDetector::detect(const std::string& content){
@@ -15,7 +19,7 @@ ErrorSystem::ErrorInfo GeneralErrorDetector::detect(const std::string& content){
     
     if(!checkBraceBalance(content)){
       info.add(ErrorSystem::ErrorType::General_Fatal,
-               ErrorSystem::ErrorLevel::FatalLocal,
+               ErrorSystem::ErrorLevel::Warning,
                ErrorSystem::ErrorCategory::Decode,
                L"[圖片處理後的純文字檢查錯誤]: 大括號不平衡");
     }
@@ -42,7 +46,7 @@ bool GeneralErrorDetector::checkBraceBalance(const std::string& content){
         if (i + 1 < content.size()) {
           char next = content[i + 1];
 
-          if (next == '{' || next == '}') {
+          if (next == '{' || next == '}' || next == '\\') {
             ++i;        // 跳過 escaped brace
             continue;
           }
@@ -53,29 +57,13 @@ bool GeneralErrorDetector::checkBraceBalance(const std::string& content){
           ++depth;
       } else if (c == '}') {
           --depth;
-          if (depth < 0) return false;
+          if (depth < 0){
+            return false;
+          } 
       }
     }
 
     return depth == 0;
-    /*
-    for(char c : content){
-      if(c == '{'){
-        depth++;
-      }else if(c == '}'){
-        depth--;
-        if(depth < 0){
-          return false;
-        }
-      }
-    }
-    
-    if(depth == 0){
-      return true;
-    }
-    
-    return false;
-    */
 }
 void GeneralErrorDetector::checkControlWord(const std::string& content , ErrorSystem::ErrorInfo& info){
     const size_t maxSize = content.size();
