@@ -3,9 +3,12 @@
 // =====================================================
 #include "Document.h"
 #include<string>
+#include<string_view>
 #include<vector>
 #include<memory>
 #include<sstream>
+#include<optional>
+#include<iostream>
 
 // 文字節點函式定義
 Node::Type TextNode::getType() const{
@@ -19,8 +22,8 @@ const std::string& TextNode::text() const{
 Node::Type ImageNode::getType() const{
   return Type::Image;
 }
-const std::string& ImageNode::imageId() const{
-  return imageId_;
+const std::optional<ImageMarkerInfo>& ImageNode::imageMark() const{
+  return imageMark_;
 }
 
 // 存放文字節點專用的段落空間函式定義
@@ -67,9 +70,9 @@ Document DocumentBuilder::build(const std::string& content){
       }else if(isImageline(text)){
         parblock = nullptr; // 確保遇到圖片標記符時一定會切換段落
 
-        std::string imgid = extractImageId(text);// 擷取標記符數字
+        std::optional<ImageMarkerInfo> mark = extractImageId(text);// 擷取標記符數字
 
-        doc.addBlock<ImageBlock>(std::make_unique<ImageNode>(imgid));
+        doc.addBlock<ImageBlock>(std::make_unique<ImageNode>(mark));
         continue;
       }else{
         parblock = &doc.addBlock<ParagraphBlock>(0);
@@ -81,22 +84,83 @@ Document DocumentBuilder::build(const std::string& content){
 }
 
 bool DocumentBuilder::isImageline(const std::string& line){
-    if(line.size() < 8) return false;
-    if(line.rfind("[[IMG_",0) != 0) return false;
+    constexpr std::string_view imgHead = "@@RTF_IMAGE";
+    constexpr std::string_view imgErr  = "_ERR_";
+    
+    if(line.size() < imgHead.size()) return false;
+    if(line.compare(0,imgHead.size(),imgHead) != 0) return false;
 
-    std::size_t pos = 6;
-    if(pos >= line.size() || !isdigit(static_cast<unsigned char>(line[pos]))){
+    std::size_t pos = imgHead.size();
+
+    if(pos >= line.size()) return false;
+    
+    if(pos + imgErr.size() < line.size() &&  
+             line.compare(pos,imgErr.size(),imgErr) == 0){
+      pos += imgErr.size();
+    }else if(line[pos] == '_')
+    {
+      pos++;
+    }else{
       return false;
     }
 
-    while(pos < line.size() && isdigit(static_cast<unsigned char>(line[pos]))) pos++;
+    if(pos >= line.size() ||
+       !std::isdigit(static_cast<unsigned char>(line[pos]))){
+        return false;
+    }
 
-    return (pos + 1 == line.size() -1 && line[pos] == ']' && line[pos + 1] == ']');
+    while(pos < line.size() &&
+          std::isdigit(static_cast<unsigned char>(line[pos]))){
+        ++pos;
+    }
+    
+    return pos + 2 <= line.size() && line[pos] == '@' && line[pos + 1] == '@';
 }
-std::string DocumentBuilder::extractImageId(const std::string& text){
-    std::size_t pos = 6;
-    std::size_t end = pos;
-    while(end < text.size() && isdigit(static_cast<unsigned char>(text[end]))) end++;
+std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(const std::string& text){
+    constexpr std::string_view imgHead = "@@RTF_IMAGE";
+    constexpr std::string_view imgErr  = "_ERR_";
+    ImageMarkerInfo info;
+    
+    std::size_t pos = text.find(imgHead);
+    if(pos == std::string::npos){
+      return std::nullopt;
+    }
+    
+    std::size_t cur = pos + imgHead.size();
+    if(cur >= text.size()) return std::nullopt;
+    
+    
+    if(cur + imgErr.size() <= text.size() &&
+      text.compare(cur, imgErr.size(), imgErr) == 0){
+      cur += imgErr.size();
+      info.type = ImageMarkerType::Error;
+      
+    }else if(text[cur] == '_')
+    {
+      cur++;
+      info.type = ImageMarkerType::Normal;
+    }else{
+      return std::nullopt;
+    }
+    
+    std::size_t start = cur;
+    while(cur < text.size() &&
+        std::isdigit(static_cast<unsigned char>(text[cur]))){
+        ++cur;
+    }
 
-    return text.substr(pos,end - pos);
+    // 至少要有一位數字
+    if(start == cur){
+        return std::nullopt;
+    }
+    
+    if(cur + 1 >= text.size() ||
+       text[cur] != '@' ||
+       text[cur + 1] != '@'){
+        return std::nullopt;
+    }
+
+    info.id = text.substr(start, cur - start);
+    
+    return info;
 }

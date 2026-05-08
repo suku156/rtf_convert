@@ -41,7 +41,8 @@ int wmain(int argc,wchar_t* argv[]){
   
   // 簡易防呆
   if(argc < 2){
-    mainerrorhandler.handleFatalGlobal(L"需要正確輸入: "+std::wstring(argv[0])+ L" <檔案/資料夾路徑>\n");
+    Cli::printHelp();
+    mainerrorhandler.handleFatalGlobal(L"需要正確輸入指令");
   }
 
   // 命令列紀錄

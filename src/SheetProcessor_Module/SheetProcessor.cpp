@@ -95,21 +95,14 @@ void sheetProcessor::processor(std::string& rtfContent){
             if(!closed) break;
 
             std::string_view groupView{rtfContent.data()+ i ,j - i};
-            TableToken token = groupProcessor(groupView);
             bool groupHasRow = false;
-           
-            switch(token.type){
-              case TableTokenType::text :
-              sheetscope.newsheetStr_.append(token.text);
-              break;
-              case TableTokenType::cell :
-              sheetscope.newsheetStr_.append(token.text);
-              break;
-              case TableTokenType::row :
+            TableToken token = groupProcessor(groupView);
+            
+            sheetscope.newsheetStr_.append(token.text);
+            if(token.hasRow){
               groupHasRow = true;
-              sheetscope.newsheetStr_.append(token.text);
-              break;
             }
+              
 
             i = j - 1;
             if(groupHasRow){
@@ -148,32 +141,57 @@ bool sheetProcessor::isControlEnd(std::string_view s,size_t pos){
   return pos >= s.size() ||
            !std::isalpha(static_cast<unsigned char>(s[pos]));
 }
-
+// 用來偵測群組中有無表格相關的關鍵控制符
 TableToken sheetProcessor::groupProcessor(std::string_view groupView){
   TableToken token;
   token.text.reserve(groupView.size());
   token.type = TableTokenType::text;// 預設是文字
+
+  constexpr std::string_view ROWMARK = "\\row";
+  constexpr std::string_view CELLMARK = "\\cell";
+
+  auto skipControlDelimiter = [](std::string_view s, size_t& i) {
+    while (i + 1 < s.size() &&
+           (s[i + 1] == ' ' || s[i + 1] == '\r' || s[i + 1] == '\n')) {
+        ++i;
+    }
+  };
+
   for(size_t i = 0;i<groupView.size();i++){
     
     if(i + 4 <= groupView.size() && 
-       groupView.compare(i,4,"\\row") == 0 &&
-       isControlEnd(groupView,i+4))
+       groupView.compare(i,ROWMARK.size(),ROWMARK) == 0 &&
+       isControlEnd(groupView,i + ROWMARK.size()))
     {
+      token.hasRow = true;
       token.type = TableTokenType::row;
-      token.text = "@@RTF_TABLE_ROW@@";
-      break;
+      token.text += "@@RTF_TABLE_ROW@@";
+      
+      i += (ROWMARK.size() -1); // 迴圈會自己 +1 所以這裡 -1
+      skipControlDelimiter(groupView,i);//吃掉關鍵控制符號方的空格
+
+      continue;
     }
 
     if(i + 5 <= groupView.size() &&
-       groupView.compare(i,5,"\\cell") == 0 &&
-       isControlEnd(groupView,i+5))
+       groupView.compare(i,CELLMARK.size(),CELLMARK) == 0 &&
+       isControlEnd(groupView,i + CELLMARK.size()))
     {
+      token.hasCell = true;
       token.type = TableTokenType::cell;
-      token.text = "@@RTF_TABLE_CELL@@";
-      break;
+      token.text += "@@RTF_TABLE_CELL@@";
+      
+      i += (CELLMARK.size() -1); // 迴圈會自己 +1 所以這裡 -1
+      skipControlDelimiter(groupView,i);//吃掉關鍵控制符號方的空格
+      
+      continue;
     }
 
     char c = groupView[i];
+
+    // 忽略換行符
+    if(c == '\n' || c == '\r') continue;
+
     if(c == '{' || c == '}') continue;
 
     if(c == '\\'){

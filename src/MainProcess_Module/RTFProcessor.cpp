@@ -523,12 +523,14 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       logger.log(LogLevel::Warn,"編碼偵測為: UTF-16 非RTF支援之編碼類型嘗試改走utf-8的路線");
     }
     
+    
     // 測試看看 utf 表格處裡效果
     sheetProcessor sheetprocessor;
     sheetprocessor.processor(rtfContent);
 
     // 預先處理 {\* 開頭之控制群組避免轉換後的影響
     rtfContent =  textRtfProcessor().removeIgnorableDestinations(rtfContent);
+    
     
     logger.log(LogLevel::Info,"依照編碼體系進行 解碼 與 群組處理 並檢查其是否有錯誤");
     // 依照不同的編碼方式正確的將 ifstream 複製的陣列轉換成 std::string 
@@ -560,6 +562,7 @@ bool RTFProcessor::processFile(const FileProcessRequest& req)
       L"解碼完成"
     });
     
+
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //用類別的功能來清除文字中剩餘的控制碼等等
     textRtfProcessor().Processor(rtfContent,logger);

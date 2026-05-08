@@ -26,6 +26,8 @@ enum class TableTokenType{
 struct TableToken{
    TableTokenType type = TableTokenType::text;
    std::string text;
+   bool hasRow = false;
+   bool hasCell = false;
 };
 
 struct sheetScope{

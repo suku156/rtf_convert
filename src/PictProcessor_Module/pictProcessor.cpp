@@ -18,6 +18,7 @@
 #include<iostream>
 #include<cctype>
 #include<system_error>
+#include<algorithm>
 #ifdef _WIN32
   #include <windows.h>
 #endif
@@ -199,9 +200,19 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
     } 
     ErrorSystem::ErrorInfo PictErrorInfo;
 
+    // 如果有 {\nonshppict 群組先將其記錄
+    treatNonshppictGroup(tasks,rtfContent);
+
     logger.log(LogLevel::Info,"偵測到圖片區塊,圖片處理開始");
     
     while (pos != std::string::npos && pos < rtfContent.size()) {
+      
+      if(isInsideNonShpPictGroup(rtfContent,pos)){
+        constexpr std::string_view PICTMARK = "{\\pict";
+        
+        pos = rtfContent.find(PICTMARK,pos + PICTMARK.size());
+        continue;
+      }
       
       size_t start = pos; // 設定開頭位置
       
@@ -231,7 +242,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片的 Hex 區塊含有控制符視為損毀,進行跳過處裡"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         pictCount_++;
         // 找到下一個的開頭
         pos = rtfContent.find("{\\pict",end);
@@ -243,7 +254,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片的 Hex 區塊含有新的群組視為損毀,進行跳過處裡"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         pictCount_++;
         // 找到下一個的開頭
         pos = rtfContent.find("{\\pict",end);
@@ -259,7 +270,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片區塊中無法定位 header 與 hex 資料的分界!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片區塊無法區分控制邊界,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -276,7 +287,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片區塊中 hex 內容過短!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片區塊 hex 內容過短,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -296,7 +307,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片區塊中無法正確判斷圖片格式!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片區塊無法正確判斷圖片格式,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -316,7 +327,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片區塊 hex 內容解析失敗 (無有效位元組)!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片區塊 hex 內容解析失敗 (無有效位元組)!,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -333,7 +344,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片輸出路徑建立失敗!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片輸出路徑建立失敗!,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -350,7 +361,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
                           ErrorSystem::ErrorLevel::Recoverable,
                           ErrorSystem::ErrorCategory::Picture,
                           (ws + L"圖片建立成圖檔失敗!"));
-        tasks.push_back({start,end,"[[IMG_ERR_" + std::to_string(pictCount_) + "]]"});
+        tasks.push_back({start,end,"@@RTF_IMAGE_ERR_" + std::to_string(pictCount_) + "@@"});
         std::string logstr = std::string("第 ") + std::to_string(pictCount_) + 
                              std::string(" 圖片建立成圖檔失敗!,跳過處理");
         logger.log(LogLevel::Warn,logstr);
@@ -359,7 +370,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
         pos = rtfContent.find("{\\pict",end);
         continue;
       }
-      tasks.push_back({start,end,"{\\@@imgblock[[IMG_"+std::to_string(pictCount_)+"]]}"});
+      tasks.push_back({start,end,"@@RTF_IMAGE_"+std::to_string(pictCount_)+"@@"});
       pictCount_++;
       
       // 找到下一個的開頭
@@ -370,6 +381,12 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
     logger.log(LogLevel::Info,"圖片區塊轉換為圖檔完成,開始進行區塊替代為標記符作業");
     // 從後往前替換，避免索引位移 
     if(!tasks.empty()){
+      // 排序陣列確保其順序性
+      std::sort(tasks.begin(),tasks.end(),
+                [](const ReplaceTask& a, const ReplaceTask& b){
+                    return a.start < b.start;
+                });
+
       for(int i = tasks.size();i > 0;i--){
         ReplaceTask target = tasks[i-1];
         rtfContent.replace(target.start,target.end-target.start,target.text);
@@ -643,4 +660,81 @@ std::optional<std::filesystem::path> PictDisassembler::makeOutputPath(PictFormat
     }
 
     return imageDir / ("IMG_" + std::to_string(index) + ext);
+}
+bool PictDisassembler::isInsideNonShpPictGroup(std::string_view content, size_t pictPos){
+  constexpr std::string_view NONSHP = "{\\nonshppict";
+
+  size_t nonPos = content.rfind(NONSHP, pictPos);
+  if (nonPos == std::string_view::npos) {
+    return false;
+  }
+  
+  // 找 nonshppict 群組結尾
+  int depth = 0;
+  for (size_t i = nonPos; i < content.size(); ++i) {
+      char c = content[i];
+
+      if (c == '\\') { // 跳過 escaped brace，例如 \{ \}
+          if (i + 1 < content.size()) {
+              ++i;
+          }
+          continue;
+      }
+
+    if (c == '{') {
+      ++depth;
+    } else if (c == '}') {
+      --depth;
+      if (depth == 0) {
+        return pictPos >= nonPos && pictPos <= i;
+      }
+    }
+  }
+
+  // 群組壞掉時保守判定：不要抽這個 fallback 圖
+  return true;
+}
+void PictDisassembler::treatNonshppictGroup(std::vector<ReplaceTask>& tasks,std::string_view rtfview){
+  constexpr std::string_view target = "{\\nonshppict";
+
+  size_t pos = rtfview.find(target);
+  
+  while(pos != std::string_view::npos){
+    size_t end = pos ;
+    int depth = 0;
+    bool closed = false;
+    
+    while(end < rtfview.size()){
+      char c = rtfview[end];
+      
+      // 跳過 escaped brace，例如 \{ 或 \}
+      if(c == '\\' && end + 1 < rtfview.size()) {
+        ++end;
+        ++end;
+        continue;
+      }
+      
+      if(c == '{'){
+        depth++;
+      }else if(c == '}'){
+        depth--;
+
+        if(depth == 0){
+          end++;
+          closed = true;
+          break;
+        }
+      }
+      
+      end++;
+      
+    }
+
+    if(closed){
+      tasks.push_back({pos,end,""});
+      pos = rtfview.find(target,end);
+    }else{
+      pos = rtfview.find(target,pos + target.size());
+    }
+  }
 }

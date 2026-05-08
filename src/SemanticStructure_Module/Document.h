@@ -17,6 +17,17 @@
 #include<string>
 #include<vector>
 #include<memory>
+#include<optional>
+
+enum class ImageMarkerType{
+    Normal,
+    Error
+};
+
+struct ImageMarkerInfo{
+    ImageMarkerType type;
+    std::string id;
+};
 
 // 所有節點共用的介面
 class Node{
@@ -41,11 +52,11 @@ public:
 
 // 圖片節點
 class ImageNode : public Node{
-  std::string imageId_;
+  std::optional<ImageMarkerInfo> imageMark_;
 public:
-  explicit ImageNode(std::string imageId) : imageId_(std::move(imageId)){}
+  explicit ImageNode(std::optional<ImageMarkerInfo> imageMark) : imageMark_(std::move(imageMark)){}
   Type getType() const override;
-  const std::string& imageId() const;
+  const std::optional<ImageMarkerInfo>& imageMark() const;
 };
 
 // 存放節點用的段落空間繼承之介面
@@ -88,5 +99,5 @@ public:
   Document build(const std::string& content);
 private:
   bool isImageline(const std::string& line);
-  std::string extractImageId(const std::string& text);
+  std::optional<ImageMarkerInfo> extractImageId(const std::string& text);
 };

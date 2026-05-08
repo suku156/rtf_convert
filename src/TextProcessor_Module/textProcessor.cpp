@@ -61,6 +61,12 @@ void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
     int flag = 1;
 
     while(n < Cleaned.size()){
+      
+      if(Cleaned[n] == '\\' && n + 1 < Cleaned.size()){
+        n += 2;   // 跳過 escaped token
+        continue;
+      }
+      
       if(Cleaned[n] == '{'){
         flag++;
       }
@@ -76,26 +82,17 @@ void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
     std::string groupResult = Cleaned.substr(pos,n-pos);
     // 拿來記錄標記符 沒有就會為空直接替換掉 shape 群組
     std::string result;
+    
     for(size_t i = 0; i < groupResult.size();++i){
-      if(groupResult.compare(i,12,"{\\@@imgblock") == 0){
-        
-        size_t j = i+1;
-        int reflag = 1;
-
-        result += groupResult[i]; 
-
-        while(j < groupResult.size()){
-          if(groupResult[j] == '{'){
-            reflag++; 
-          }
-          else if(groupResult[j] == '}'){
-            reflag--;
-          }
-          result += groupResult[j];
-          j++;
-          if(reflag <= 0) break;
+      constexpr std::string_view target = "@@RTF_IMAGE_";
+      if(groupResult.compare(i,target.size(),target) == 0){
+        constexpr std::string_view tail = "@@";
+       
+        size_t symbolEnd = groupResult.find(tail,i + target.size());
+        if (symbolEnd != std::string::npos) {
+            symbolEnd += tail.size();
+            result = groupResult.substr(i, symbolEnd - i);
         }
-
         break;
       }
     }
@@ -211,7 +208,7 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
 textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view group){
     
     // 圖片群組 前面已經有處理 防呆一下
-    if(start_with(group, "{\\pict") || start_with(group, "{\\@@imgblock")){
+    if(start_with(group, "{\\pict") || start_with(group, "@@RTF_IMAGE_")){
        return GroupDecision::KeepAll;
     }
     
@@ -241,6 +238,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
     
     for(size_t i = pos;i<Cleaned.size();){
       unsigned char c = static_cast<unsigned char>(Cleaned[i]);
+      bool pictmark = false;
 
       if(c == '\\' && isSkippableRtfEscape(Cleaned,i)){
         result.push_back(Cleaned[i]);
@@ -253,40 +251,20 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
         unsigned char c1 = static_cast<unsigned char>(Cleaned[i+1]);
         if(c1 < 0x80 && c1 == '\\'){
           
-          // 圖片標記群組特別處理
-          if(i+11 < Cleaned.size() && Cleaned.compare(i,12,"{\\@@imgblock") == 0){
-            size_t end = i+2;
-            int depth = 1;
-
-            while(end < Cleaned.size() && depth > 0){
-              unsigned char ec = static_cast<unsigned char>(Cleaned[end]);
-              if(ec < 0x80 && ec == '{'){
-                ++depth;
-              }else if(ec < 0x80 && ec == '}'){
-                --depth;
-              }
-              end++;
-            }
-
-            if(depth != 0){
-              Console::ensureWcerr(L"[WARRING]: 檔案中有大括號不平衡導致無法順利執行\n");
-              return;
-            }else{ // 直接不留群組
-              size_t markPos = Cleaned.find("[[IMG_",i);
-              size_t markEnd = Cleaned.find("]]",markPos);
-              if (markPos != std::string::npos && markEnd != std::string::npos) {
-                result.append(Cleaned.substr(markPos, markEnd - markPos + 2));
-              }
-              i = end;
-              continue;
-            }
-          }
-
           size_t end = i+2;
           int depth = 1;
           
           while(end < Cleaned.size() && depth > 0){
             unsigned char ec = static_cast<unsigned char>(Cleaned[end]);
+            // 跳過 escaped brace，例如 \{ 或 \}
+            // 跳過 escaped brace，例如 \{ 或 \}
+            if(ec == '\\' && end + 1 < Cleaned.size() &&
+              (Cleaned[end + 1] == '{' || Cleaned[end + 1] == '}'))
+            {
+              end += 2;
+              continue;
+            }
+            
             if(ec < 0x80 && ec == '{'){
               ++depth;
             }else if(ec < 0x80 && ec == '}'){
@@ -296,31 +274,50 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
           }
           
           if(depth != 0){
-            Console::ensureWcerr(L"[警告] 檔案中有大括號不平衡導致無法正確清理全部控制符");
+            Console::ensureWcerr(L"[WARRING]: 檔案中有大括號不平衡導致無法正確清理全部控制符");
             return;
-          }else{
-            // 需要增加判斷來表是可不可以跳過
-            std::string_view innerView{Cleaned.data()+ i ,end - i};
-            switch(classifyGroup(innerView)){
-              case GroupDecision::Drop :
+          }
+         
+          //偵測有無圖片標記符 要特別處理
+
+          std::string_view groupView{Cleaned.data() + i, end - i};
+          constexpr std::string_view imgHead = "@@RTF_IMAGE_";
+          constexpr std::string_view imgTail   = "@@";
+          
+          size_t imgPos = groupView.find(imgHead);
+
+          if(imgPos != std::string_view::npos){
+            size_t imgEnd = groupView.find(imgTail, imgPos + imgHead.size());
+
+            if(imgEnd != std::string_view::npos){
+              imgEnd += imgTail.size();
+              result.append(groupView.substr(imgPos, imgEnd - imgPos));
               i = end;
-              break;
-              case GroupDecision::KeepText :
+              continue;
+            }
+          }
+         
+          // 需要增加判斷來表是可不可以跳過
+          std::string_view innerView{Cleaned.data()+ i ,end - i};
+          switch(classifyGroup(innerView)){
+            case GroupDecision::Drop :
+              i = end;
+              continue;
+            case GroupDecision::KeepText :
               {
                 std::string_view groupInner{Cleaned.data() + i + 1,end - i - 2};
                 std::string cleanStr  = processGroupInner(groupInner);
                 //result.append(Cleaned, i + 1, end - i - 2);
                 result.append(cleanStr);
                 i = end;
-                break;
+                continue;
               }
-              case GroupDecision::KeepAll :
-              result.append(Cleaned, i, end - i);
-              i = end;
-              break;
-            }
-            continue;
+            case GroupDecision::KeepAll :
+             result.append(Cleaned, i, end - i);
+             i = end;
+             continue;
           }
+          
         }
       }
 
@@ -674,13 +671,14 @@ std::string textRtfProcessor::processGroupInner(std::string_view g){
   return result;
 }
 
+// 此函式是給外部用的公開函式
 std::string textRtfProcessor::removeIgnorableDestinations(std::string_view rtf){
   std::string result;
   result.reserve(rtf.size());
 
   const std::string target = "{\\*\\";
-  const std::string imgMarker = "{\\@@imgblock";
-
+  const std::string imgMarker = "@@RTF_IMAGE";
+  const std::string imgtail = "@@";
   auto findGroupEnd = [](std::string_view s, size_t start) -> size_t {
     int depth = 1;
     size_t j = start + 1;
@@ -722,7 +720,15 @@ std::string textRtfProcessor::removeIgnorableDestinations(std::string_view rtf){
 
         if(markerPos != std::string_view::npos){
           size_t markerStart = i + markerPos;
-          size_t markerEnd = findGroupEnd(rtf, markerStart);
+          size_t markerTail  = groupView.find(imgtail,markerPos+imgMarker.size());
+          size_t markerEnd;
+          if(markerTail != std::string_view::npos){
+            markerTail += imgtail.size();
+            markerEnd = i + markerTail;
+          }else{
+            markerEnd = std::string_view::npos;
+          }
+          
           if (markerEnd != std::string_view::npos && markerEnd <= groupEnd)
           {
             result.append(rtf.data() + markerStart,markerEnd - markerStart);

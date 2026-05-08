@@ -113,6 +113,8 @@ private:
   static inline int hexValue(unsigned char c);
   std::vector<uint8_t> extractHexBytes(std::string_view hexView);
   std::optional<std::filesystem::path> makeOutputPath(PictFormat fmt,size_t index);
+  bool isInsideNonShpPictGroup(std::string_view content, size_t pictPos);
+  void treatNonshppictGroup(std::vector<ReplaceTask>& tasks,std::string_view rtfview);
 };
 
 

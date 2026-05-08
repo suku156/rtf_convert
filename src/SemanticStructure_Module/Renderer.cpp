@@ -24,7 +24,18 @@ void TxtRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
   }
 }
 void TxtRenderer::renderImage(const ImageBlock& img,std::ostream& out){
-    out << "[IMAGE: " << img.image().imageId() << "]";
+  const auto& mark = img.image().imageMark();
+
+  if(mark){
+    switch(mark->type){
+      case ImageMarkerType::Normal :
+      out << "[IMAGE : " << mark->id << "]";
+      break;
+      case ImageMarkerType::Error :
+      out << "[IMAGE_ERR : " << mark->id << "]";
+      break;
+    }
+  } 
 }
 
 // MD 類型的函式定義
@@ -45,7 +56,18 @@ void MarkdownRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out
   }
 }
 void MarkdownRenderer::renderImage(const ImageBlock& img,std::ostream& out){
-    out << "![](IMG_" << img.image().imageId() << ".png)";
+  const auto& mark = img.image().imageMark();
+
+  if(mark){
+    switch(mark->type){
+      case ImageMarkerType::Normal :
+      out << "[IMAGE : " << mark->id << "]";
+      break;
+      case ImageMarkerType::Error :
+      out << "[IMAGE_ERR : " << mark->id << "]";
+      break;
+    }
+  } 
 }
 
 // Html 類型的函式定義
@@ -90,7 +112,19 @@ void HtmlRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
     out << "</p>\n";
 }
 void HtmlRenderer::renderImage(const ImageBlock& img,std::ostream& out){
-    out << "<div class=\"image-block\">\n";
-    out << "img src=\"IMG_" << img.image().imageId() << ".png\" alt=\"\">\n";
-    out << "</div>\n";
+    const auto& mark = img.image().imageMark();
+
+    if(mark){
+      out << "<div class=\"image-block\">\n";
+      switch(mark->type){
+        case ImageMarkerType::Normal :
+        out << "img src=\"[IMAGE : " << mark->id << "]\" alt=\"\">\n";
+        break;
+        case ImageMarkerType::Error :
+        out << "img src=\"[IMAGE_ERR :  " << mark->id << "]\" alt=\"\">\n";
+        break;
+      }
+      out << "</div>\n";
+    }
+    
 }
