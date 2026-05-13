@@ -105,7 +105,7 @@ public:
   PictProcessResult process(std::string& rtfContent,logSystem& logger); 
 private:
   GroupScanReport scanGroup(const std::string& text,size_t groupStart);
-  size_t findPictHexStart(std::string_view text,size_t start) const;
+  size_t findPictHexStart(std::string_view text,size_t start,logSystem& logger) const;
   bool isWmfHexTooShort(std::string_view hex);
   PictHeaderInfo parsePictHeader(std::string_view header);
   PictFormat detectPictFormat(std::string_view header);

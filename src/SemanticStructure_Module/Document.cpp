@@ -9,35 +9,70 @@
 #include<sstream>
 #include<optional>
 #include<iostream>
+#include<array>
+
+namespace{
+  enum class MarkerType{
+    TableTrowd,
+    TableCell,
+    TableRow,
+    TableIntbl,
+    Image,
+    ImageErr,
+    Par,
+    Line
+  };
+
+  struct MarkerInfo{
+    MarkerType type;
+    std::string_view text;
+  };
+
+  constexpr std::array<MarkerInfo,7> markers{{
+    {MarkerType::TableTrowd, "@@RTF_TABLE_TROWD@@"},
+    {MarkerType::TableCell , "@@RTF_TABLE_CELL@@" },
+    {MarkerType::TableRow  , "@@RTF_TABLE_ROW@@"  },
+    {MarkerType::TableIntbl, "@@RTF_TABLE_INTBL@@"},
+    {MarkerType::Image     , "@@RTF_IMAGE"       },
+    {MarkerType::Par       , "@@par@@"            },
+    {MarkerType::Line      , "@@line@@"           }
+  }};
+
+  std::optional<MarkerInfo> findMarker(std::string_view content, size_t pos) {
+    for (const auto& marker : markers) {
+        if (pos + marker.text.size() <= content.size() &&
+            content.compare(pos, marker.text.size(), marker.text) == 0) {
+            return marker;
+        }
+    }
+
+    return std::nullopt;
+  }
+}
 
 // 文字節點函式定義
-Node::Type TextNode::getType() const{
-  return Type::Text;
-}
 const std::string& TextNode::text() const{
     return text_;
 }
 
 // 圖片節點函式定義
-Node::Type ImageNode::getType() const{
-  return Type::Image;
-}
+
 const std::optional<ImageMarkerInfo>& ImageNode::imageMark() const{
   return imageMark_;
 }
 
 // 存放文字節點專用的段落空間函式定義
-void ParagraphBlock::addText(std::unique_ptr<TextNode> text){
+void ParagraphBlock::addText(TextNode text){
     texts_.push_back(std::move(text));
 }
-const std::vector<std::unique_ptr<TextNode>>& ParagraphBlock::texts() const{
+const std::vector<TextNode>& ParagraphBlock::texts() const{
     return texts_;
 }
 
 
 // 存放圖片節點專用的段落空間函式定義
 const ImageNode& ImageBlock::image() const{
-    return *image_;
+    return image_;
 }
 
 // 用來存放各種段落空間的容器函式定義
@@ -54,69 +89,97 @@ const std::vector<std::unique_ptr<Block>>& Document::blocks() const{
 
 // 將處理好的字串拆解成語意結構函式定義
 Document DocumentBuilder::build(const std::string& content){
-    std::istringstream isss(content);
-    std::string line;
     Document doc;
     ParagraphBlock* parblock = nullptr;
-    
+    constexpr std::string_view Mark = "@@";
 
-    while(std::getline(isss,line)){
-      
-      std::string text = line;
-      
-      if(text.empty()){
-        parblock = nullptr;
-        continue;
-      }else if(isImageline(text)){
-        parblock = nullptr; // 確保遇到圖片標記符時一定會切換段落
+    auto appendText = [&](std::string text) {
+      if (text.empty()) return;
 
-        std::optional<ImageMarkerInfo> mark = extractImageId(text);// 擷取標記符數字
-
-        doc.addBlock<ImageBlock>(std::make_unique<ImageNode>(mark));
-        continue;
-      }else{
+      if (!parblock) {
         parblock = &doc.addBlock<ParagraphBlock>(0);
-        parblock -> addText(std::make_unique<TextNode>(text));
+      }
+
+      parblock->addText(TextNode(std::move(text)));
+    };
+
+    std::string buffer;
+
+    for (size_t i = 0; i < content.size(); ) {
+
+      auto marker = findMarker(content, i);
+
+      if (!marker) {
+        buffer.push_back(content[i]);
+        ++i;
+        continue;
+      }
+
+      appendText(std::move(buffer));
+      buffer.clear();
+
+      switch(marker -> type){
+        case MarkerType::Par :
+          parblock = nullptr;
+          i += marker->text.size();
+          break;
+        
+        case MarkerType::Line:
+          appendText("\n");
+          i += marker->text.size();
+          break;  
+
+        case MarkerType::TableCell:
+          appendText(" | ");
+          i += marker->text.size();
+          break;
+
+        case MarkerType::TableRow:
+          //appendText("\n");
+          parblock = nullptr;
+          i += marker->text.size();
+          break;
+
+        case MarkerType::TableTrowd:
+        case MarkerType::TableIntbl:
+          appendText("| ");
+          i += marker->text.size();
+          break;
+        
+        case MarkerType::ImageErr:
+        case MarkerType::Image:
+        {
+          parblock = nullptr;
+          size_t end = content.find("@@", i + marker->text.size());
+          if (end == std::string_view::npos) {
+            i += marker->text.size();
+            break;
+          }
+
+          end += 2;
+
+          std::string_view fullMarker{
+            content.data() + i,
+            end - i
+          };
+
+          auto imgInfo = extractImageId(fullMarker);
+          doc.addBlock<ImageBlock>(ImageNode(imgInfo));
+
+          i = end;
+          break;
+        }
+        
+        default:
+          i += marker->text.size();
+          break;
       }
     }
 
+    appendText(std::move(buffer));
     return doc;
 }
-
-bool DocumentBuilder::isImageline(const std::string& line){
-    constexpr std::string_view imgHead = "@@RTF_IMAGE";
-    constexpr std::string_view imgErr  = "_ERR_";
-    
-    if(line.size() < imgHead.size()) return false;
-    if(line.compare(0,imgHead.size(),imgHead) != 0) return false;
-
-    std::size_t pos = imgHead.size();
-
-    if(pos >= line.size()) return false;
-    
-    if(pos + imgErr.size() < line.size() &&  
-             line.compare(pos,imgErr.size(),imgErr) == 0){
-      pos += imgErr.size();
-    }else if(line[pos] == '_')
-    {
-      pos++;
-    }else{
-      return false;
-    }
-
-    if(pos >= line.size() ||
-       !std::isdigit(static_cast<unsigned char>(line[pos]))){
-        return false;
-    }
-
-    while(pos < line.size() &&
-          std::isdigit(static_cast<unsigned char>(line[pos]))){
-        ++pos;
-    }
-    
-    return pos + 2 <= line.size() && line[pos] == '@' && line[pos + 1] == '@';
-}
-std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(const std::string& text){
+std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(std::string_view text){
     constexpr std::string_view imgHead = "@@RTF_IMAGE";
     constexpr std::string_view imgErr  = "_ERR_";
     ImageMarkerInfo info;
@@ -151,7 +214,7 @@ std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(const std::string
 
     // 至少要有一位數字
     if(start == cur){
-        return std::nullopt;
+      return std::nullopt;
     }
     
     if(cur + 1 >= text.size() ||

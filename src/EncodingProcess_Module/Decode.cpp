@@ -27,12 +27,14 @@ std::optional<std::string> utf8Decoder::decode(const std::string& rtfContent,
     std::vector<uint8_t> bytes = decodeUnToUint8_t(rtfContent);
     ErrorSystem::ErrorInfo info = detector.detect(bytes);
     
+    
     if(!info.isEmpty()){
       errorhandler.handle(info);
       if(info.getMaxLevel() > ErrorSystem::ErrorLevel::Warning){
         return std::nullopt;
       }
     }
+    
     std::string result(bytes.begin(),bytes.end());
 
     return result;

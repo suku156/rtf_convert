@@ -11,13 +11,46 @@
 #include<cstring>
 #include<vector>
 #include <utility>
+#include <unordered_set>
+
+namespace{
+  // rtf　最後可以直接移除的控制符之名單
+  bool shouldRemoveRtfControlWord(std::string_view word){
+    static const std::unordered_set<std::string_view> removeSet = {
+      "b", "i", "ul", "ulnone","f", "fs", "cf","lang", "langfe","rtlch", "ltrch","hich", 
+      "dbch", "loch","insrsid","af", "fcs","plain","pard","rtf","ansi","ansicpg","deff",
+      "nouicompat","deflang","deflangfe","viewkind","uc","adeflang","adeff","stshfdbch",
+      "stshfloch","stshfhich","stshfbi","themelang","themelangfe","themelangcs","mlMargin",
+      "noqfpromote","mmathPr","mmathFont","mbrkBin","mbrkBinSub","msmallFrac","mdispDef",
+      "mrMargin","mdefJc","mwrapIndent","mintLim","mnaryLim","paperw","paperh","marg",
+      "margr","margt","margb","gutter","ltrsect","deftab","ftnbj","aenddoc","trackmoves",
+      "trackformatting","donotembedsysfont",
+      "relyonvml","donotembedlingdata","grfdocevents","validatexml","showplaceholdtext",
+      "ignoremixedcontent","saveinvalidxml","showxmlerrors","formshade","horzdoc","dgmargin",
+      "dghspace","dgvspace","dghorigin","dgvorigin","dghshow","dgvshow","jcompress","lnongrid",
+      "viewscale","splytwnine","ftnlytwnine","htmautsp","useltbaln","alntblind","lytcalctblwd",
+      "lyttblrtgr","lnbrkrule","nobrkwrptbl","snaptogridincell","allowfieldendsel","wrppunct",
+      "asianbrkrule","rsidroot","newtblstyruls","nogrowautofit","usenormstyforlist",
+      "noindnmbrts","felnbrelev","nocxsptable","indrlsweleven","noafcnsttbl","afelev",
+      "utinl","hwelev","spltpgpar","notcvasp","notbrkcnstfrctbl","notvatxbx","krnprsnet",
+      "cachedcolbal","upr","fet","nofeaturethrottle","ilfomacatclnup","ltrpar","sectd",
+      "ltrsect","linex","headery","footery","colsx","endnhere","sectlinegrid","sectspecifyl",
+      "sftnbj","ltrrow","afs","chshdng","chcfpat","chcbpat","ab","cs","chbrdr","brdrs",
+      "brdrw","brdrcf1","brdrframe","chshdng","chcfpat","chcbpat","margl","noproof","brdrcf",
+      "hyphauto","sbknone","sftnnar","saftnnrlc","sectunlocked","pgwsxn","pghsxn","marglsxn",
+      "margrsxn","margtsxn","margbsxn","ftnstart","ftnrstcont","ftnnar","aftnrstcont","aftnstart",
+      "aftnnrlc","pgndec","charrsid"
+    };
+
+    return removeSet.find(word) != removeSet.end();;
+  }
+}
 
 // 公開入口的函式定義
 void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     size_t before = Cleaned.size();
     
     replaceShapeGroupsWithImageMarkers(Cleaned);
-    sheetSymbolChange(Cleaned);
     controlGroupProcessor(Cleaned);
     pardPartClean(Cleaned);
     controlSymbolChange(Cleaned);
@@ -109,32 +142,19 @@ void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
 
 //用來確認傳入的字串的指定範圍內的byte 都在ASCII的範圍內
 bool textRtfProcessor::checkAsciiScope(const std::string& text, size_t pos ,size_t len,bool tailOnly){
-    if(tailOnly){
-      if(pos >= text.size()) return false;
-      size_t end = std::min(pos + len + 3 , text.size());
-    
-      for(size_t i = pos; i<end;i++){
-        unsigned char c = static_cast<unsigned char>(text[i]);
-        
-        if(c == '\n' || c == '\r') return true;
-        
-        if(c >= 0x80){
-          return false;
-        }
-      }
-      return true;
+  if (pos >= text.size()) return false;
+
+  size_t start = tailOnly ? pos : ((pos >= 3) ? pos - 3 : 0);
+  size_t end = std::min(pos + len, text.size());
+
+  for (size_t i = start; i < end; ++i) {
+    unsigned char c = static_cast<unsigned char>(text[i]);
+    if (c >= 0x80) {
+      return false;
     }
-    
-    size_t start = (pos >= 3)? pos -3 : 0;
-    size_t end = std::min(pos + len + 3 , text.size());
-    
-    for(size_t i = start; i<end;i++){
-      unsigned char c = static_cast<unsigned char>(text[i]);
-      if(c >= 0x80){
-        return false;
-      }
-    }
-    return true;
+  }
+
+  return true;
 }
 //用來確認是否是接續的控制符以此來達到控制符區塊的終點
 bool textRtfProcessor::isControlCharacter(char c){
@@ -247,8 +267,13 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
         continue;
       }
 
-      if(c < 0x80 && c == '{' && i+1 < Cleaned.size()){
-        unsigned char c1 = static_cast<unsigned char>(Cleaned[i+1]);
+      if(c < 0x80 && c == '{'){
+        size_t controlPos = i + 1;
+        while (controlPos < Cleaned.size() &&
+               std::isspace(static_cast<unsigned char>(Cleaned[controlPos]))) {
+          ++controlPos;
+        }  
+        unsigned char c1 = static_cast<unsigned char>(Cleaned[controlPos]);
         if(c1 < 0x80 && c1 == '\\'){
           
           size_t end = i+2;
@@ -435,33 +460,53 @@ void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
     result.reserve(Cleaned.size());
 
     for(size_t i=0;i<Cleaned.size();){
-      
-      if(Cleaned[i] == '\\' && checkAsciiScope(Cleaned,i,1,true)){
-        size_t end = i + 1;
-        while(end < Cleaned.size()){
-          unsigned char c = static_cast<unsigned char>(Cleaned[end]);
-          if(c < 0x80){
-            if(std::isdigit(c) || std::isalpha(c)){
-              end++;
-            }else{
-              break;
-            }
-          }else{
-            break;
+      if(Cleaned[i] == '\\'){
+        
+        // 跳過 \\ \{ \} 
+        if (i + 1 < Cleaned.size() &&
+           (Cleaned[i + 1] == '\\' ||
+            Cleaned[i + 1] == '{' ||
+            Cleaned[i + 1] == '}'))
+        {
+          result.push_back(Cleaned[i + 1]);
+          i += 2;
+          continue;
+        }
+
+        // 找出控制符英文名稱
+        size_t j = i + 1;
+        while (j < Cleaned.size() &&
+               std::isalpha(static_cast<unsigned char>(Cleaned[j])))
+        {
+          ++j;
+        }
+        
+        std::string_view word(Cleaned.data() + i + 1,j - (i + 1));
+
+        if(!word.empty() && shouldRemoveRtfControlWord(word)){
+          //吃掉 -號開頭
+          if (j < Cleaned.size() && Cleaned[j] == '-') ++j;
+          while (j < Cleaned.size() &&
+                 std::isdigit(static_cast<unsigned char>(Cleaned[j])))
+          {
+            ++j;
           }
+          
+          // 吃掉控制符空格
+          if (j < Cleaned.size() && Cleaned[j] == ' ') ++j;
+
+          i = j;
+          continue;
         }
 
-        // 吃掉控制符後方多出的空白
-        if(end < Cleaned.size() && Cleaned[end] == ' '){
-          ++end;
-        }
-
-        i = end;
+        // 非名單內的\開頭保留原樣，避免誤吃
+        result.push_back(Cleaned[i]);
+        ++i;
         continue;
       }
-
+      // 一般字正常吃
       result.push_back(Cleaned[i]);
-      i++;
+      ++i;
     }
     Cleaned.swap(result);
 }
@@ -568,59 +613,11 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
   return false;
 }
 
-void textRtfProcessor::sheetSymbolChange(std::string& Cleaned){
-  constexpr std::string_view TROWD_MARK  = "@@RTF_TABLE_TROWD@@";
-  constexpr std::string_view ROW_MARK    = "@@RTF_TABLE_ROW@@";
-  constexpr std::string_view CELL_MARK   = "@@RTF_TABLE_CELL@@";
-  constexpr std::string_view INTBL_MARK  = "@@RTF_TABLE_INTBL@@";
-  
-  std::string result;
-  result.reserve(Cleaned.size());
-
-  for(size_t i =0;i<Cleaned.size();i++){
-    
-    if(i + ROW_MARK.size() <= Cleaned.size() &&
-       Cleaned.compare(i,ROW_MARK.size(),ROW_MARK) == 0)
-    {
-      result.push_back('\n');
-      i += ROW_MARK.size() - 1;// 迴圈會在 +1 
-      continue;
-    }
-    
-    if(i + CELL_MARK.size() <= Cleaned.size() &&
-       Cleaned.compare(i,CELL_MARK.size(),CELL_MARK) == 0)
-    {
-      result.append(" | ");
-      i += CELL_MARK.size() - 1;// 迴圈會在 +1 
-      continue;
-    }
-
-    if(i + TROWD_MARK.size() <= Cleaned.size() &&
-       Cleaned.compare(i,TROWD_MARK.size(),TROWD_MARK) == 0)
-    {
-      result.append("| ");
-      i += TROWD_MARK.size() - 1;// 迴圈會在 +1 
-      continue;
-    }
-
-    if(i + INTBL_MARK.size() <= Cleaned.size() &&
-       Cleaned.compare(i,INTBL_MARK.size(),INTBL_MARK) == 0)
-    {
-      result.append("| ");
-      i += INTBL_MARK.size() - 1;// 迴圈會在 +1 
-      continue;
-    }
-
-    result.push_back(Cleaned[i]);
-  }
-
-  Cleaned.swap(result);
-}
-
+// 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組
 std::string textRtfProcessor::processGroupInner(std::string_view g){
   std::string result;
   constexpr std::string_view target = "{\\*\\";
-
+  
   result.reserve(g.size());
 
   for(size_t i =0;i<g.size();i++){
@@ -666,6 +663,63 @@ std::string textRtfProcessor::processGroupInner(std::string_view g){
       continue;
     }
     result.push_back(g[i]); 
+  }
+
+  return replaceSemanticControls(result);
+}
+
+// processGroupInner 函式清理完後檢查並替換關鍵控制符
+std::string textRtfProcessor::replaceSemanticControls(std::string_view target){
+  std::string result;
+  result.reserve(target.size());
+  
+  constexpr std::string_view parMark = "\\par"; 
+  constexpr std::string_view lineMark = "\\line";
+  
+  // 防止誤判 \pard \linex0 等等部份重名控制符
+  auto isControlEnd = [](std::string_view s,size_t pos) -> bool{
+    return pos >= s.size() ||
+           (!std::isalpha(static_cast<unsigned char>(s[pos])) && 
+            !std::isdigit(static_cast<unsigned char>(s[pos])));
+  };
+
+  // 吃掉關鍵控制符後方的空格(如果有的話)
+  auto skipControlDelimiter = [](std::string_view s, size_t& i) {
+    if (i + 1 < s.size() &&
+        (s[i + 1] == ' ' || s[i + 1] == '\r' || s[i + 1] == '\n')) 
+    {
+      ++i;
+    }
+  };
+
+  for(size_t i = 0;i < target.size();i++){
+    
+    if(i + parMark.size() <= target.size() &&
+       target.compare(i,parMark.size(),parMark) == 0 &&
+       isControlEnd(target,i + parMark.size()))
+    {
+      result.append("@@par@@");
+      i += (parMark.size() - 1); // 迴圈會自己 +1 所以這裡 -1
+      skipControlDelimiter(target,i); // 有配合 -1 做調整
+      continue;
+    }
+
+    if(i + lineMark.size() <= target.size() &&
+       target.compare(i,lineMark.size(),lineMark) == 0 &&
+       isControlEnd(target,i + lineMark.size()))
+    {
+      result.append("@@line@@");
+      i += (lineMark.size() - 1); // 迴圈會自己 +1 所以這裡 -1
+      skipControlDelimiter(target,i); // 有配合 -1 做調整
+      continue;
+    }
+
+    char c = target[i];
+    if(c == '\n' || c == '\r'){
+      continue;
+    }
+
+    result.push_back(c);
   }
 
   return result;

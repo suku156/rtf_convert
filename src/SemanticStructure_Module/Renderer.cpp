@@ -20,7 +20,7 @@ void TxtRenderer::render(const Document& Doc , std::ostream& out){
 }
 void TxtRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
   for(const auto& text : p.texts()){
-    out << text -> text();
+    out << text.text() ;
   }
 }
 void TxtRenderer::renderImage(const ImageBlock& img,std::ostream& out){
@@ -52,7 +52,7 @@ void MarkdownRenderer::render(const Document& Doc , std::ostream& out){
 }
 void MarkdownRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
   for(const auto& text : p.texts()){
-    out << text -> text();
+    out << text.text();
   }
 }
 void MarkdownRenderer::renderImage(const ImageBlock& img,std::ostream& out){
@@ -107,7 +107,7 @@ void HtmlRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
     out << "<p class=\"rtf-paragraph\">";
 
     for(const auto& text : p.texts()){
-      renderEscapedText(text ->text(),out);
+      renderEscapedText(text.text(),out);
     }
     out << "</p>\n";
 }

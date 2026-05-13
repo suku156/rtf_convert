@@ -262,7 +262,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
       }
 
       std::string_view groupView(rtfContent.data() + start , end -start);
-      size_t hexstart = findPictHexStart(groupView,0);
+      size_t hexstart = findPictHexStart(groupView,0,logger);
      
       if(hexstart == std::string::npos){
         std::wstring ws = L"第" + std::to_wstring(pictCount_);
@@ -299,7 +299,7 @@ PictProcessResult PictDisassembler::process(std::string& rtfContent,logSystem& l
       
       
       std::string_view header(groupView.data(),hexstart);
-      
+
       PictHeaderInfo headerinfo = parsePictHeader(header);
       if(headerinfo.format == PictFormat::UNKNOWN){
         std::wstring ws = L"第" + std::to_wstring(pictCount_);
@@ -499,7 +499,11 @@ GroupScanReport PictDisassembler::scanGroup(const std::string& text,size_t group
     report.groupEnd = pos;
     return report;
 }
-size_t PictDisassembler::findPictHexStart(std::string_view text,size_t start) const{
+size_t PictDisassembler::findPictHexStart(std::string_view text,
+                                          size_t start,logSystem& logger) const
+  {
+    constexpr std::string_view groupTarget = "{\\";
+    constexpr size_t minHexRun = 64;
     size_t end = start + 1;
     
     while(end < text.size()){
@@ -512,19 +516,62 @@ size_t PictDisassembler::findPictHexStart(std::string_view text,size_t start) co
         while(end < text.size() && std::isdigit(static_cast<unsigned char>(text[end]))) end++;
         while(end < text.size() && std::isspace(static_cast<unsigned char>(text[end]))) end++;
         continue;
+      }
+
+      if (end + groupTarget.size() <= text.size() &&
+          text.compare(end,groupTarget.size(),groupTarget) == 0)
+      {
+        int depth = 1;
+        size_t groupEnd = end + groupTarget.size();
+        
+        while(groupEnd < text.size()){
+          char c = text[groupEnd];
+          
+          if (c == '\\' && groupEnd + 1 < text.size()) {
+            char next = text[groupEnd + 1];
+
+            if (next == '{' || next == '}' || next == '\\') {
+              groupEnd += 2;
+              continue;
+            }
+          }
+
+          if (c == '{') {
+            ++depth;
+          } else if (c == '}') {
+            --depth;
+            if(depth == 0){
+              ++groupEnd;
+              break;
+            }
+          }
+
+          ++groupEnd;
+        }
+
+        if(depth != 0){
+          logger.log(LogLevel::Warn,"尋找 hex 區域開頭時控制符群組未正確閉合");
+          return std::string::npos;
+        }
+
+        end = groupEnd;
+        continue;
       } 
+
       if(text[end] == '*' || text[end] == '{' || text[end] == '}'){
         end++;
         continue;
       }
+
       if (std::isspace(static_cast<unsigned char>(text[end]))) {
         ++end;
         continue;
       }
+
       if(std::isxdigit(static_cast<unsigned char>(text[end]))){
         isrealend = true;
-        if(end + 7 < text.size()){
-          for(size_t i = 1 ; i <= 7;i++){
+        if(end + minHexRun <= text.size()){
+          for(size_t i = 1 ; i < minHexRun;i++){
             if(!std::isxdigit(static_cast<unsigned char>(text[end + i]))){
               isrealend = false;
               break;

@@ -61,7 +61,14 @@ void sheetProcessor::processor(std::string& rtfContent){
            continue;
         }
 
-        if(c == '{' && i +1 <rtfContent.size() && rtfContent[i+1] == '\\'){
+        if(c == '{'){
+          size_t controlPos = i + 1;
+          while (controlPos < rtfContent.size() &&
+                 std::isspace(static_cast<unsigned char>(rtfContent[controlPos]))) {
+            ++controlPos;
+          }  
+          
+          if(controlPos < rtfContent.size() && rtfContent[controlPos] == '\\'){
             size_t j = i;
             int depth = 0;
             bool closed = false;
@@ -98,7 +105,10 @@ void sheetProcessor::processor(std::string& rtfContent){
             bool groupHasRow = false;
             TableToken token = groupProcessor(groupView);
             
-            sheetscope.newsheetStr_.append(token.text);
+            if(!token.text.empty()){
+              sheetscope.newsheetStr_.append(token.text);
+            }
+            
             if(token.hasRow){
               groupHasRow = true;
             }
@@ -110,6 +120,7 @@ void sheetProcessor::processor(std::string& rtfContent){
               foundRow = true;
               break;
             }
+          }
         }
     }
 
@@ -132,15 +143,19 @@ void sheetProcessor::processor(std::string& rtfContent){
    }
 }
 
+// 函式多載 const std::string& 版本
 bool sheetProcessor::isControlEnd(const std::string& s,size_t pos){
   return pos >= s.size() ||
            !std::isalpha(static_cast<unsigned char>(s[pos]));
 }
 
+// 函式多載 std::string_view 版本
 bool sheetProcessor::isControlEnd(std::string_view s,size_t pos){
   return pos >= s.size() ||
            !std::isalpha(static_cast<unsigned char>(s[pos]));
 }
+
+
 // 用來偵測群組中有無表格相關的關鍵控制符
 TableToken sheetProcessor::groupProcessor(std::string_view groupView){
   TableToken token;
@@ -209,6 +224,52 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
 
         i += 3;
         continue;
+      }
+
+      // 保留關鍵 \ucX 控制符
+      if(i + 3 < groupView.size() && 
+         groupView[i + 1] == 'u'  &&
+         groupView[i + 2] == 'c'  &&
+         std::isdigit(static_cast<unsigned char>(groupView[i+3])))
+      {
+        size_t j = i+3;
+        
+        token.text.push_back('\\');
+        token.text.push_back('u');
+        token.text.push_back('c');
+        
+        while (j < groupView.size() &&
+              std::isdigit(static_cast<unsigned char>(groupView[j])))
+        {
+          token.text.push_back(groupView[j]);
+          ++j;
+        }
+
+        i = j - 1; // 迴圈自己 +1
+        continue;
+      }
+
+      // 處裡 \uXXXX utf 標記符
+      if(i + 1 < groupView.size() && groupView[i + 1] == 'u'){
+        size_t j = i + 2;
+
+        //可能有負號
+        if(j < groupView.size() && groupView[j] == '-'){
+          j++;
+        }
+
+        size_t digitStart = j;
+        while(j < groupView.size() &&
+              std::isdigit(static_cast<unsigned char>(groupView[j])))
+        {
+          j++;
+        }
+
+        if( j > digitStart){
+          token.text.append(groupView.substr(i,j-i));
+          i = j - 1;
+          continue;
+        }
       }
 
       

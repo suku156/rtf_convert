@@ -15,6 +15,7 @@
 // =====================================================
 #pragma once
 #include<string>
+#include<string_view>
 #include<vector>
 #include<memory>
 #include<optional>
@@ -29,33 +30,19 @@ struct ImageMarkerInfo{
     std::string id;
 };
 
-// 所有節點共用的介面
-class Node{
-public:
-  enum class Type{
-    Text,
-    Image
-  };
-
-  virtual ~Node() = default;
-  virtual Type getType() const = 0;
-};
-
 // 文字節點
-class TextNode : public Node{
+class TextNode{
   std::string text_;
 public:
   explicit TextNode(std::string text) : text_(std::move(text)){}
-  Type getType() const override;
   const std::string& text() const;
 };
 
 // 圖片節點
-class ImageNode : public Node{
+class ImageNode {
   std::optional<ImageMarkerInfo> imageMark_;
 public:
   explicit ImageNode(std::optional<ImageMarkerInfo> imageMark) : imageMark_(std::move(imageMark)){}
-  Type getType() const override;
   const std::optional<ImageMarkerInfo>& imageMark() const;
 };
 
@@ -68,18 +55,18 @@ public:
 // 存放文字節點專用的段落空間
 class ParagraphBlock : public Block{
   int identLevel_ = 0;
-  std::vector<std::unique_ptr<TextNode>> texts_;
+  std::vector<TextNode> texts_;
 public:
   explicit ParagraphBlock(int indent =0) : identLevel_(indent) {}
-  void addText(std::unique_ptr<TextNode> text);
-  const std::vector<std::unique_ptr<TextNode>>& texts() const;
+  void addText(TextNode text);
+  const std::vector<TextNode>& texts() const;
 };
 
 // 存放圖片節點專用的段落空間
 class ImageBlock : public Block{
-  std::unique_ptr<ImageNode> image_;
+  ImageNode image_;
 public:
-  explicit ImageBlock(std::unique_ptr<ImageNode> img) : image_(std::move(img)) {}
+  explicit ImageBlock(ImageNode img) : image_(std::move(img)) {}
   const ImageNode& image() const;
 };
 
@@ -98,6 +85,5 @@ class DocumentBuilder{
 public:
   Document build(const std::string& content);
 private:
-  bool isImageline(const std::string& line);
-  std::optional<ImageMarkerInfo> extractImageId(const std::string& text);
+  std::optional<ImageMarkerInfo> extractImageId(std::string_view text);
 };

@@ -13,6 +13,7 @@
 //
 // Notes :
 //   將解碼完的字串的控制符清理乾淨
+//   本清理需要再解碼完才使用避免誤刪需要之控制符
 // =====================================================
 #pragma once
 #include<string>
@@ -50,6 +51,6 @@ private:
   void removeProtectionSymbol(std::string& Cleaned);
   void replaceShapeGroupsWithImageMarkers(std::string& rtf);
   bool isSkippableRtfEscape(const std::string& s, size_t pos);
-  void sheetSymbolChange(std::string& Cleaned);
+  std::string replaceSemanticControls(std::string_view target);
   std::string processGroupInner(std::string_view g);
 };
