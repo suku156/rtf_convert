@@ -23,14 +23,15 @@ namespace ErrorSystem{
   }
 
   // ErrorCategory 分類錯誤區塊定義
-  const  std::array<const char*,7> ErrorCategoryName = {
+  const  std::array<const char*,8> ErrorCategoryName = {
      "None",
      "FileIO",
      "DetectEncoding",
      "Decode",
      "Picture",
      "Group",
-     "TextClean" 
+     "TextClean",
+     "detector" 
    };
   std::ostream& operator<< (std::ostream& os , ErrorCategory category){
     auto index = static_cast<size_t>(category);

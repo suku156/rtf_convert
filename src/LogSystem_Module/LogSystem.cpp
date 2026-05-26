@@ -119,9 +119,9 @@ LogLevel logSystem::mapErrorLevel(ErrorSystem::ErrorLevel errorlevel) const{
       return LogLevel::Info;
       break;
       case ErrorSystem::ErrorLevel::Warning:
+      case ErrorSystem::ErrorLevel::Recoverable:
       return LogLevel::Warn;
       break;
-      case ErrorSystem::ErrorLevel::Recoverable:
       case ErrorSystem::ErrorLevel::FatalLocal:
       case ErrorSystem::ErrorLevel::FatalGlobal:
       return LogLevel::Error;

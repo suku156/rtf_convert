@@ -123,24 +123,7 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
         }
         
       }  
-      /*
-      std::string cleaned;
-      bool inCtrl = false;
-      for(size_t i = 0;i<group.size();i++){
-        char c = group[i];
-        if(c == '\\'){
-          inCtrl = true;
-        }else if(inCtrl){ //滿足條件才判斷是非控制符,在記錄到字串中
-          if(!std::isalpha(static_cast<unsigned char>(c)) && !std::isdigit(static_cast<unsigned char>(c))){
-            inCtrl = false;
-          }
-        }else if(c != '{' && c != '}'){ // 大括號也不要 
-          cleaned.push_back(c);
-        }
-      }
-      */
       
-
       //如果清出來的字串的開頭或結尾有多餘的換行或空白就清除它
       while(!cleaned.empty() && (cleaned.front() == '\n' || cleaned.front() == '\r' || cleaned.front() == ' ')){
         cleaned.erase(cleaned.begin());//檢查字串第一個字是換行或空白就清除它,持續到不是

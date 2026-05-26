@@ -28,7 +28,7 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
             + std::to_wstring(event.done) 
             +  L" / " + std::to_wstring(event.total));
       return;    
-      case ProgressEventType::Warring:
+      case ProgressEventType::Warning:
       Console::ensureWcerr(L"[WARNING]: "  + event.message);
       return;
       case ProgressEventType::Error:
@@ -36,6 +36,9 @@ void ConsoleObserver::onEvent(const ProgressEvent& event){
       return;
       case ProgressEventType::Fail:
       Console::ensureWcerr(L"[FAIL]: "  + event.message);
+      return;
+      case ProgressEventType::Detail:
+      Console::ensureWcerr(L"  -  "  + event.message);
       return;
       default:
       Console::ensureWcerr(L"[UNKNOWN_TYPE]");

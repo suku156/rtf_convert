@@ -126,20 +126,33 @@ namespace App{
 
       // 單檔：直接呼叫 processor
       RTFProcessor rtfprocessor(observer_);
-      bool flag = rtfprocessor.processFile(FPrequest);
-      if(flag){
-        notify(ProgressEvent{
-          ProgressEventType::Finish,
-          L"轉換成功"
-        });
-        return AppExitCode::Success;  
-      }else{
-        notify(ProgressEvent{
-          ProgressEventType::Finish,
-          L"轉換失敗"
-        });
-        return AppExitCode::Fail;
+      ProcessResult flag = rtfprocessor.processFile(FPrequest);
+      switch(flag){
+        case ProcessResult::SuccessClean : 
+          notify(ProgressEvent{
+            ProgressEventType::Finish,
+            L"轉換成功"
+          });
+          return AppExitCode::Success; 
+        case ProcessResult::Failed :
+          notify(ProgressEvent{
+            ProgressEventType::Finish,
+            L"轉換失敗"
+          });
+          return AppExitCode::Fail;
+        case ProcessResult::SuccessWithWarning:
+          notify(ProgressEvent{
+            ProgressEventType::Finish,
+            L"轉換完成,但包含警告,請查看 log"
+          });
+          return AppExitCode::PartialSuccess;
       }
+
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        L"轉換結果狀態未知"
+      });
+      return AppExitCode::RunTimeError;
     }
     else if (std::filesystem::is_directory(input, ec)) {
       // 依據判斷出來的模式再次調整 resolverReq
@@ -164,20 +177,19 @@ namespace App{
       Drunner.run(FPrequest,task.recursive,resolverReq,task.threadCount);
       notify(ProgressEvent{
         ProgressEventType::Info,
-        std::wstring(L"多執行緒成功數量: ") + 
-                           std::to_wstring(Drunner.getSuccessNum()) + 
-                           L" 失敗數量: " + 
-                           std::to_wstring(Drunner.getFailNum())
+        std::wstring(L"多執行緒成功數量: ") + std::to_wstring(Drunner.getSuccessNum()) + 
+                     L" 警告數量: " + std::to_wstring(Drunner.getWarningNum())  +  
+                     L" 失敗數量: " + std::to_wstring(Drunner.getFailNum())
       });
       if(Drunner.hasFailedFiles()){
         std::vector<std::filesystem::path> failedFiles = Drunner.getFailedFiles();
         notify(ProgressEvent{
-          ProgressEventType::Info,
+          ProgressEventType::Error,
           L"以下檔案轉換失敗:"
         });
         for(const auto& path : failedFiles){
           notify(ProgressEvent{
-            ProgressEventType::Fail,
+            ProgressEventType::Detail,
             path.filename().wstring()
           });
         }
@@ -187,25 +199,61 @@ namespace App{
         });
       }
 
-      if(Drunner.getFailNum() == 0){
+      if(Drunner.hasWarningFiles()){
         notify(ProgressEvent{
-          ProgressEventType::Finish,
-          L"多執行緒轉換成功"
+          ProgressEventType::Warning,
+          L"以下檔案轉換成功但包含警告，詳細資訊請查看 log"
         });
-        return AppExitCode::Success;
+
+        for(const auto& p:Drunner.getWarningFiles()){
+          notify(ProgressEvent{
+            ProgressEventType::Detail,
+            p.filename().wstring()
+          });
+        }
       }
-      else if(Drunner.getSuccessNum() == 0){
+
+      size_t failNum = Drunner.getFailNum();
+      size_t successNum = Drunner.getSuccessNum();
+      size_t warningNum = Drunner.getWarningNum();
+
+      // 全部失敗
+      if(successNum == 0){
         notify(ProgressEvent{
           ProgressEventType::Finish,
           L"多執行緒轉換失敗"
         });
+
         return AppExitCode::RunTimeError;
       }
+
+      // 沒有失敗也沒有警告
+      if(failNum == 0 && warningNum == 0){
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"多執行緒轉換成功"
+        });
+
+        return AppExitCode::Success;
+      }
+
+      // 有警告但沒有失敗
+      if(failNum == 0 && warningNum > 0){
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"多執行緒轉換成功，但包含警告，請查看 log"
+        });
+
+        return AppExitCode::PartialSuccess;
+      }
+
+      // 剩下就是部份失敗
       notify(ProgressEvent{
         ProgressEventType::Finish,
         L"多執行緒轉換部份成功"
       });
-      return AppExitCode::PartialSuccess;                       
+
+      return AppExitCode::PartialSuccess;
     }
 
     return AppExitCode::Fail;

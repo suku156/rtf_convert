@@ -23,6 +23,8 @@
 
 // forowrd delecration
 class logSystem;
+class IProgressObserver;
+struct ProgressEvent;
 
 class textRtfProcessor{
   enum class GroupDecision{
@@ -30,7 +32,9 @@ class textRtfProcessor{
     KeepText,
     KeepAll
   };
+  IProgressObserver* observer_ = nullptr;
 public:
+  explicit textRtfProcessor(IProgressObserver* observer = nullptr) : observer_(observer) {}
   void Processor(std::string& Cleaned,logSystem& logger);
   std::string removeIgnorableDestinations(std::string_view rtf);
 private:
@@ -53,4 +57,5 @@ private:
   bool isSkippableRtfEscape(const std::string& s, size_t pos);
   std::string replaceSemanticControls(std::string_view target);
   std::string processGroupInner(std::string_view g);
+  void notify(const ProgressEvent& event);
 };

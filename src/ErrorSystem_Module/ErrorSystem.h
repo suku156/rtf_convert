@@ -57,9 +57,10 @@ namespace ErrorSystem{
     Decode,
     Picture,
     Group,
-    TextClean
+    TextClean,
+    detector
   };
-  extern const  std::array<const char*,7> ErrorCategoryName;
+  extern const  std::array<const char*,8> ErrorCategoryName;
   std::ostream& operator<<(std::ostream& os , ErrorCategory category);
   constexpr std::string_view getCategoryStr(ErrorCategory category) noexcept{
     auto index = static_cast<size_t>(category);

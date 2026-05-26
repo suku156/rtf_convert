@@ -36,6 +36,12 @@
 #include<optional>
 
 
+enum class ProcessResult{
+  SuccessClean,
+  SuccessWithWarning,
+  Failed
+};
+
 struct FileProcessRequest;
 class IProgressObserver;
 struct ProgressEvent;
@@ -45,7 +51,7 @@ class RTFProcessor{
   IProgressObserver* observer_ = nullptr;
 public:
   explicit RTFProcessor(IProgressObserver* observer = nullptr) : observer_(observer) {}
-  bool processFile(const FileProcessRequest& req);
+  ProcessResult processFile(const FileProcessRequest& req);
 private:
   void notify(const ProgressEvent& event);
 };

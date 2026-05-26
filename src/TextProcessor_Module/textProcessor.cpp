@@ -3,7 +3,8 @@
 // =====================================================
 #include "textProcessor.h"
 #include "LogSystem_Module/LogSystem.h"
-#include "Universal_Module/Console.h"
+#include "Feedback_Module/ProgressEvent.h"
+#include "Feedback_Module/IProgressObserver.h"
 #include<string>
 #include<string_view>
 #include<cstddef>
@@ -12,6 +13,7 @@
 #include<vector>
 #include <utility>
 #include <unordered_set>
+
 
 namespace{
   // rtf　最後可以直接移除的控制符之名單
@@ -39,7 +41,12 @@ namespace{
       "brdrw","brdrcf1","brdrframe","chshdng","chcfpat","chcbpat","margl","noproof","brdrcf",
       "hyphauto","sbknone","sftnnar","saftnnrlc","sectunlocked","pgwsxn","pghsxn","marglsxn",
       "margrsxn","margtsxn","margbsxn","ftnstart","ftnrstcont","ftnnar","aftnrstcont","aftnstart",
-      "aftnnrlc","pgndec","charrsid"
+      "aftnnrlc","pgndec","charrsid","listoverridetable","viewbksp","li","ri","lin","rin",
+      "fi","sb","sa","keepn","lochLorem","scaps","caps","expnd","expndtw","aiNullam",
+      "ls","qj","widctlpar","ilv","ai","lochCras","shpwr","shpwrk","shpbypara","shpbyignore",
+      "shptop","shpbxcolumn","shpbxignore","shpleft","cocoartf","cocoatextscaling","cocoaplatform",
+      "vieww","viewh","pgnstart","facingp","headerl","headerr","pgbrdrl","brsp","pgbrdrr","pgbrdrt",
+      "pgbrdrb","cols","linebetcol","strike"
     };
 
     return removeSet.find(word) != removeSet.end();;
@@ -299,7 +306,10 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
           }
           
           if(depth != 0){
-            Console::ensureWcerr(L"[WARRING]: 檔案中有大括號不平衡導致無法正確清理全部控制符");
+            notify(ProgressEvent{
+              ProgressEventType::Warning,
+              L"檔案中有大括號不平衡導致無法正確清理全部控制符"
+            });
             return;
           }
          
@@ -798,4 +808,9 @@ std::string textRtfProcessor::removeIgnorableDestinations(std::string_view rtf){
   }
 
   return result;
+}
+void textRtfProcessor::notify(const ProgressEvent& event){
+  if(observer_){
+    observer_->onEvent(event);
+  }
 }

@@ -55,9 +55,12 @@ private:
 class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
+std::atomic<size_t> warningCount_{0};
 IProgressObserver* observer_ = nullptr;
 std::mutex failedFilesMutex_;
+std::mutex warningFilesMutex_;
 std::vector<std::filesystem::path> failedFiles_;
+std::vector<std::filesystem::path> warningFiles_;
 public:
   explicit RTFDirectoryRunner(IProgressObserver* observer = nullptr) : observer_(observer) {}
   void run(const FileProcessRequest& req,bool recursive , 
@@ -65,8 +68,11 @@ public:
            size_t threadCount);
   size_t getSuccessNum() const;
   size_t getFailNum() const;
+  size_t getWarningNum() const;
   bool hasFailedFiles() const;
-  std::vector<std::filesystem::path> getFailedFiles() const;  
+  bool hasWarningFiles() const;
+  std::vector<std::filesystem::path> getFailedFiles() const;
+  std::vector<std::filesystem::path> getWarningFiles() const;
 private:
   std::vector<std::filesystem::path> collectRtfFiles(const std::filesystem::path& dirPath,bool recursive);
   size_t ResolveThreadNum(size_t fileCount,size_t threadCount);

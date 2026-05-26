@@ -21,13 +21,8 @@
 #include<vector>
 #include<cstdint>
 #include<string>
+#include<string_view>
 
-// 使用 byte 的錯誤偵測系統介面
-class IByteErrorDetector{
-public:
-  virtual  ~IByteErrorDetector() = default;
-  virtual ErrorSystem::ErrorInfo detect(const std::vector<uint8_t>& bytes) = 0;
-};
 
 // 使用 text 的錯誤偵測系統介面
 class ITextErrorDetector{
@@ -42,23 +37,22 @@ public:
   ErrorSystem::ErrorInfo detect(const std::string& content) override;
 private:
   bool checkBraceBalance(const std::string& content);
-  void checkControlWord(const std::string& content , ErrorSystem::ErrorInfo& info);
-  void checkHexEscape(const std::string& content , ErrorSystem::ErrorInfo& info);
-  void checkIllegalBackslash(const std::string& content,ErrorSystem::ErrorInfo& info);
-  bool checkPictResidual(const std::string& content);
+  void checkResidualControlWords(const std::string& text,ErrorSystem::ErrorInfo& info);
 };
 
 // utf8 編碼專用的錯誤偵測
-class Utf8ErrorDetector : public IByteErrorDetector{
-  ErrorSystem::ErrorInfo detect(const std::vector<uint8_t>& bytes)override;
+class Utf8ErrorDetector {
+public:
+  ErrorSystem::ErrorInfo detectText(std::string_view text);
+  std::wstring buildBytePreview(std::string_view text,size_t pos,size_t radius);
 };
 
 // ansi 編碼專用的錯誤偵測
-class AnsiErrorDetector : public IByteErrorDetector{
+class AnsiErrorDetector{
   Encoding enc_ = Encoding::Invalid;
 public:
   AnsiErrorDetector(Encoding enc) : enc_(enc) {}
-  ErrorSystem::ErrorInfo detect(const std::vector<uint8_t>& bytes)override;
+  ErrorSystem::ErrorInfo detect(const std::vector<uint8_t>& bytes);
 private:
   bool isBig5Lead(uint8_t b);
   bool isGBKLead(uint8_t b);
@@ -75,4 +69,6 @@ private:
   ErrorSystem::ErrorInfo detectLatin1(const std::vector<uint8_t>& bytes);
   ErrorSystem::ErrorInfo detectCEI(const std::vector<uint8_t>& bytes);
   ErrorSystem::ErrorInfo detectCyrillic(const std::vector<uint8_t>& bytes);
+  std::wstring buildBytePreview(const std::vector<uint8_t>& bytes,
+                                size_t pos,size_t radius = 3);
 };

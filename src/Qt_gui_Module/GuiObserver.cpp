@@ -18,8 +18,8 @@ void GuiObserver::onEvent(const ProgressEvent& event){
       case ProgressEventType::Finish:
         prefix = "[CORE] [FINISH]: ";
         break;
-      case ProgressEventType::Warring:
-        prefix = "[CORE] [WARRING]: ";
+      case ProgressEventType::Warning:
+        prefix = "[CORE] [WARNING]: ";
         break;
       case ProgressEventType::Error:
         prefix = "[CORE] [ERROR]: ";
@@ -43,6 +43,9 @@ void GuiObserver::onEvent(const ProgressEvent& event){
         break;
       case ProgressEventType::Fail:
         prefix = "[CORE] [FAIL]: ";
+        break;
+      case ProgressEventType::Detail:
+        prefix = "[CORE] -  : ";
         break;
       default:
         prefix = "[CORE] [UNKNOWN]";

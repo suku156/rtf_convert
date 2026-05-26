@@ -18,3 +18,9 @@ endif()
 if(BUILD_GUI)
     add_subdirectory(src/Qt_gui_Module)
 endif()
+
+option(BUILD_SANDBOX "Build sandbox tests" OFF)
+
+if(BUILD_SANDBOX)
+    add_subdirectory(sandbox)
+endif()

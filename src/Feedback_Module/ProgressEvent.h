@@ -6,13 +6,14 @@
 enum class ProgressEventType {
     Info,
     Error,
-    Warring,
+    Warning,
     Fail,
     Start,
     Finish,
     BatchStart,
     BatchFinish,
-    UnitDone
+    UnitDone,
+    Detail
 };
 
 struct ProgressEvent {

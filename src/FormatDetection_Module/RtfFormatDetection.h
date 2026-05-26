@@ -19,58 +19,45 @@
 #include<vector>
 #include<cstdint>
 #include<string>
+#include<optional>
 
-// 用來存放結果的小容器
-struct DetectOutput{
-  DetectorResult result = DetectorResult::Invalid;
-  Encoding encoding = Encoding::Invalid;
+// 可能有的 Bom 
+enum class BomType {
+    None,
+    Utf8,
+    Utf16LE,
+    Utf16BE,
+    Utf32LE,
+    Utf32BE
 };
 
-//偵測用的基底類別(介面)
-class EncodingDetectorBase{
-public:
-  virtual ~EncodingDetectorBase() = default;
-  virtual DetectOutput Detect() = 0;
-  virtual void readData(std::ifstream& input) = 0;
-protected:
-  static std::vector<uint8_t> readAllBytes(std::ifstream& input);
+// 用於承裝檔案是否過小用得資訊容器
+struct SizeProbeInfo {
+  // 實際找到的
+  std::size_t fileSize = 0;
+  // 設定的允許最小值
+  std::size_t minRequiredSize = 0;
+  bool isTooShort = false;
 };
 
-//類別:用來依據Bom 來判斷是否為 UTF-8 or UTF-16
-class DetectorBom : public EncodingDetectorBase{
-  std::vector<uint8_t> bom_;
-public:
-  void readData(std::ifstream& input) override;
-  DetectOutput Detect()override;
-};
-
-//類別:用來偵測ANSI
-class DetectorAnsi : public EncodingDetectorBase{
-  std::string rtfContent_;
-public:
-  void readData(std::ifstream& input) override;
-  DetectOutput Detect() override;
-};
-
-//類別:用來檢測是否為 no-Bom 的 UTF-8
-class DetectorNoBom : public EncodingDetectorBase{
-  std::vector<uint8_t> bytes_;
-public:
-  void readData(std::ifstream& input) override;
-  DetectOutput Detect() override;
-private:
-  bool isValidUTF8(const std::vector<uint8_t>& bytes);
-};
-
-// 一些基本rtf 格式的檢查
-class FileTypeDetector{
-public:
-  bool isRTF(std::ifstream& input);
-  bool isFileTooShort(std::ifstream& input,std::size_t minSize);
+// 新的容器用於承裝偵測報告
+struct DetectOutputNew{
+  // 可能的BOM 型態
+  BomType bomtype = BomType::None;
+  // 偵測 檔案 byte 是否過短的結果 
+  SizeProbeInfo sizeInfo;
+  // 偵測是否符合開頭 { 後除了空格與換行外必須是 \rtfX(X是數字) 的規則
+  bool hasValidRtfRootHeader = false;
+  std::optional<int> ansiCodePage;
 };
 
 // 類別 : Facade 模式 , 使用此模式單獨將偵測類別包成一種可簡易使用的類別
 class EncodingDetector{
 public:
-  DetectOutput detectEncoding(std::ifstream& input);
+  DetectOutputNew detectEncoding(std::ifstream& input);
+private:
+  BomType detectBom(std::ifstream& input);
+  SizeProbeInfo isFileTooShort(std::ifstream& input,std::size_t minSize);
+  bool rtfSymbolCheck(std::string_view strView);
+  std::optional<int> ansiCodePageCheck(std::string_view strView);
 };

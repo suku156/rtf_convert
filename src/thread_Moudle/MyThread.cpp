@@ -115,15 +115,27 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
         fileReq.finalOutputDir  = test.parentDir; 
         
         try{
-          bool ok = localprocessor.processFile(fileReq);
-          if(ok){
+          ProcessResult result = localprocessor.processFile(fileReq);
+          
+          switch(result){
+           case ProcessResult::SuccessClean : 
             successCount_.fetch_add(1,std::memory_order_relaxed);
-          }else{
+            break; 
+           case ProcessResult::SuccessWithWarning:
+            successCount_.fetch_add(1,std::memory_order_relaxed);
+            warningCount_.fetch_add(1, std::memory_order_relaxed);
+            {
+              std::lock_guard<std::mutex> lock(warningFilesMutex_);
+              warningFiles_.push_back(fileReq.filePath);
+            }
+            break; 
+           case ProcessResult::Failed :
             failCount_.fetch_add(1,std::memory_order_relaxed);
             {
               std::lock_guard<std::mutex> lock(failedFilesMutex_);
               failedFiles_.push_back(fileReq.filePath);
             }
+            break;
           }
         }catch(const std::exception& e){
           failCount_.fetch_add(1,std::memory_order_relaxed);
@@ -210,12 +222,20 @@ size_t RTFDirectoryRunner::getSuccessNum() const{
 size_t RTFDirectoryRunner::getFailNum() const{
   return failCount_.load(std::memory_order_relaxed);
 }
-
+size_t RTFDirectoryRunner::getWarningNum() const{
+  return warningCount_.load(std::memory_order_relaxed);
+}
 bool RTFDirectoryRunner::hasFailedFiles() const{
   return !failedFiles_.empty();
 }
+bool RTFDirectoryRunner::hasWarningFiles() const{
+  return !warningFiles_.empty();
+}
 std::vector<std::filesystem::path> RTFDirectoryRunner::getFailedFiles() const{
   return failedFiles_;
+}
+std::vector<std::filesystem::path> RTFDirectoryRunner::getWarningFiles() const{
+  return warningFiles_;
 }
 void RTFDirectoryRunner::notify(const ProgressEvent& event){
   if(observer_){
