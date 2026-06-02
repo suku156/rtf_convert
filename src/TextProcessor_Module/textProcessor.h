@@ -46,8 +46,6 @@ private:
   bool hasVisibleText(std::string_view g);
   GroupDecision classifyGroup(std::string_view group);
   void controlGroupProcessor(std::string& Cleaned);
-  void pardPartClean(std::string& Cleaned);
-  void controlSymbolChange(std::string& Cleaned);
   void finalRtfSymbolClean(std::string& Cleaned);
   void compressBlankLines(std::string& Cleaned,int maxBlankLines);
   void removeOuterBraces(std::string& Cleaned);
@@ -58,4 +56,6 @@ private:
   std::string replaceSemanticControls(std::string_view target);
   std::string processGroupInner(std::string_view g);
   void notify(const ProgressEvent& event);
+  std::string extractFldResultText(std::string_view fieldGroup);
+  std::string cleanRtfControlWordsButKeepSemantic(std::string_view input);
 };

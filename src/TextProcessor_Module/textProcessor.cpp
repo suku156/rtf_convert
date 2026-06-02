@@ -12,55 +12,14 @@
 #include<cstring>
 #include<vector>
 #include <utility>
-#include <unordered_set>
-
-
-namespace{
-  // rtf　最後可以直接移除的控制符之名單
-  bool shouldRemoveRtfControlWord(std::string_view word){
-    static const std::unordered_set<std::string_view> removeSet = {
-      "b", "i", "ul", "ulnone","f", "fs", "cf","lang", "langfe","rtlch", "ltrch","hich", 
-      "dbch", "loch","insrsid","af", "fcs","plain","pard","rtf","ansi","ansicpg","deff",
-      "nouicompat","deflang","deflangfe","viewkind","uc","adeflang","adeff","stshfdbch",
-      "stshfloch","stshfhich","stshfbi","themelang","themelangfe","themelangcs","mlMargin",
-      "noqfpromote","mmathPr","mmathFont","mbrkBin","mbrkBinSub","msmallFrac","mdispDef",
-      "mrMargin","mdefJc","mwrapIndent","mintLim","mnaryLim","paperw","paperh","marg",
-      "margr","margt","margb","gutter","ltrsect","deftab","ftnbj","aenddoc","trackmoves",
-      "trackformatting","donotembedsysfont",
-      "relyonvml","donotembedlingdata","grfdocevents","validatexml","showplaceholdtext",
-      "ignoremixedcontent","saveinvalidxml","showxmlerrors","formshade","horzdoc","dgmargin",
-      "dghspace","dgvspace","dghorigin","dgvorigin","dghshow","dgvshow","jcompress","lnongrid",
-      "viewscale","splytwnine","ftnlytwnine","htmautsp","useltbaln","alntblind","lytcalctblwd",
-      "lyttblrtgr","lnbrkrule","nobrkwrptbl","snaptogridincell","allowfieldendsel","wrppunct",
-      "asianbrkrule","rsidroot","newtblstyruls","nogrowautofit","usenormstyforlist",
-      "noindnmbrts","felnbrelev","nocxsptable","indrlsweleven","noafcnsttbl","afelev",
-      "utinl","hwelev","spltpgpar","notcvasp","notbrkcnstfrctbl","notvatxbx","krnprsnet",
-      "cachedcolbal","upr","fet","nofeaturethrottle","ilfomacatclnup","ltrpar","sectd",
-      "ltrsect","linex","headery","footery","colsx","endnhere","sectlinegrid","sectspecifyl",
-      "sftnbj","ltrrow","afs","chshdng","chcfpat","chcbpat","ab","cs","chbrdr","brdrs",
-      "brdrw","brdrcf1","brdrframe","chshdng","chcfpat","chcbpat","margl","noproof","brdrcf",
-      "hyphauto","sbknone","sftnnar","saftnnrlc","sectunlocked","pgwsxn","pghsxn","marglsxn",
-      "margrsxn","margtsxn","margbsxn","ftnstart","ftnrstcont","ftnnar","aftnrstcont","aftnstart",
-      "aftnnrlc","pgndec","charrsid","listoverridetable","viewbksp","li","ri","lin","rin",
-      "fi","sb","sa","keepn","lochLorem","scaps","caps","expnd","expndtw","aiNullam",
-      "ls","qj","widctlpar","ilv","ai","lochCras","shpwr","shpwrk","shpbypara","shpbyignore",
-      "shptop","shpbxcolumn","shpbxignore","shpleft","cocoartf","cocoatextscaling","cocoaplatform",
-      "vieww","viewh","pgnstart","facingp","headerl","headerr","pgbrdrl","brsp","pgbrdrr","pgbrdrt",
-      "pgbrdrb","cols","linebetcol","strike"
-    };
-
-    return removeSet.find(word) != removeSet.end();;
-  }
-}
+#include <unordered_map>
 
 // 公開入口的函式定義
 void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     size_t before = Cleaned.size();
     
-    replaceShapeGroupsWithImageMarkers(Cleaned);
+    //replaceShapeGroupsWithImageMarkers(Cleaned);
     controlGroupProcessor(Cleaned);
-    pardPartClean(Cleaned);
-    controlSymbolChange(Cleaned);
     finalRtfSymbolClean(Cleaned);
     compressBlankLines(Cleaned,3);
     removeOuterBraces(Cleaned);
@@ -206,37 +165,139 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
     for(size_t i = 0; i < g.size(); ++i){
       unsigned char c = (unsigned char)g[i];
 
-      // ASCII 可顯示
-      if(c >= 0x20 && c < 0x7F) return true;
+      // 跳過大括號
+      if(c == '{' || c == '}'){
+        ++i;
+        continue;
+      }
 
-      // UTF-8
-      if(c >= 0x80) return true;
-
-      // RTF escape 文字 /'XX 或 \uXXXX 保險用
-      
+      // 遇到控制符
       if(c == '\\'){
-        if(i + 3 < g.size() &&
-         g[i+1] == '\'' &&
-         isHex(g[i+2]) &&
-         isHex(g[i+3])){
-         return true;
-        }
-
-        if(i + 2 < g.size() &&
-          g[i+1] == 'u' &&(g[i+2] == '-' || (g[i+2] >= '0' && g[i+2] <= '9'))){
+        // escaped literal: \\ \{ \}
+        if(i + 1 < g.size() &&
+          (g[i + 1] == '\\' ||
+           g[i + 1] == '{' ||
+           g[i + 1] == '}'))
+        {
           return true;
         }
+
+        // ANSI hex escape: \'XX
+        if(i + 3 < g.size() &&
+           g[i + 1] == '\'' &&
+           isHex(g[i + 2]) &&
+           isHex(g[i + 3]))
+        {
+          return true;
+        }
+
+        // Unicode escape: \uN
+        if(i + 2 < g.size() &&
+           g[i + 1] == 'u' &&
+           (g[i + 2] == '-' ||
+            std::isdigit(static_cast<unsigned char>(g[i + 2]))))
+        {
+          return true;
+        }
+
+        // control word: \word-123?
+        if(i + 1 < g.size() &&
+            std::isalpha(static_cast<unsigned char>(g[i + 1])))
+        {
+          size_t j = i + 2;
+
+          while(j < g.size() &&
+                std::isalpha(static_cast<unsigned char>(g[j])))
+          {
+            ++j;
+          }
+
+          if(j < g.size() && g[j] == '-') {
+            ++j;
+          }
+
+          while(j < g.size() &&
+                std::isdigit(static_cast<unsigned char>(g[j])))
+          {
+            ++j;
+          }
+
+          if(j < g.size() && g[j] == ' ') {
+              ++j;
+          }
+
+          i = j;
+          continue;
+        }
+
+        // control symbol: \~ \- \_ \* 等
+        i += 2;
+        continue;
       }
-      
+      // 空白類不算正文
+      if(std::isspace(c)){
+        ++i;
+        continue;
+      }
+        
+      // 分號在 fonttbl 常出現，單獨不建議算正文
+      if(c == ';'){
+        ++i;
+        continue;
+      }
+
+      // 走到這裡，才比較像真正正文
+      return true;
     }
-    return false;
+  return false;    
 }
 //用來判斷 群組內是 正文還是可以刪除的控制符段落
 textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view group){
-    
+  /*
+   std::wstring ws(
+    group.begin(),
+    group.begin() + std::min<size_t>(group.size(),100)
+  );
+
+  notify(ProgressEvent{
+      ProgressEventType::Info,
+      ws
+  });
+  */
+ 
+
     // 圖片群組 前面已經有處理 防呆一下
     if(start_with(group, "{\\pict") || start_with(group, "@@RTF_IMAGE_")){
        return GroupDecision::KeepAll;
+    }
+    // 圖片標記符保護
+    if(group.find("@@RTF_IMAGE_") != std::string_view::npos ||
+       group.find("@@RTF_IMAGE_ERR_") != std::string_view::npos)
+    {
+      return GroupDecision::KeepAll;
+    }
+
+    // word 特別蜂巢群組
+    if(start_with(group, "{\\field")){
+      const bool hasFldResult = group.find("{\\fldrslt") != std::string_view::npos;
+
+      const bool isShapeField =
+      group.find("{\\*\\fldinst SHAPE") != std::string_view::npos ||
+      group.find("\\fldinst SHAPE") != std::string_view::npos;
+
+      const bool hasShapeBody =
+      group.find("{\\shp") != std::string_view::npos ||
+      group.find("{\\sp")  != std::string_view::npos;
+
+      if(isShapeField || hasShapeBody){
+        return GroupDecision::Drop;
+      }
+
+      if(hasFldResult){
+        return GroupDecision::KeepText; // 更好是 ExtractFldResult
+      }
+
+      return GroupDecision::Drop;
     }
     
     // 遇到格式固定之群組直接刪
@@ -342,12 +403,15 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
               {
                 std::string_view groupInner{Cleaned.data() + i + 1,end - i - 2};
                 std::string cleanStr  = processGroupInner(groupInner);
-                //result.append(Cleaned, i + 1, end - i - 2);
                 result.append(cleanStr);
                 i = end;
                 continue;
               }
             case GroupDecision::KeepAll :
+            notify(ProgressEvent{
+              ProgressEventType::Info,
+              L"有觸發群組全留"
+            });
              result.append(Cleaned, i, end - i);
              i = end;
              continue;
@@ -362,111 +426,18 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
 
     Cleaned.swap(result);
 }
-//清理 pard 控制段落
-void textRtfProcessor::pardPartClean(std::string& Cleaned){
-    std::string result;
-    result.reserve(Cleaned.size());
-    std::string target = "\\pard";
-
-    for(size_t i = 0;i<Cleaned.size();){
-      if(i + target.size() <= Cleaned.size() && 
-         Cleaned.compare(i,target.size(),target) == 0 &&
-         checkAsciiScope(Cleaned,i,target.size()))
-      {
-        
-        size_t end = i + target.size();
-        while(end < Cleaned.size()){
-          if(isControlCharacter(Cleaned[end])){
-            end++;
-          }else{
-            break;
-          }
-        }
-          
-        // 吃掉控制符後方的空格
-        if (end < Cleaned.size() && Cleaned[end] == ' ') {
-          ++end;
-        }
-
-        i = end;
-        continue;
-      }
-
-      result.push_back(Cleaned[i]);
-      i++;
-    }
-
-    Cleaned.swap(result);
-}
-// 用來置換rtf常見的功能符號
-void textRtfProcessor::controlSymbolChange(std::string& Cleaned){
-    std::string result;
-    result.reserve(Cleaned.size());
-   
-    const std::vector<std::pair<std::string,std::string>> rtfReplacements = {
-      {"\\par", "\n"},
-      {"\\line", "\n"},
-      {"\\tab", "\t"},
-      {"\\emdash", "—"},
-      {"\\bullet", "•"}
-    };
-
-    // 用來避免對重名控制符誤判
-    auto isControlWordBoundary = [](const std::string& s, size_t pos) -> bool {
-      if (pos >= s.size()) {
-        return true;
-      }
-
-      unsigned char c = static_cast<unsigned char>(s[pos]);
-
-      // 後面仍是英文字母，代表控制字還沒結束，例如 \linex0
-      if (std::isalpha(c)) {
-        return false;
-      }
-
-      // 後面是數字或負號，可能是控制字參數，例如 \xxx123
-      // 對這批「純符號替換」來說，保守起見不直接匹配
-      if (std::isdigit(c) || c == '-') {
-        return false;
-      }
-
-      return true;
-    };
-
-    size_t i = 0;
-    while(i < Cleaned.size()){
-      bool matched = false;
-
-      for(const auto& [key,value] : rtfReplacements){
-        if(i + key.size() <= Cleaned.size() && 
-           Cleaned.compare(i,key.size(),key) == 0 &&
-           checkAsciiScope(Cleaned,i,key.size(),true) &&
-           isControlWordBoundary(Cleaned,i+key.size()))
-        {
-          result += value;
-          i += key.size();
-
-          // 用來吃掉控制符後方為空白的情況
-          if (i < Cleaned.size() && Cleaned[i] == ' ') {
-            ++i;
-          }
-
-          matched = true;
-          break;
-        }
-      }
-      
-      if(!matched){
-        result.push_back(Cleaned[i]);
-        i++;
-      }
-    }
-
-    Cleaned.swap(result);
-}
 // 用來將剩餘的 rtf 控制符全部清空
 void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
     std::string result;
+    
+    const std::unordered_map<std::string,std::string> rtfReplacements = {
+      {"par", "\n"},
+      {"line", "\n"},
+      {"tab", "\t"},
+      {"emdash", "—"},
+      {"bullet", "•"}
+    };
+
     result.reserve(Cleaned.size());
 
     for(size_t i=0;i<Cleaned.size();){
@@ -493,7 +464,15 @@ void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
         
         std::string_view word(Cleaned.data() + i + 1,j - (i + 1));
 
-        if(!word.empty() && shouldRemoveRtfControlWord(word)){
+        
+
+        if(!word.empty()){
+          // 名單內的控制符就替換掉
+          auto it = rtfReplacements.find(std::string(word));
+          if(it != rtfReplacements.end()){
+            result += it->second;
+          }
+
           //吃掉 -號開頭
           if (j < Cleaned.size() && Cleaned[j] == '-') ++j;
           while (j < Cleaned.size() &&
@@ -625,6 +604,13 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
 
 // 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組
 std::string textRtfProcessor::processGroupInner(std::string_view g){
+  constexpr std::string_view fieldTarget = "\\field"; 
+  if(g.size() >= fieldTarget.size() &&
+     g.compare(0, fieldTarget.size(), fieldTarget) == 0)
+  {
+    return extractFldResultText(g);
+  }
+  
   std::string result;
   constexpr std::string_view target = "{\\*\\";
   
@@ -675,7 +661,135 @@ std::string textRtfProcessor::processGroupInner(std::string_view g){
     result.push_back(g[i]); 
   }
 
-  return replaceSemanticControls(result);
+  std::string tmp = cleanRtfControlWordsButKeepSemantic(result);
+
+  return replaceSemanticControls(tmp);
+}
+
+std::string textRtfProcessor::cleanRtfControlWordsButKeepSemantic(std::string_view input){
+  std::string result;
+  result.reserve(input.size());
+
+  for(size_t i = 0; i < input.size(); ){
+    if(input[i] != '\\'){
+      
+      // 群組的 {} 也丟掉
+      if(input[i] == '{' || input[i] == '}'){
+        ++i;
+        continue;
+      }
+      
+      result.push_back(input[i]);
+      ++i;
+      continue;
+    }
+
+    // 保護正文跳脫
+    if(i + 1 < input.size() &&
+        (input[i + 1] == '\\' ||
+        input[i + 1] == '{' ||
+        input[i + 1] == '}'))
+    {
+      result.push_back(input[i + 1]);
+      i += 2;
+      continue;
+    }
+
+    size_t j = i + 1;
+    while(j < input.size() &&
+          std::isalpha(static_cast<unsigned char>(input[j])))
+    {
+      ++j;
+    }
+
+    std::string_view word(input.data() + i + 1, j - (i + 1));
+
+    // 語意控制符先保留，交給 replaceSemanticControls()
+    if(word == "par" || word == "line" ||
+       word == "tab" || word == "emdash" || word == "bullet")
+    {
+      result.append(input.data() + i, j - i);
+      i = j;
+      continue;
+    }
+
+    // 其他合法 control word：吃掉 word + 參數 + delimiter
+    if(!word.empty()){
+      if(j < input.size() && input[j] == '-') ++j;
+
+      while(j < input.size() &&
+            std::isdigit(static_cast<unsigned char>(input[j])))
+      {
+        ++j;
+      }
+
+      if(j < input.size() && input[j] == ' ') ++j;
+
+      i = j;
+      continue;
+    }
+
+    result.push_back(input[i]);
+    ++i;
+  }
+
+  return result;
+}
+
+std::string textRtfProcessor::extractFldResultText(std::string_view fieldGroup){
+  constexpr std::string_view target = "{\\fldrslt";
+
+  size_t pos = fieldGroup.find(target);
+  if(pos == std::string_view::npos){
+    return {};
+  }
+
+  size_t j = pos;
+  int depth = 0;
+  bool closed = false;
+
+  while(j < fieldGroup.size()){
+    char c = fieldGroup[j];
+
+    if(c == '\\' && j + 1 < fieldGroup.size() &&
+       (fieldGroup[j + 1] == '{' ||
+        fieldGroup[j + 1] == '}' ||
+        fieldGroup[j + 1] == '\\'))
+    {
+      j += 2;
+      continue;
+    }
+
+    if(c == '{'){
+      ++depth;
+    }else if(c == '}'){
+       --depth;
+    }
+
+    ++j;
+
+    if(depth == 0){
+      closed = true;
+      break;
+    }
+  }
+
+  if(!closed){
+    return {};
+  }
+
+  size_t realStart = pos + target.size();
+
+  if(j <= realStart + 1){
+    return {};
+  }
+
+  auto bodyView = fieldGroup.substr(realStart, j - realStart - 1);
+  if(!bodyView.empty() && bodyView.front() == ' '){
+    bodyView.remove_prefix(1);
+  }
+  
+  return std::string(bodyView);
 }
 
 // processGroupInner 函式清理完後檢查並替換關鍵控制符

@@ -76,39 +76,6 @@ namespace{
     #endif
   }
 
-  /*
-  // 錯誤處理enum
-  enum class HandleDecision{
-    Continue,
-    SkipFile,
-    TerminateAll
-  };
-
-  // 用來處裡所有回傳的 ErrorInfo 
-  class ErrorInfoProcessor{
-  public:
-    HandleDecision process(const ErrorSystem::ErrorInfo& info,ErrorHandle& handler){
-        if(info.isEmpty()){
-        return HandleDecision::Continue;
-        }
-
-        handler.handle(info);
-
-        switch(info.getMaxLevel()){
-        case ErrorSystem::ErrorLevel::None:
-            return HandleDecision::Continue;
-        case ErrorSystem::ErrorLevel::Warning:
-        case ErrorSystem::ErrorLevel::Recoverable:
-        case ErrorSystem::ErrorLevel::FatalLocal:
-            return HandleDecision::SkipFile;
-        case ErrorSystem::ErrorLevel::FatalGlobal:
-            return HandleDecision::TerminateAll;
-        }
-
-        return HandleDecision::Continue;
-    }  
-  };
-  */
 }
 
 // 主流程函式定義
@@ -306,14 +273,15 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     sheetprocessor.processor(rtfContent);
 
     // 預先處理 {\* 開頭之控制群組避免轉換後的影響
-    logger.log(LogLevel::Info,"清理指定開頭 {\\*\\ 之群組");
-    rtfContent =  textRtfProcessor().removeIgnorableDestinations(rtfContent);
+    //logger.log(LogLevel::Info,"清理指定開頭 {\\*\\ 之群組");
+    //rtfContent =  textRtfProcessor().removeIgnorableDestinations(rtfContent);
 
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"開始嘗試解碼訊息"
     });
 
+    /*
     // 先處理可能存在的 \uXXXX 區域部份
     logger.log(LogLevel::Info,"處裡 utf \\uXXXX 標記符");
     auto utf_decoded = utf8Decoder().decode(rtfContent);
@@ -390,12 +358,12 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
 
     // 處裡群組
     utf8GroupProcessor().processGroups(rtfContent);
-    
+    */
     
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //用類別的功能來清除文字中剩餘的控制碼等等
-    textRtfProcessor textrtfprocessor(observer_);
-    textrtfprocessor.Processor(rtfContent,logger);
+    //textRtfProcessor textrtfprocessor(observer_);
+    //textrtfprocessor.Processor(rtfContent,logger);
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"完成多餘控制符清理"
@@ -448,9 +416,9 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
  
-    //output << rtfContent;
+    output << rtfContent;
     
-    
+    /*
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -485,7 +453,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       processresult = ProcessResult::Failed;
       return processresult;
     }
-    
+    */
     
     notify(ProgressEvent{
       ProgressEventType::Info,

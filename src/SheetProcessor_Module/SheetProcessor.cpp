@@ -3,6 +3,7 @@
 // =====================================================
 
 #include "SheetProcessor.h"
+#include "RtfGroupProcessor_Module/FieldGroupProcessor.cpp"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -102,6 +103,10 @@ void sheetProcessor::processor(std::string& rtfContent){
             if(!closed) break;
 
             std::string_view groupView{rtfContent.data()+ i ,j - i};
+            if(groupView.find("{\\field") != std::string_view::npos){
+              fieldGroupProcessor fieldgroupprocessor;
+              fieldgroupprocessor.groupProcessor(groupView);
+            }
             bool groupHasRow = false;
             TableToken token = groupProcessor(groupView);
             
