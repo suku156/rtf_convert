@@ -5,6 +5,8 @@
 #include "LogSystem_Module/LogSystem.h"
 #include "Feedback_Module/ProgressEvent.h"
 #include "Feedback_Module/IProgressObserver.h"
+#include "RtfGroupProcessor_Module/FieldGroupProcessor.h"
+#include "RtfGroupProcessor_Module/StartDestinationProcessor.h"
 #include<string>
 #include<string_view>
 #include<cstddef>
@@ -18,8 +20,8 @@
 void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     size_t before = Cleaned.size();
     
-    //replaceShapeGroupsWithImageMarkers(Cleaned);
-    controlGroupProcessor(Cleaned);
+    
+    controlGroupProcessor(Cleaned,logger);
     finalRtfSymbolClean(Cleaned);
     compressBlankLines(Cleaned,3);
     removeOuterBraces(Cleaned);
@@ -47,63 +49,6 @@ void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     }else{
       logger.log(LogLevel::Warn,"控制符清理字數沒有變化");
     }
-}
-void textRtfProcessor::replaceShapeGroupsWithImageMarkers(std::string& Cleaned){
-  size_t searchPos = 0;
-  while(true){
-    
-    // 找找看有無目標群組開頭
-    size_t pos = Cleaned.find("{\\shp",searchPos);
-    if(pos == std::string::npos) break;
-    
-    size_t n = pos +1;
-    int flag = 1;
-
-    while(n < Cleaned.size()){
-      
-      if(Cleaned[n] == '\\' && n + 1 < Cleaned.size()){
-        n += 2;   // 跳過 escaped token
-        continue;
-      }
-      
-      if(Cleaned[n] == '{'){
-        flag++;
-      }
-      else if(Cleaned[n] == '}'){
-        flag--;
-      }
-      n++;
-      if(flag == 0) break;
-    }
-    
-    if(flag != 0) break;
-    // 拿取 {\shp 群組去做檢查
-    std::string groupResult = Cleaned.substr(pos,n-pos);
-    // 拿來記錄標記符 沒有就會為空直接替換掉 shape 群組
-    std::string result;
-    
-    for(size_t i = 0; i < groupResult.size();++i){
-      constexpr std::string_view target = "@@RTF_IMAGE_";
-      if(groupResult.compare(i,target.size(),target) == 0){
-        constexpr std::string_view tail = "@@";
-       
-        size_t symbolEnd = groupResult.find(tail,i + target.size());
-        if (symbolEnd != std::string::npos) {
-            symbolEnd += tail.size();
-            result = groupResult.substr(i, symbolEnd - i);
-        }
-        break;
-      }
-    }
-
-    // 執行替換的動作
-    Cleaned.replace(pos,n-pos,result);
-
-    // 更新搜尋的位置(從替換後的長度開始)
-    searchPos = pos + result.size();
-  }
-  
-  
 }
 
 //用來確認傳入的字串的指定範圍內的byte 都在ASCII的範圍內
@@ -149,7 +94,6 @@ bool textRtfProcessor::isKnownDroppableGroup(std::string_view g){
            start_with(g,"{\\colortbl")   ||
            start_with(g,"{\\stylesheet") ||
            start_with(g,"{\\info")       ||
-           start_with(g,"{\\*")          || 
            start_with(g,"{\\themedata")        ||
            start_with(g,"{\\colorschememapping") ||
            start_with(g,"{\\xmlnstbl")         ||
@@ -253,20 +197,8 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
 }
 //用來判斷 群組內是 正文還是可以刪除的控制符段落
 textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view group){
-  /*
-   std::wstring ws(
-    group.begin(),
-    group.begin() + std::min<size_t>(group.size(),100)
-  );
-
-  notify(ProgressEvent{
-      ProgressEventType::Info,
-      ws
-  });
-  */
- 
-
-    // 圖片群組 前面已經有處理 防呆一下
+  
+  // 圖片群組 前面已經有處理 防呆一下
     if(start_with(group, "{\\pict") || start_with(group, "@@RTF_IMAGE_")){
        return GroupDecision::KeepAll;
     }
@@ -279,25 +211,12 @@ textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view
 
     // word 特別蜂巢群組
     if(start_with(group, "{\\field")){
-      const bool hasFldResult = group.find("{\\fldrslt") != std::string_view::npos;
+      return GroupDecision::Field;
+    }
 
-      const bool isShapeField =
-      group.find("{\\*\\fldinst SHAPE") != std::string_view::npos ||
-      group.find("\\fldinst SHAPE") != std::string_view::npos;
-
-      const bool hasShapeBody =
-      group.find("{\\shp") != std::string_view::npos ||
-      group.find("{\\sp")  != std::string_view::npos;
-
-      if(isShapeField || hasShapeBody){
-        return GroupDecision::Drop;
-      }
-
-      if(hasFldResult){
-        return GroupDecision::KeepText; // 更好是 ExtractFldResult
-      }
-
-      return GroupDecision::Drop;
+    // 遇到星號特殊群組
+    if(start_with(group,"{\\*\\")){
+      return GroupDecision::Start;
     }
     
     // 遇到格式固定之群組直接刪
@@ -313,7 +232,7 @@ textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view
     return GroupDecision::Drop;
 }
 //清理控制群組
-void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
+void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& logger){
     std::string result;
     result.reserve(Cleaned.size());
     
@@ -402,21 +321,49 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned){
             case GroupDecision::KeepText :
               {
                 std::string_view groupInner{Cleaned.data() + i + 1,end - i - 2};
-                std::string cleanStr  = processGroupInner(groupInner);
+                std::string cleanStr  = processGroupInner(groupInner,logger);
                 result.append(cleanStr);
                 i = end;
                 continue;
               }
             case GroupDecision::KeepAll :
-            notify(ProgressEvent{
-              ProgressEventType::Info,
-              L"有觸發群組全留"
-            });
              result.append(Cleaned, i, end - i);
              i = end;
              continue;
+            case GroupDecision::Field :
+            {
+              // field 群組由專用模組處理；
+              // 無論是否產生文字，都不再走一般文字清理流程
+              fieldGroupProcessor processor;
+              if (auto text = processor.groupProcessor(innerView)) {
+                result.append(*text);
+              }
+              i = end;
+              continue;
+            }
+            case GroupDecision::Start :
+            {
+              // 星號特別群組交由專用模組處裡
+              StartGroupProcessor startProcessor;
+              StarGroupResult sg = startProcessor.groupProcessor(innerView);
+
+              if(sg.unknown){
+                logger.log(
+                  LogLevel::Info,
+                  "發現未在處裡名單上之星號群組 : " + 
+                  sg.unknownGroupName +
+                  " 已清理"
+                );
+              }
+
+              if(sg.text){
+                result.append(*sg.text);
+              }
+
+              i = end;
+              continue;
+            }
           }
-          
         }
       }
 
@@ -603,7 +550,7 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
 }
 
 // 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組
-std::string textRtfProcessor::processGroupInner(std::string_view g){
+std::string textRtfProcessor::processGroupInner(std::string_view g,logSystem& logger){
   constexpr std::string_view fieldTarget = "\\field"; 
   if(g.size() >= fieldTarget.size() &&
      g.compare(0, fieldTarget.size(), fieldTarget) == 0)
@@ -651,6 +598,24 @@ std::string textRtfProcessor::processGroupInner(std::string_view g){
       }
 
       if(closed){
+        std::string_view starGroupView = g.substr(i, j - i);
+        StartGroupProcessor startProcessor;
+        StarGroupResult sg = startProcessor.groupProcessor(starGroupView);
+
+        if(sg.unknown){
+          logger.log(
+            LogLevel::Info,
+            "發現未在處裡名單上之星號群組 : " + 
+            sg.unknownGroupName +
+            " 已清理"
+          );
+        }
+
+        if(sg.text){
+          result.append(*sg.text);
+        }
+        
+        
         i = j - 1;
         continue;
       }
@@ -849,80 +814,7 @@ std::string textRtfProcessor::replaceSemanticControls(std::string_view target){
   return result;
 }
 
-// 此函式是給外部用的公開函式
-std::string textRtfProcessor::removeIgnorableDestinations(std::string_view rtf){
-  std::string result;
-  result.reserve(rtf.size());
 
-  const std::string target = "{\\*\\";
-  const std::string imgMarker = "@@RTF_IMAGE";
-  const std::string imgtail = "@@";
-  auto findGroupEnd = [](std::string_view s, size_t start) -> size_t {
-    int depth = 1;
-    size_t j = start + 1;
-
-    while (j < s.size() && depth > 0) {
-      char c = s[j];
-
-      if (c == '\\' && j + 1 < s.size()) {
-        j += 2;
-        continue;
-      }
-
-      if (c == '{') {
-        ++depth;
-      } else if (c == '}') {
-        --depth;
-      }
-
-      ++j;
-    }
-
-    if (depth == 0) {
-      return j;
-    }
-
-    return std::string_view::npos;
-  };
-    
-  for (size_t i = 0; i < rtf.size(); ++i) {
-    if (i + target.size() <= rtf.size() &&
-          rtf.compare(i, target.size(), target) == 0)
-    {
-      size_t groupEnd = findGroupEnd(rtf,i);
-
-      if(groupEnd != std::string_view::npos){
-        std::string_view groupView{rtf.data() + i,groupEnd - i};
-
-        size_t markerPos = groupView.find(imgMarker);
-
-        if(markerPos != std::string_view::npos){
-          size_t markerStart = i + markerPos;
-          size_t markerTail  = groupView.find(imgtail,markerPos+imgMarker.size());
-          size_t markerEnd;
-          if(markerTail != std::string_view::npos){
-            markerTail += imgtail.size();
-            markerEnd = i + markerTail;
-          }else{
-            markerEnd = std::string_view::npos;
-          }
-          
-          if (markerEnd != std::string_view::npos && markerEnd <= groupEnd)
-          {
-            result.append(rtf.data() + markerStart,markerEnd - markerStart);
-          }
-        }
-
-        i = groupEnd - 1;
-        continue;
-      }
-    }
-
-    result.push_back(rtf[i]);
-  }
-
-  return result;
-}
 void textRtfProcessor::notify(const ProgressEvent& event){
   if(observer_){
     observer_->onEvent(event);

@@ -30,13 +30,14 @@ class textRtfProcessor{
   enum class GroupDecision{
     Drop,
     KeepText,
-    KeepAll
+    KeepAll,
+    Field,
+    Start
   };
   IProgressObserver* observer_ = nullptr;
 public:
   explicit textRtfProcessor(IProgressObserver* observer = nullptr) : observer_(observer) {}
   void Processor(std::string& Cleaned,logSystem& logger);
-  std::string removeIgnorableDestinations(std::string_view rtf);
 private:
   inline bool checkAsciiScope(const std::string& text, size_t pos ,size_t len,bool tailOnly = false);
   inline bool isControlCharacter(char c);
@@ -45,16 +46,15 @@ private:
   inline bool isHex(char c);
   bool hasVisibleText(std::string_view g);
   GroupDecision classifyGroup(std::string_view group);
-  void controlGroupProcessor(std::string& Cleaned);
+  void controlGroupProcessor(std::string& Cleaned,logSystem& logger);
   void finalRtfSymbolClean(std::string& Cleaned);
   void compressBlankLines(std::string& Cleaned,int maxBlankLines);
   void removeOuterBraces(std::string& Cleaned);
   void trimLeadingNewlines(std::string& Cleaned);
   void removeProtectionSymbol(std::string& Cleaned);
-  void replaceShapeGroupsWithImageMarkers(std::string& rtf);
   bool isSkippableRtfEscape(const std::string& s, size_t pos);
   std::string replaceSemanticControls(std::string_view target);
-  std::string processGroupInner(std::string_view g);
+  std::string processGroupInner(std::string_view g,logSystem& logger);
   void notify(const ProgressEvent& event);
   std::string extractFldResultText(std::string_view fieldGroup);
   std::string cleanRtfControlWordsButKeepSemantic(std::string_view input);

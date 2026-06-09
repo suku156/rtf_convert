@@ -19,6 +19,7 @@ add_library(rtfcore
     Task_Module/ConversionTaskBuilder.cpp
     SheetProcessor_Module/SheetProcessor.cpp
     RtfGroupProcessor_Module/FieldGroupProcessor.cpp
+    RtfGroupProcessor_Module/StartDestinationProcessor.cpp
 )
 
 target_include_directories(rtfcore PUBLIC 
