@@ -14,18 +14,11 @@ StarGroupResult StartGroupProcessor::groupProcessor(std::string_view group){
     startResult.unknownGroupName = "Not Star Group";
     return startResult;
   }
-  // 看看是否是在黑名單中
-  if(isKnownDroppableGroup(group)){
-    return startResult;
-  }
-  // 如果是在白名單中就進行清理已找出訊息
-  if(isKnownTextCarrierGroup(group)){
-    startResult.text = extractVisibleText(group);
-    return startResult;
-  }
-
+  
   startResult.unknown = true;
   startResult.unknownGroupName = findStartGroupName(group);
+
+  startResult.text = extractVisibleText(group);
 
   return startResult;
 }
@@ -34,29 +27,7 @@ bool StartGroupProcessor::start_with(std::string_view s,std::string_view prefix)
     return s.size() >= prefix.size() &&
            s.compare(0,prefix.size(),prefix) == 0;
 }
-// 特定可忽略之開頭群組清單
-bool StartGroupProcessor::isKnownDroppableGroup(std::string_view g){
-    return start_with(g, "{\\*\\generator")     ||
-           start_with(g, "{\\*\\userprops")     ||
-           start_with(g, "{\\*\\docvar")        ||
-           start_with(g, "{\\*\\xmlnstbl")      ||
-           start_with(g, "{\\*\\datastore")     ||
-           start_with(g, "{\\*\\latentstyles")  ||
-           start_with(g, "{\\*\\listtable")     ||
-           start_with(g, "{\\*\\listoverridetable") ||
-           start_with(g, "{\\*\\rsidtbl")       ||
-           start_with(g, "{\\*\\revtbl")        ||
-           start_with(g, "{\\*\\pgptbl")        ||
-           start_with(g, "{\\*\\colorschememapping") ||
-           start_with(g, "{\\*\\themedata")     ||
-           start_with(g, "{\\*\\picprop")       ||
-           start_with(g, "{\\*\\blipuid")       ||
-           start_with(g, "{\\*\\datafield");
-}
-// 特定需處裡之開頭群組清單
-bool StartGroupProcessor::isKnownTextCarrierGroup(std::string_view g){
-    return start_with(g, "{\\*\\nesttableprops");
-}
+
 // 對特定之群組進行清理
 std::string StartGroupProcessor::extractVisibleText(std::string_view g){
   std::string out;

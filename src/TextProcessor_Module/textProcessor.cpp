@@ -256,22 +256,32 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
 
       if(c < 0x80 && c == '{'){
         size_t controlPos = i + 1;
+        
         while (controlPos < Cleaned.size() &&
                std::isspace(static_cast<unsigned char>(Cleaned[controlPos]))) {
           ++controlPos;
+        }
+        
+        if (controlPos >= Cleaned.size()) {
+          ++i;
+          continue;
         }  
+        
         unsigned char c1 = static_cast<unsigned char>(Cleaned[controlPos]);
+        
         if(c1 < 0x80 && c1 == '\\'){
+          size_t end = i;
+          int depth = 0;
+          bool closed = false;
           
-          size_t end = i+2;
-          int depth = 1;
-          
-          while(end < Cleaned.size() && depth > 0){
+          while(end < Cleaned.size()){
             unsigned char ec = static_cast<unsigned char>(Cleaned[end]);
             // 跳過 escaped brace，例如 \{ 或 \}
             // 跳過 escaped brace，例如 \{ 或 \}
             if(ec == '\\' && end + 1 < Cleaned.size() &&
-              (Cleaned[end + 1] == '{' || Cleaned[end + 1] == '}'))
+              (Cleaned[end + 1] == '{' || 
+               Cleaned[end + 1] == '}' || 
+               Cleaned[end +1] == '\\'))
             {
               end += 2;
               continue;
@@ -281,16 +291,23 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
               ++depth;
             }else if(ec < 0x80 && ec == '}'){
               --depth;
+              
+              if(depth == 0){
+                end++;
+                closed = true;
+                break;
+              }
             }
             end++;
           }
           
-          if(depth != 0){
+          if(!closed){
             notify(ProgressEvent{
               ProgressEventType::Warning,
               L"檔案中有大括號不平衡導致無法正確清理全部控制符"
             });
-            return;
+            i++;
+            continue;
           }
          
           //偵測有無圖片標記符 要特別處理
@@ -314,6 +331,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
          
           // 需要增加判斷來表是可不可以跳過
           std::string_view innerView{Cleaned.data()+ i ,end - i};
+            
           switch(classifyGroup(innerView)){
             case GroupDecision::Drop :
               i = end;
@@ -355,11 +373,11 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
                   " 已清理"
                 );
               }
-
+              
               if(sg.text){
                 result.append(*sg.text);
               }
-
+              
               i = end;
               continue;
             }
@@ -549,57 +567,30 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
   return false;
 }
 
-// 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組
+// 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組 與 field 群組
 std::string textRtfProcessor::processGroupInner(std::string_view g,logSystem& logger){
-  constexpr std::string_view fieldTarget = "\\field"; 
-  if(g.size() >= fieldTarget.size() &&
-     g.compare(0, fieldTarget.size(), fieldTarget) == 0)
-  {
-    return extractFldResultText(g);
+  std::string mid;
+  if(g.find("{\\field") != std::string_view::npos){
+    mid = processFieldGroup(g);
+  }else{
+    mid.assign(g.begin(), g.end());
   }
   
   std::string result;
-  constexpr std::string_view target = "{\\*\\";
+  result.reserve(mid.size());
   
-  result.reserve(g.size());
-
-  for(size_t i =0;i<g.size();i++){
-    if(i+ target.size() <= g.size() &&
-       g.compare(i,target.size(),target) == 0)
+  constexpr std::string_view target = "{\\*\\";
+  StartGroupProcessor startProcessor;
+ 
+  for(size_t i =0;i < mid.size();){
+    if(i+ target.size() <= mid.size() &&
+       mid.compare(i,target.size(),target) == 0)
     {
-      int depth = 0;
-      size_t j = i;
-      bool closed = false;
+      size_t j = findGroupEnd(mid,i);
 
-      while(j < g.size()){
-        char c = g[j];
+      if(j != std::string_view::npos){
+        std::string_view starGroupView(mid.data() + i , j -i);
         
-        if(c == '\\' && j + 1 < g.size() &&
-                   (g[j + 1] == '{' ||
-                    g[j + 1] == '}' ||
-                    g[j + 1] == '\\'))
-        {
-          j += 2;
-          continue;
-        }
-        
-        if(c == '{'){
-          depth++;
-        }else if( c == '}'){
-          depth--;
-        }
-        
-        j++;
-        
-        if(depth == 0){
-          closed = true;
-          break;
-        } 
-      }
-
-      if(closed){
-        std::string_view starGroupView = g.substr(i, j - i);
-        StartGroupProcessor startProcessor;
         StarGroupResult sg = startProcessor.groupProcessor(starGroupView);
 
         if(sg.unknown){
@@ -616,18 +607,15 @@ std::string textRtfProcessor::processGroupInner(std::string_view g,logSystem& lo
         }
         
         
-        i = j - 1;
+        i = j;
         continue;
       }
-     
-      result.push_back(g[i]);
-      continue;
     }
-    result.push_back(g[i]); 
+    result.push_back(mid[i]);
+    i++; 
   }
 
   std::string tmp = cleanRtfControlWordsButKeepSemantic(result);
-
   return replaceSemanticControls(tmp);
 }
 
@@ -700,61 +688,44 @@ std::string textRtfProcessor::cleanRtfControlWordsButKeepSemantic(std::string_vi
 
   return result;
 }
+// 在一般群組開頭的情況下清理其中的 field 群組
+std::string textRtfProcessor::processFieldGroup(std::string_view input){
+  std::string result;
+  result.reserve(input.size());
 
-std::string textRtfProcessor::extractFldResultText(std::string_view fieldGroup){
-  constexpr std::string_view target = "{\\fldrslt";
+  constexpr std::string_view target = "{\\field";
+  fieldGroupProcessor processor;
 
-  size_t pos = fieldGroup.find(target);
-  if(pos == std::string_view::npos){
-    return {};
-  }
+  auto isControlEnd = [](std::string_view s, size_t pos) -> bool {
+    return pos >= s.size() ||
+           (!std::isalpha(static_cast<unsigned char>(s[pos])) &&
+            !std::isdigit(static_cast<unsigned char>(s[pos])));
+  };
 
-  size_t j = pos;
-  int depth = 0;
-  bool closed = false;
-
-  while(j < fieldGroup.size()){
-    char c = fieldGroup[j];
-
-    if(c == '\\' && j + 1 < fieldGroup.size() &&
-       (fieldGroup[j + 1] == '{' ||
-        fieldGroup[j + 1] == '}' ||
-        fieldGroup[j + 1] == '\\'))
+  for(size_t i = 0;i < input.size();){
+    if(i+ target.size() <= input.size() &&
+       input.compare(i,target.size(),target) == 0 &&
+       isControlEnd(input, i + target.size()))
     {
-      j += 2;
-      continue;
+      size_t j = findGroupEnd(input,i);
+      
+      if(j != std::string_view::npos){
+        std::string_view innerView = input.substr(i,j - i);
+        
+        if (auto text = processor.groupProcessor(innerView)) {
+          result.append(*text);
+        }
+
+        i = j;
+        continue;
+      }
     }
-
-    if(c == '{'){
-      ++depth;
-    }else if(c == '}'){
-       --depth;
-    }
-
-    ++j;
-
-    if(depth == 0){
-      closed = true;
-      break;
-    }
+    
+    result.push_back(input[i]);
+    i++;
   }
 
-  if(!closed){
-    return {};
-  }
-
-  size_t realStart = pos + target.size();
-
-  if(j <= realStart + 1){
-    return {};
-  }
-
-  auto bodyView = fieldGroup.substr(realStart, j - realStart - 1);
-  if(!bodyView.empty() && bodyView.front() == ' '){
-    bodyView.remove_prefix(1);
-  }
-  
-  return std::string(bodyView);
+  return result;
 }
 
 // processGroupInner 函式清理完後檢查並替換關鍵控制符
@@ -819,4 +790,41 @@ void textRtfProcessor::notify(const ProgressEvent& event){
   if(observer_){
     observer_->onEvent(event);
   }
+}
+
+size_t textRtfProcessor::findGroupEnd(std::string_view group,size_t pos){
+  
+  if(pos >= group.size() || group[pos] != '{'){
+    return std::string_view::npos;
+  }
+  
+  size_t end = pos;
+  int depth = 0;
+  while(end < group.size()){
+    char c = group[end];
+
+    if(c == '\\' && end + 1 < group.size()) {
+      char next = group[end + 1];
+      if (next == '{' || next == '}' || next == '\\') {
+        end += 2;
+        continue;
+      }
+    }
+    
+    if(c == '{'){
+      depth++;
+    }
+    else if(c == '}'){
+      depth--;
+      if(depth == 0){
+        return end + 1; // 群組後一格
+      }
+      if(depth < 0){
+        return std::string_view::npos;// 群組不平衡
+      }
+    }
+    end++;
+  }
+
+  return std::string_view::npos;
 }

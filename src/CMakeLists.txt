@@ -20,6 +20,7 @@ add_library(rtfcore
     SheetProcessor_Module/SheetProcessor.cpp
     RtfGroupProcessor_Module/FieldGroupProcessor.cpp
     RtfGroupProcessor_Module/StartDestinationProcessor.cpp
+    RtfGroupProcessor_Module/RtfPreProcessor.cpp
 )
 
 target_include_directories(rtfcore PUBLIC 

@@ -56,6 +56,7 @@ private:
   std::string replaceSemanticControls(std::string_view target);
   std::string processGroupInner(std::string_view g,logSystem& logger);
   void notify(const ProgressEvent& event);
-  std::string extractFldResultText(std::string_view fieldGroup);
+  std::string processFieldGroup(std::string_view input);
   std::string cleanRtfControlWordsButKeepSemantic(std::string_view input);
+  size_t findGroupEnd(std::string_view group,size_t pos);
 };

@@ -8,14 +8,6 @@
 #include <iostream>
 #include <fstream>
 
-/*
-void dumpStringViewToFile(std::string_view sv, const std::string& path)
-{
-  std::ofstream out(path, std::ios::binary);
-  if(!out) return;
-  out.write(sv.data(), static_cast<std::streamsize>(sv.size()));
-}
-*/
 std::optional<std::string> fieldGroupProcessor::groupProcessor(std::string_view group){
   // 先確認目標是否為正確群組
   constexpr std::string_view targetHead = "{\\field";

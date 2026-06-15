@@ -29,8 +29,6 @@ public:
   StarGroupResult groupProcessor(std::string_view group);
 private:
   bool start_with(std::string_view s,std::string_view prefix);
-  bool isKnownDroppableGroup(std::string_view g);
-  bool isKnownTextCarrierGroup(std::string_view g);
   std::string extractVisibleText(std::string_view g);
   std::string findStartGroupName(std::string_view g);
 };

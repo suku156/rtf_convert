@@ -19,6 +19,7 @@
 #include "Feedback_Module/ProgressEvent.h"
 #include "Feedback_Module/IProgressObserver.h"
 #include "SheetProcessor_Module/SheetProcessor.h"
+#include "RtfGroupProcessor_Module/RtfPreProcessor.h"
 #include<filesystem>
 #include<optional>
 #include<iostream>
@@ -272,6 +273,10 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     sheetProcessor sheetprocessor;
     sheetprocessor.processor(rtfContent);
 
+    // 進行解讀前的純控制群組處理與篩選
+    RtfPreProcessor rtfPreProcessor(logger);
+    rtfContent = rtfPreProcessor.process(rtfContent);
+
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"開始嘗試解碼訊息"
@@ -414,9 +419,9 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
  
-    //output << rtfContent;
+    output << rtfContent;
     
-    
+    /*
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -451,7 +456,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       processresult = ProcessResult::Failed;
       return processresult;
     }
-    
+    */
     
     notify(ProgressEvent{
       ProgressEventType::Info,
