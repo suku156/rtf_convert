@@ -18,7 +18,7 @@
 #include "MainProcess_Module/FileProcessRequest.h"
 #include "Feedback_Module/ProgressEvent.h"
 #include "Feedback_Module/IProgressObserver.h"
-#include "SheetProcessor_Module/SheetProcessor.h"
+#include "RtfTableProcessor_Module/RtfTablePreProcessor.h"
 #include "RtfGroupProcessor_Module/RtfPreProcessor.h"
 #include<filesystem>
 #include<optional>
@@ -268,8 +268,8 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
     }
   
-    //表格區塊處裡
-    logger.log(LogLevel::Info,"處裡表格區塊");
+    //表格區塊需要的預先處裡
+    logger.log(LogLevel::Info,"處裡表格區塊預先處理的部份");
     sheetProcessor sheetprocessor;
     sheetprocessor.processor(rtfContent);
 
@@ -419,9 +419,9 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
  
-    output << rtfContent;
+    //output << rtfContent;
     
-    /*
+    
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -456,7 +456,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       processresult = ProcessResult::Failed;
       return processresult;
     }
-    */
+    
     
     notify(ProgressEvent{
       ProgressEventType::Info,

@@ -1,8 +1,8 @@
 ﻿// =====================================================
-// Module : SheetProcessor (implementation)
+// Module : RtfTablePreProcessor (implementation)
 // =====================================================
 
-#include "SheetProcessor.h"
+#include "RtfTablePreProcessor.h"
 #include "RtfGroupProcessor_Module/FieldGroupProcessor.h"
 #include <string>
 #include <string_view>
@@ -10,6 +10,182 @@
 #include <cstddef>
 #include <cctype>
 #include <optional>
+#include <array>
+
+// 與表格先關的控制符名單與轉換成的標記符相關
+// 固定資訊控制符: \cell \row.... 等不含數字資訊之控制符
+// 非固定資訊控制符 : \cellxN.... 等含有數字資訊之控制符
+namespace{
+  
+  bool isControlEnd(std::string_view s,size_t pos){
+    return pos >= s.size() ||
+           !std::isalpha(static_cast<unsigned char>(s[pos]));
+  }
+  // 用於辨別如何處裡的共用 enum (固定/非固定 控制符共用)
+  enum class TableCtrlKind{
+    Cell,
+    Row,
+    Clmgf,
+    Clmrg,
+    LastRow,
+    TrHdr,
+    NestCell,
+    NestRow,
+
+    Cellx,
+    Itap,
+    Trleft,
+
+    Unknown
+  };
+  // 規格表結構 (固定資訊控制符使用)
+  struct TableCtrl{
+    // 目標控制符名稱
+    std::string_view word; 
+    // 對應之 enum
+    TableCtrlKind kind;
+    // 控制符對應之標記符
+    std::string_view marker;
+  };
+  // 主要使用的規格表 (固定資訊控制符使用)
+  constexpr std::array<TableCtrl,8> tableCtrls{
+    {
+      {"cell", TableCtrlKind::Cell, "@@RTF_TABLE_CELL@@"},
+      {"row",  TableCtrlKind::Row , "@@RTF_TABLE_ROW@@"},
+      {"clmgf", TableCtrlKind::Clmgf, "@@RTF_TABLE_CLMGF@@"},
+      {"clmrg", TableCtrlKind::Clmrg, "@@RTF_TABLE_CLMRG@@"},
+      {"lastrow", TableCtrlKind::LastRow, "@@RTF_TABLE_LASTROW@@"},
+      {"trhdr",   TableCtrlKind::TrHdr,   "@@RTF_TABLE_TRHDR@@"},
+      {"nestcell", TableCtrlKind::NestCell, "@@RTF_TABLE_NESTCELL@@"},
+      {"nestrow",  TableCtrlKind::NestRow,  "@@RTF_TABLE_NESTROW@@"}
+    }
+  };
+  // 規格表結構 (非固定資訊控制符使用)
+  struct NumericTableCtrl {
+    // 目標控制符名稱
+    std::string_view word;
+    // 對應之 cnum
+    TableCtrlKind kind;
+    // 對應標記符之開頭
+    std::string_view markerPrefix;
+    // 對應標記符之結尾
+    std::string_view markerSuffix;
+  };
+  // 主要使用的規格表 (非固定資訊控制符使用)
+  constexpr std::array<NumericTableCtrl,3> numericTableCtrls{
+    {
+      {"cellx", TableCtrlKind::Cellx, "@@RTF_TABLE_CELLX:", "@@"},
+      {"itap" , TableCtrlKind::Itap , "@@RTF_TABLE_ITAP:" , "@@"},
+      {"trleft",TableCtrlKind::Trleft,"@@RTF_TABLE_TRLEFT:","@@"}
+    }
+  };
+  // 辨別函式使用之回傳結構 (固定/非固定 控制符共用)
+  struct TableCtrlMatch{
+    TableCtrlKind kind = TableCtrlKind::Unknown;
+
+    std::string_view word;
+    std::string marker;
+    
+    size_t end;
+  };
+  // 固定控制符判斷函式
+  std::optional<TableCtrlMatch> matchFixedTableControl(std::string_view s, size_t pos){
+    if(pos >= s.size() || s[pos] != '\\'){
+      return std::nullopt;
+    }
+
+    for(const TableCtrl& ctrl : tableCtrls){
+      size_t len = ctrl.word.size();
+      size_t end = pos + 1 + len;
+
+      if(end <= s.size() &&
+         s.compare(pos +1,len,ctrl.word) == 0 &&
+         isControlEnd(s,end))
+      {
+        return TableCtrlMatch{
+          ctrl.kind,
+          ctrl.word,
+          std::string{ctrl.marker},
+          end
+        };
+      }
+    }
+
+    return std::nullopt;
+  }
+  // 非固定控制符判斷函式
+  std::optional<TableCtrlMatch> matchNumericTableControl(std::string_view s, size_t pos){
+    if(pos >= s.size() || s[pos] != '\\'){
+      return std::nullopt;
+    }
+
+    for(const NumericTableCtrl& numCtrl : numericTableCtrls){
+      size_t len = numCtrl.word.size();
+      size_t nameEnd = pos + 1 + len;
+      
+      if(nameEnd <= s.size() &&
+         s.compare(pos +1,len,numCtrl.word) == 0)
+      {
+        size_t numStart = nameEnd;
+        size_t end = numStart;
+
+        if(numCtrl.kind == TableCtrlKind::Trleft &&
+           end < s.size() && 
+           s[end] == '-'){
+          end++;
+        }
+        
+        size_t digitStart = end;
+      
+        while(end < s.size() &&
+              std::isdigit(static_cast<unsigned char>(s[end])))
+        {
+          end++;
+        }
+
+        if(end == digitStart){
+          return std::nullopt;
+        }
+
+        if(!isControlEnd(s,end)){
+          return std::nullopt;
+        }
+
+        std::string_view numStr{s.substr(numStart,end - numStart)};
+        
+        std::string marker;
+        marker.reserve(numCtrl.markerPrefix.size() + 
+                       numStr.size() + 
+                       numCtrl.markerSuffix.size());
+        
+        marker.append(numCtrl.markerPrefix);
+        marker.append(numStr);
+        marker.append(numCtrl.markerSuffix);
+
+        return TableCtrlMatch{
+          numCtrl.kind,
+          numCtrl.word,
+          marker,
+          end
+        };
+      }
+    }
+
+    return std::nullopt;
+  }
+  // 判斷並回傳結構用的函式
+  std::optional<TableCtrlMatch> matchTableControl(std::string_view s,size_t pos){
+    if (auto m = matchFixedTableControl(s, pos)) {
+      return m;
+    }
+
+    if(auto m = matchNumericTableControl(s,pos)){
+      return m;
+    }
+
+    return std::nullopt;
+  }
+}
 
 void sheetProcessor::processor(std::string& rtfContent){
   std::vector<sheetScope> pending;
@@ -64,34 +240,47 @@ void sheetProcessor::processor(std::string& rtfContent){
     bool foundRow = false;
 
     for(size_t j = i + match->targetSize; j < rtfContent.size();j++){
-      // 處裡在外面的 \row 控制符狀況
-      if(j + 4 <= rtfContent.size() && 
-         rtfContent.compare(j,4,"\\row") == 0 &&
-         isControlEnd(rtfContent,j+4))
-      {
-        sheetscope.newsheetStr_.append("@@RTF_TABLE_ROW@@");
-        size_t rowEnd = j + 4;
+      if(auto m = matchTableControl(rtfContent,j)){
+        switch(m->kind){
+          case TableCtrlKind::Cell:
+          case TableCtrlKind::Cellx :
+          case TableCtrlKind::Clmgf :
+          case TableCtrlKind::Clmrg :
+          case TableCtrlKind::LastRow :
+          case TableCtrlKind::TrHdr :
+          case TableCtrlKind::NestCell:
+          case TableCtrlKind::NestRow:
+          case TableCtrlKind::Itap:
+          case TableCtrlKind::Trleft:
+          sheetscope.newsheetStr_.append(m->marker);
+          j = (m->end - 1); // 迴圈會自動在+1
+          continue;
+          
+          case TableCtrlKind::Row :
+          {
+            sheetscope.newsheetStr_.append(m->marker);
+            size_t rowEnd = m->end;
 
-        if(startedFromGroup &&
-           defaultEnd != std::string_view::npos &&
-           defaultEnd > rowEnd)
-        {
-          sheetscope.sheetend_ = defaultEnd;
-        }else{
-          sheetscope.sheetend_ = rowEnd;
+            if(startedFromGroup &&
+              defaultEnd != std::string_view::npos &&
+              defaultEnd > rowEnd)
+            {
+              sheetscope.sheetend_ = defaultEnd;
+            }else{
+              sheetscope.sheetend_ = rowEnd;
+            }
+            
+            foundRow = true;
+            break;
+          }
+
+          default: break;
+         
         }
-        
-        foundRow = true;
-        break;
       }
-      // 處裡在外面的 \cell 控制符狀況 
-      if(j + 5 <= rtfContent.size() &&
-         rtfContent.compare(j,5,"\\cell") == 0 &&
-         isControlEnd(rtfContent,j+5))
-      {
-        sheetscope.newsheetStr_.append("@@RTF_TABLE_CELL@@");
-        j += 4;
-        continue;
+
+      if(foundRow){
+        break;
       }
 
       // 處理再表格範圍內會遇到的群組情況
@@ -269,9 +458,6 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
   token.text.reserve(groupView.size());
   token.type = TableTokenType::text;// 預設是文字
 
-  constexpr std::string_view ROWMARK = "\\row";
-  constexpr std::string_view CELLMARK = "\\cell";
-
   auto skipControlDelimiter = [](std::string_view s, size_t& i) {
     while (i + 1 < s.size() &&
            (s[i + 1] == ' ' || s[i + 1] == '\r' || s[i + 1] == '\n')) {
@@ -280,33 +466,41 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
   };
 
   for(size_t i = 0;i<groupView.size();i++){
-    
-    if(i + 4 <= groupView.size() && 
-       groupView.compare(i,ROWMARK.size(),ROWMARK) == 0 &&
-       isControlEnd(groupView,i + ROWMARK.size()))
-    {
-      token.hasRow = true;
-      token.type = TableTokenType::row;
-      token.text += "@@RTF_TABLE_ROW@@";
-      
-      i += (ROWMARK.size() -1); // 迴圈會自己 +1 所以這裡 -1
-      skipControlDelimiter(groupView,i);//吃掉關鍵控制符號方的空格
+    if(auto m = matchTableControl(groupView,i)){
+      switch(m->kind){
+        case TableCtrlKind::Cell:
+        token.hasCell = true;
+        token.type = TableTokenType::cell;
+        token.text += m->marker;
+        i = m->end -1;
+        skipControlDelimiter(groupView,i);//吃掉關鍵控制符後方的空格
+        continue;
 
-      continue;
-    }
+        case TableCtrlKind::Row:
+        token.hasRow = true;
+        token.type = TableTokenType::row;
+        token.text += m->marker;
+        i = m->end -1;
+        skipControlDelimiter(groupView,i);//吃掉關鍵控制符後方的空格
+        continue;
 
-    if(i + 5 <= groupView.size() &&
-       groupView.compare(i,CELLMARK.size(),CELLMARK) == 0 &&
-       isControlEnd(groupView,i + CELLMARK.size()))
-    {
-      token.hasCell = true;
-      token.type = TableTokenType::cell;
-      token.text += "@@RTF_TABLE_CELL@@";
-      
-      i += (CELLMARK.size() -1); // 迴圈會自己 +1 所以這裡 -1
-      skipControlDelimiter(groupView,i);//吃掉關鍵控制符號方的空格
-      
-      continue;
+        case TableCtrlKind::Cellx :
+        case TableCtrlKind::Clmgf :
+        case TableCtrlKind::Clmrg :
+        case TableCtrlKind::LastRow:
+        case TableCtrlKind::TrHdr:
+        case TableCtrlKind::NestCell:
+        case TableCtrlKind::NestRow:
+        case TableCtrlKind::Itap:
+        case TableCtrlKind::Trleft:
+        token.text += m->marker;
+        i = m->end -1;
+        skipControlDelimiter(groupView,i);//吃掉關鍵控制符後方的空格
+        continue;
+
+        default :
+        break;
+      }  
     }
 
     char c = groupView[i];

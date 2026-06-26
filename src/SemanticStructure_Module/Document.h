@@ -46,6 +46,50 @@ public:
   const std::optional<ImageMarkerInfo>& imageMark() const;
 };
 
+// 存放表格區類似一格(最小結構單位)的資訊結構
+class TableCell{
+  std::string text_;
+  bool mergeStart_ = false;
+  bool merged_ = false;
+public :
+  explicit TableCell(std::string text = {}) : text_(std::move(text)){}
+  void setMergeStart(bool value = true);
+  void setMerged(bool value = true);
+
+  bool isMergeStart() const;
+  bool isMerged() const;
+  
+  const std::string& text() const;
+  bool empty() const;
+};
+
+// 存放表格區一列的資訊結構
+class TableRow{
+  int trLeft_ = 0;
+  int itap_ = 1;
+  bool lastRow_ = false;
+  bool headerRow_ = false;
+  std::vector<TableCell> cells_;
+  std::vector<int> cellxNum_;
+public:
+  void addCell(TableCell cell);
+  void addCellx(int x);
+  void setTrleft(int left);
+  void setLastRow(bool value = true);
+  void setHeaderRow(bool value = true);
+  void setItap(int value);
+  
+  const std::vector<TableCell>& cells() const;
+  const std::vector<int>& cellxs() const;
+  int trLeft() const;
+  bool isLastRow() const;
+  bool isHeaderRow() const;
+  int Itap() const;
+
+  bool empty() const;
+};
+
+
 // 存放節點用的段落空間繼承之介面
 class Block{
 public:
@@ -70,6 +114,22 @@ public:
   const ImageNode& image() const;
 };
 
+
+// 存放表格專用的段落空間
+class TableBlock : public Block{
+ std::vector<TableRow> rows_;
+public:
+  void addRow(TableRow row);
+  const std::vector<TableRow>& rows() const;
+  bool empty() const;
+};
+
+// 用於回傳 表格段落處裡回傳用的容器
+struct TableBlockResult{
+  TableBlock table;
+  size_t nextPos = 0 ;
+};
+
 // 用來存放各種段落空間的容器
 class Document{
   std::vector<std::unique_ptr<Block>> blocks_;
@@ -86,4 +146,5 @@ public:
   Document build(const std::string& content);
 private:
   std::optional<ImageMarkerInfo> extractImageId(std::string_view text);
+  std::optional<TableBlockResult> parseTableBlock(std::string_view text,size_t pos);
 };

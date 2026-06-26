@@ -15,6 +15,9 @@ void TxtRenderer::render(const Document& Doc , std::ostream& out){
       }else if(auto* img = dynamic_cast<const ImageBlock*>(blk.get())){
         renderImage(*img,out);
         out << "\n";
+      }else if(auto* table = dynamic_cast<const TableBlock*>(blk.get())){
+        renderTable(*table, out);
+        out << "\n";
       }
     }
 }
@@ -36,6 +39,17 @@ void TxtRenderer::renderImage(const ImageBlock& img,std::ostream& out){
       break;
     }
   } 
+}
+void TxtRenderer::renderTable(const TableBlock& table,std::ostream& out){
+  for(const auto& row : table.rows()){
+    out << "|";
+
+    for(const auto& cell : row.cells()){
+      out << " " << cell.text() << " |";
+    }
+
+    out << "\n";
+  }
 }
 
 // MD 類型的函式定義

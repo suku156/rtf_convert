@@ -17,7 +17,7 @@ add_library(rtfcore
     thread_Moudle/MyThread.cpp
     I_O_Moudle/OutputPathResolver.cpp
     Task_Module/ConversionTaskBuilder.cpp
-    SheetProcessor_Module/SheetProcessor.cpp
+    RtfTableProcessor_Module/RtfTablePreProcessor.cpp
     RtfGroupProcessor_Module/FieldGroupProcessor.cpp
     RtfGroupProcessor_Module/StartDestinationProcessor.cpp
     RtfGroupProcessor_Module/RtfPreProcessor.cpp

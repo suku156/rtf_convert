@@ -22,6 +22,7 @@
 class Document;
 class ParagraphBlock;
 class ImageBlock;
+class TableBlock;
 
 // 讀取語意結構用的類別 txt 用
 class TxtRenderer{
@@ -30,6 +31,7 @@ public:
 private:
   void renderParagraph(const ParagraphBlock& p,std::ostream& out);
   void renderImage(const ImageBlock& img,std::ostream& out);
+  void renderTable(const TableBlock& table,std::ostream& out);
 };
 
 // 讀取語意結構用的類別 md 用

@@ -1,16 +1,18 @@
 ﻿// =====================================================
-// Module  : SheetProcessor
+// Module  : RtfTablePreProcessor
 // Author  : suku156
 // Purpose : 用來處理 rtf 內部得表格相關 
-// Layer   : SheetProcessors
+// Layer   : RtfTableProcessor
 //
 // Depend  :
-//   
+//   FieldGroupProcessor
+//
 // Used by :
 //   RTFProcessor   
 //
 // Notes :
-//  　處理　ｒｔｆ　內的表格區塊
+//  　預先處理　ｒｔｆ　內的表格區塊
+//    將重要的控制符替換成標記符以便後續處裡
 // =====================================================
 #pragma once
 #include <string>
@@ -42,6 +44,8 @@ struct TableStartMatch{
    size_t targetSize = 0;
    std::string_view marker;
 };
+
+
 
 class sheetProcessor{
 public:
