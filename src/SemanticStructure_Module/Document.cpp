@@ -29,7 +29,9 @@ namespace{
     NestRow,
     Trhdr,
     Clmgf,
-    Clmrg
+    Clmrg,
+    Clvmgf,
+    Clvmrg
   };
 
   struct MarkerInfo{
@@ -38,7 +40,7 @@ namespace{
     std::optional<int> value = std::nullopt;
   };
 
-  constexpr std::array<MarkerInfo,13> markers{{
+  constexpr std::array<MarkerInfo,15> markers{{
     {MarkerType::TableTrowd, "@@RTF_TABLE_TROWD@@"},
     {MarkerType::TableCell , "@@RTF_TABLE_CELL@@" },
     {MarkerType::TableRow  , "@@RTF_TABLE_ROW@@"  },
@@ -51,7 +53,9 @@ namespace{
     {MarkerType::NestRow   , "@@RTF_TABLE_NESTROW@@"},
     {MarkerType::Trhdr     , "@@RTF_TABLE_TRHDR@@"},
     {MarkerType::Clmgf     , "@@RTF_TABLE_CLMGF@@"},
-    {MarkerType::Clmrg     , "@@RTF_TABLE_CLMRG@@"}
+    {MarkerType::Clmrg     , "@@RTF_TABLE_CLMRG@@"},
+    {MarkerType::Clvmgf    , "@@RTF_TABLE_CLVMGF@@"},
+    {MarkerType::Clvmrg    , "@@RTF_TABLE_CLVMRG@@"}
   }};
 
   std::optional<MarkerInfo> findMarker(std::string_view content, size_t pos) {
@@ -166,25 +170,14 @@ const std::string& TableCell::text() const {
 bool TableCell::empty() const{
   return text_.empty();
 }
-void TableCell::setMergeStart(bool value){
-  mergeStart_ = value;
-}
-void TableCell::setMerged(bool value){
-  merged_ = value;
-}
-bool TableCell::isMergeStart() const{
-  return mergeStart_;
-}
-bool TableCell::isMerged() const{
-  return merged_;
-}
+
 
 // 存放表格區一列的資訊結構(定義)
 void TableRow::addCell(TableCell cell){
   cells_.push_back(std::move(cell));
 }
-void TableRow::addCellx(int x){
-  cellxNum_.push_back(x);
+void TableRow::addCellDef(TableCellDef def){
+  cellDefs_.push_back(def);
 }
 void TableRow::setTrleft(int left){
   trLeft_ = left;
@@ -202,8 +195,8 @@ void TableRow::setItap(int value){
 const std::vector<TableCell>& TableRow::cells() const {
   return cells_;
 }
-const std::vector<int>& TableRow::cellxs() const{
-  return cellxNum_;
+const std::vector<TableCellDef>& TableRow::cellDefs() const{
+  return cellDefs_;
 }
 int TableRow::trLeft() const{
   return trLeft_;
@@ -298,6 +291,8 @@ Document DocumentBuilder::build(const std::string& content){
         case MarkerType::Trhdr:
         case MarkerType::Clmgf:
         case MarkerType::Clmrg:
+        case MarkerType::Clvmgf:
+        case MarkerType::Clvmrg:
         i += marker->text.size();
         break;
 
@@ -416,8 +411,7 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
   TableBlock table;
   TableRow currentRow;
   std::string cellText;
-  bool mergeStart = false;
-  bool merged = false;
+  TableCellDef pendingDef;
 
   for(;i<text.size();){
     auto marker = findMarker(text, i);
@@ -433,16 +427,10 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       {
         TableCell currentCell(std::move(cellText));
 
-        currentCell.setMergeStart(mergeStart);
-        currentCell.setMerged(merged);
-
         currentRow.addCell(std::move(currentCell));
         
         cellText.clear();
 
-        mergeStart = false;
-        merged = false;
-        
         i += marker -> text.size();
         continue;
       } 
@@ -451,15 +439,9 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
         if(!cellText.empty()){
           TableCell currentCell(std::move(cellText));
 
-          currentCell.setMergeStart(mergeStart);
-          currentCell.setMerged(merged);
-
           currentRow.addCell(std::move(currentCell));
           
           cellText.clear();
-
-          mergeStart = false;
-          merged = false;
         }
 
         if(!currentRow.empty()){
@@ -515,20 +497,34 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       }
       case MarkerType::Clmgf:
       {
-        mergeStart = true;
+        pendingDef.mergeStart = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Clmrg:
       {
-        merged = true;
+        pendingDef.merged = true;
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::Clvmgf:
+      {
+        pendingDef.verticalMergeStart = true;
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::Clvmrg:
+      {
+        pendingDef.verticalMerged = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Cellx:
       {
         if(marker->value){
-          currentRow.addCellx(*marker->value);
+          pendingDef.cellx = *marker->value;
+          currentRow.addCellDef(pendingDef);
+          pendingDef = TableCellDef{};
         }
         i += marker ->text.size();
         continue;

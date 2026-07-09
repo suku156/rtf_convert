@@ -31,6 +31,8 @@ namespace{
     TrHdr,
     NestCell,
     NestRow,
+    Clvmgf,
+    Clvmrg,
 
     Cellx,
     Itap,
@@ -48,7 +50,8 @@ namespace{
     std::string_view marker;
   };
   // 主要使用的規格表 (固定資訊控制符使用)
-  constexpr std::array<TableCtrl,8> tableCtrls{
+  // 新增名單後要在 void sheetProcessor::processor(std::string& rtfContent) 裡使用才會生效
+  constexpr std::array<TableCtrl,10> tableCtrls{
     {
       {"cell", TableCtrlKind::Cell, "@@RTF_TABLE_CELL@@"},
       {"row",  TableCtrlKind::Row , "@@RTF_TABLE_ROW@@"},
@@ -57,7 +60,9 @@ namespace{
       {"lastrow", TableCtrlKind::LastRow, "@@RTF_TABLE_LASTROW@@"},
       {"trhdr",   TableCtrlKind::TrHdr,   "@@RTF_TABLE_TRHDR@@"},
       {"nestcell", TableCtrlKind::NestCell, "@@RTF_TABLE_NESTCELL@@"},
-      {"nestrow",  TableCtrlKind::NestRow,  "@@RTF_TABLE_NESTROW@@"}
+      {"nestrow",  TableCtrlKind::NestRow,  "@@RTF_TABLE_NESTROW@@"},
+      {"clvmgf" ,  TableCtrlKind::Clvmgf, "@@RTF_TABLE_CLVMGF@@"},
+      {"clvmrg" ,  TableCtrlKind::Clvmrg, "@@RTF_TABLE_CLVMRG@@"}
     }
   };
   // 規格表結構 (非固定資訊控制符使用)
@@ -72,6 +77,7 @@ namespace{
     std::string_view markerSuffix;
   };
   // 主要使用的規格表 (非固定資訊控制符使用)
+  // 新增名單後要在 void sheetProcessor::processor(std::string& rtfContent) 裡使用才會生效
   constexpr std::array<NumericTableCtrl,3> numericTableCtrls{
     {
       {"cellx", TableCtrlKind::Cellx, "@@RTF_TABLE_CELLX:", "@@"},
@@ -241,6 +247,7 @@ void sheetProcessor::processor(std::string& rtfContent){
 
     for(size_t j = i + match->targetSize; j < rtfContent.size();j++){
       if(auto m = matchTableControl(rtfContent,j)){
+        // 要在此給定 enum 才會加入標記符
         switch(m->kind){
           case TableCtrlKind::Cell:
           case TableCtrlKind::Cellx :
@@ -252,6 +259,8 @@ void sheetProcessor::processor(std::string& rtfContent){
           case TableCtrlKind::NestRow:
           case TableCtrlKind::Itap:
           case TableCtrlKind::Trleft:
+          case TableCtrlKind::Clvmgf:
+          case TableCtrlKind::Clvmrg:
           sheetscope.newsheetStr_.append(m->marker);
           j = (m->end - 1); // 迴圈會自動在+1
           continue;

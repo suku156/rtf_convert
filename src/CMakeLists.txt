@@ -13,6 +13,8 @@ add_library(rtfcore
     SemanticStructure_Module/Document.cpp
     SemanticStructure_Module/Renderer.cpp
     SemanticStructure_Module/TxtTableRenderer.cpp
+    SemanticStructure_Module/MdTableRenderer.cpp
+    SemanticStructure_Module/HtmlTableRenderer.cpp
     MainProcess_Module/RTFProcessor.cpp
     Executor_Module/ConversionExecutor.cpp
     thread_Moudle/MyThread.cpp

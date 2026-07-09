@@ -3,6 +3,8 @@
 // =====================================================
 #include "Renderer.h"
 #include "TxtTableRenderer.h"
+#include "MdTableRenderer.h"
+#include "HtmlTableRenderer.h"
 #include "SemanticStructure_Module/Document.h"
 #include<ostream>
 #include<string>
@@ -58,6 +60,9 @@ void MarkdownRenderer::render(const Document& Doc , std::ostream& out){
       }else if(auto* img = dynamic_cast<const ImageBlock*>(blk.get())){
         renderImage(*img,out);
         out << "\n";
+      }else if(auto* table = dynamic_cast<const TableBlock*>(blk.get())){
+        renderTable(*table, out);
+        out << "\n";
       }
     }
 }
@@ -80,6 +85,9 @@ void MarkdownRenderer::renderImage(const ImageBlock& img,std::ostream& out){
     }
   } 
 }
+void MarkdownRenderer::renderTable(const TableBlock& table,std::ostream& out){
+  md_table::renderTable(table,out);
+}
 
 // Html 類型的函式定義
 void HtmlRenderer::render(const Document& Doc,std::ostream& out){
@@ -87,9 +95,23 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
     out << "<html>\n<head>\n";
     out << "<meta charset=\"utf-8\">\n";
     out << "<style>\n";
+    
     out << ".rtf-paragraph {";
     out << " white-space: pre-wrap;\n";
     out << "}\n";
+
+    out << ".rtf-table {\n";
+    out << "  border-collapse: collapse;\n";
+    out << "}\n";
+
+    out << ".rtf-table td {\n";
+    out << "  border: 1px solid black;\n";
+    out << "  padding: 4px;\n";
+    out << "  height: 24px;\n";
+    out << "  vertical-align: top;\n";
+    out << "  word-break: break-word;\n";
+    out << "}\n";
+
     out << "</style>\n";
     out << "</head>\n<body>\n";
 
@@ -98,6 +120,9 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
         renderParagraph(*p,out);
       }else if(auto* img = dynamic_cast<const ImageBlock*>(blk.get())){
         renderImage(*img,out);
+      }else if(auto* table = dynamic_cast<const TableBlock*>(blk.get())){
+        renderTable(*table, out);
+        out << "\n";
       }
     }
 
@@ -138,4 +163,7 @@ void HtmlRenderer::renderImage(const ImageBlock& img,std::ostream& out){
       out << "</div>\n";
     }
     
+}
+void HtmlRenderer::renderTable(const TableBlock& table,std::ostream& out){
+  html_table::renderTable(table,out);
 }

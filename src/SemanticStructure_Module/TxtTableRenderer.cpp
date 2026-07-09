@@ -6,13 +6,19 @@
 #include "SemanticStructure_Module/Document.h"
 #include<ostream>
 #include<string>
+#include<cstddef>
 #include <utility>
 
 namespace txt_table{
-
   struct CellResult {
     std::string text;
     size_t width = 0;
+
+    size_t leftBoundary = 0;
+    size_t rightBoundary = 0;
+
+    bool verticalMergeStart = false;
+    bool verticalMerged = false;
   };
 
   struct RowResult {
@@ -33,28 +39,38 @@ namespace txt_table{
       RowResult rowResult;
 
       const auto& cells = row.cells();
-      const auto& cellxs = row.cellxs();
+      const auto & cellDefs = row.cellDefs();
 
-      if(!cellxs.empty()){
-        rowResult.rightBoundary = cellxs.back();
+      if(!cellDefs.empty()){
+        rowResult.rightBoundary = cellDefs.back().cellx;
       }
       
       rowResult.cells.reserve(cells.size());
-      int prevCellx = 0;
-      
+      size_t prevCellx = 0;
+
       for(size_t i = 0;i<cells.size();i++){
         CellResult cellResult;
         
+        
         cellResult.text = cells[i].text();
 
-        if(i < cellxs.size()){
-          int currentCellx = cellxs[i];
+        cellResult.leftBoundary =prevCellx;
+
+        if(i < cellDefs.size()){
+          size_t currentCellx = static_cast<size_t>(cellDefs[i].cellx);
+
+          cellResult.rightBoundary = currentCellx;
           cellResult.width = currentCellx - prevCellx;
+
           prevCellx = currentCellx;
+
+          cellResult.verticalMergeStart = cellDefs[i].verticalMergeStart;
+          cellResult.verticalMerged = cellDefs[i].verticalMerged;
         }else{
+          cellResult.rightBoundary = prevCellx;
           cellResult.width = 0;
         }
-        
+
         rowResult.cells.push_back(std::move(cellResult));
       }
 
@@ -63,7 +79,6 @@ namespace txt_table{
 
     return tableResult;
   }
-
   // 因應中文 urf8 新增的對應機制函式
   // 計算字串的安全裁減數字
   size_t utf8CharBytes(unsigned char c){

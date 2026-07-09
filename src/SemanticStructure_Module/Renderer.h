@@ -41,6 +41,7 @@ public:
 private:
   void renderParagraph(const ParagraphBlock& p,std::ostream& out);
   void renderImage(const ImageBlock& img,std::ostream& out);
+  void renderTable(const TableBlock& table,std::ostream& out);
 };
 
 // 讀取語意結構用的類別 Html 用
@@ -50,5 +51,6 @@ public:
 private:
   void renderEscapedText(const std::string& text,std::ostream& out);
   void renderParagraph(const ParagraphBlock& p,std::ostream& out);
-  void renderImage(const ImageBlock& img,std::ostream& out); 
+  void renderImage(const ImageBlock& img,std::ostream& out);
+  void renderTable(const TableBlock& table,std::ostream& out); 
 };

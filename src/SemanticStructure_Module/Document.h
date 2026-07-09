@@ -49,18 +49,21 @@ public:
 // 存放表格區類似一格(最小結構單位)的資訊結構
 class TableCell{
   std::string text_;
-  bool mergeStart_ = false;
-  bool merged_ = false;
 public :
   explicit TableCell(std::string text = {}) : text_(std::move(text)){}
-  void setMergeStart(bool value = true);
-  void setMerged(bool value = true);
-
-  bool isMergeStart() const;
-  bool isMerged() const;
-  
+ 
   const std::string& text() const;
   bool empty() const;
+};
+
+// 用來存放與 cell 有關的資訊 cellx ,垂直合併,水平合併等狀態
+struct TableCellDef{
+  int cellx = 0;
+
+  bool mergeStart = false;
+  bool merged = false;
+  bool verticalMergeStart = false;
+  bool verticalMerged = false;
 };
 
 // 存放表格區一列的資訊結構
@@ -69,18 +72,19 @@ class TableRow{
   int itap_ = 1;
   bool lastRow_ = false;
   bool headerRow_ = false;
+  
   std::vector<TableCell> cells_;
-  std::vector<int> cellxNum_;
+  std::vector<TableCellDef> cellDefs_;
 public:
   void addCell(TableCell cell);
-  void addCellx(int x);
+  void addCellDef(TableCellDef def);
   void setTrleft(int left);
   void setLastRow(bool value = true);
   void setHeaderRow(bool value = true);
   void setItap(int value);
   
   const std::vector<TableCell>& cells() const;
-  const std::vector<int>& cellxs() const;
+  const std::vector<TableCellDef>& cellDefs() const;
   int trLeft() const;
   bool isLastRow() const;
   bool isHeaderRow() const;
