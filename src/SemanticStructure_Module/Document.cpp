@@ -31,7 +31,9 @@ namespace{
     Clmgf,
     Clmrg,
     Clvmgf,
-    Clvmrg
+    Clvmrg,
+    TablePar,
+    TableLine
   };
 
   struct MarkerInfo{
@@ -40,14 +42,14 @@ namespace{
     std::optional<int> value = std::nullopt;
   };
 
-  constexpr std::array<MarkerInfo,15> markers{{
+  constexpr std::array<MarkerInfo,17> markers{{
     {MarkerType::TableTrowd, "@@RTF_TABLE_TROWD@@"},
     {MarkerType::TableCell , "@@RTF_TABLE_CELL@@" },
     {MarkerType::TableRow  , "@@RTF_TABLE_ROW@@"  },
     {MarkerType::TableIntbl, "@@RTF_TABLE_INTBL@@"},
     {MarkerType::Image     , "@@RTF_IMAGE"       },
-    {MarkerType::Par       , "@@par@@"            },
-    {MarkerType::Line      , "@@line@@"           },
+    {MarkerType::Par       , "@@par@@"           },
+    {MarkerType::Line      , "@@line@@"          },
     {MarkerType::LastRow   , "@@RTF_TABLE_LASTROW@@"},
     {MarkerType::NestCell  , "@@RTF_TABLE_NESTCELL@@"},
     {MarkerType::NestRow   , "@@RTF_TABLE_NESTROW@@"},
@@ -55,7 +57,9 @@ namespace{
     {MarkerType::Clmgf     , "@@RTF_TABLE_CLMGF@@"},
     {MarkerType::Clmrg     , "@@RTF_TABLE_CLMRG@@"},
     {MarkerType::Clvmgf    , "@@RTF_TABLE_CLVMGF@@"},
-    {MarkerType::Clvmrg    , "@@RTF_TABLE_CLVMRG@@"}
+    {MarkerType::Clvmrg    , "@@RTF_TABLE_CLVMRG@@"},
+    {MarkerType::TablePar  , "@@RTF_TABLE_PAR@@"},
+    {MarkerType::TableLine , "@@RTF_TABLE_LINE@@"}
   }};
 
   std::optional<MarkerInfo> findMarker(std::string_view content, size_t pos) {
@@ -293,6 +297,8 @@ Document DocumentBuilder::build(const std::string& content){
         case MarkerType::Clmrg:
         case MarkerType::Clvmgf:
         case MarkerType::Clvmrg:
+        case MarkerType::TablePar:
+        case MarkerType::TableLine:
         i += marker->text.size();
         break;
 
@@ -408,10 +414,25 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
 
   i += first->text.size();
 
+ 
+
   TableBlock table;
   TableRow currentRow;
   std::string cellText;
   TableCellDef pendingDef;
+
+  // 避免連續換行被重複塞入
+  auto appendCellNewline = [&]() {
+    if (!cellText.empty() && cellText.back() != '\n') {
+      cellText.push_back('\n');
+    }
+  };
+  // 結尾檢查
+  auto trimTrailingNewline = [](std::string& s) {
+    while (!s.empty() && s.back() == '\n') {
+      s.pop_back();
+    }
+  };
 
   for(;i<text.size();){
     auto marker = findMarker(text, i);
@@ -425,10 +446,9 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
     switch(marker -> type){
       case MarkerType::TableCell : 
       {
+        trimTrailingNewline(cellText);
         TableCell currentCell(std::move(cellText));
-
         currentRow.addCell(std::move(currentCell));
-        
         cellText.clear();
 
         i += marker -> text.size();
@@ -437,10 +457,9 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       case MarkerType::TableRow :
       {
         if(!cellText.empty()){
+          trimTrailingNewline(cellText);
           TableCell currentCell(std::move(cellText));
-
           currentRow.addCell(std::move(currentCell));
-          
           cellText.clear();
         }
 
@@ -466,13 +485,6 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       case MarkerType::TableIntbl:
       {
         i += marker -> text.size();
-        continue;
-      }
-      case MarkerType::Line:
-      case MarkerType::Par:
-      {
-        cellText.push_back('\n');
-        i += marker->text.size();
         continue;
       }
       case MarkerType::LastRow:
@@ -545,6 +557,15 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
         i += marker ->text.size();
         continue;
       }
+      case MarkerType::TablePar:
+      case MarkerType::TableLine:
+      case MarkerType::Par:
+      case MarkerType::Line:
+      {
+        appendCellNewline();
+        i += marker ->text.size();
+        continue;
+      }
       default :
       {
         if(!table.empty()){
@@ -556,6 +577,7 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
   }
 
   if(!cellText.empty()){
+    trimTrailingNewline(cellText);
     currentRow.addCell(TableCell(std::move(cellText)));
   }
 

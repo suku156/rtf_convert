@@ -92,6 +92,7 @@ namespace html_table{
         case '>': out << "&gt;"; break;
         case '"': out << "&quot;"; break;
         case '\'': out << "&#39;"; break;
+        case '\n': out << "<br>\n"; break;
         default: out << c; break;
         }
     }

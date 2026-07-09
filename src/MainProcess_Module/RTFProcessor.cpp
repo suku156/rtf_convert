@@ -358,7 +358,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
         return processresult;
       }
     }
-
+    
     // 處裡群組
     utf8GroupProcessor().processGroups(rtfContent);
     

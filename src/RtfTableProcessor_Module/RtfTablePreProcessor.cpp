@@ -23,6 +23,11 @@ namespace{
   }
   // 用於辨別如何處裡的共用 enum (固定/非固定 控制符共用)
   enum class TableCtrlKind{
+    // 全域都會用到的控制符
+    Par,
+    Line,
+    
+    // 固定表格控制符
     Cell,
     Row,
     Clmgf,
@@ -34,6 +39,7 @@ namespace{
     Clvmgf,
     Clvmrg,
 
+    // 帶有數字的表格控制符
     Cellx,
     Itap,
     Trleft,
@@ -51,7 +57,7 @@ namespace{
   };
   // 主要使用的規格表 (固定資訊控制符使用)
   // 新增名單後要在 void sheetProcessor::processor(std::string& rtfContent) 裡使用才會生效
-  constexpr std::array<TableCtrl,10> tableCtrls{
+  constexpr std::array<TableCtrl,12> tableCtrls{
     {
       {"cell", TableCtrlKind::Cell, "@@RTF_TABLE_CELL@@"},
       {"row",  TableCtrlKind::Row , "@@RTF_TABLE_ROW@@"},
@@ -62,7 +68,9 @@ namespace{
       {"nestcell", TableCtrlKind::NestCell, "@@RTF_TABLE_NESTCELL@@"},
       {"nestrow",  TableCtrlKind::NestRow,  "@@RTF_TABLE_NESTROW@@"},
       {"clvmgf" ,  TableCtrlKind::Clvmgf, "@@RTF_TABLE_CLVMGF@@"},
-      {"clvmrg" ,  TableCtrlKind::Clvmrg, "@@RTF_TABLE_CLVMRG@@"}
+      {"clvmrg" ,  TableCtrlKind::Clvmrg, "@@RTF_TABLE_CLVMRG@@"},
+      {"par"   ,   TableCtrlKind::Par   , "@@RTF_TABLE_PAR@@"},
+      {"line"  ,   TableCtrlKind::Line  , "@@RTF_TABLE_LINE@@"}
     }
   };
   // 規格表結構 (非固定資訊控制符使用)
@@ -261,6 +269,8 @@ void sheetProcessor::processor(std::string& rtfContent){
           case TableCtrlKind::Trleft:
           case TableCtrlKind::Clvmgf:
           case TableCtrlKind::Clvmrg:
+          case TableCtrlKind::Par:
+          case TableCtrlKind::Line:
           sheetscope.newsheetStr_.append(m->marker);
           j = (m->end - 1); // 迴圈會自動在+1
           continue;
@@ -502,6 +512,10 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
         case TableCtrlKind::NestRow:
         case TableCtrlKind::Itap:
         case TableCtrlKind::Trleft:
+        case TableCtrlKind::Clvmgf:
+        case TableCtrlKind::Clvmrg:
+        case TableCtrlKind::Par:
+        case TableCtrlKind::Line:
         token.text += m->marker;
         i = m->end -1;
         skipControlDelimiter(groupView,i);//吃掉關鍵控制符後方的空格
