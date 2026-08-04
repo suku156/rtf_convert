@@ -20,6 +20,10 @@
 #include<memory>
 #include<optional>
 
+//提前宣告區
+class Block;
+class TableBlock;
+
 enum class ImageMarkerType{
     Normal,
     Error
@@ -29,6 +33,7 @@ struct ImageMarkerInfo{
     ImageMarkerType type;
     std::string id;
 };
+
 
 // 文字節點
 class TextNode{
@@ -47,11 +52,23 @@ public:
 };
 
 // 存放表格區類似一格(最小結構單位)的資訊結構
+// 因為有多放  std::unique_ptr<TableBlock> 的關係此類別禁止複製
 class TableCell{
   std::string text_;
+  std::unique_ptr<TableBlock> nestedTable_;
 public :
   explicit TableCell(std::string text = {}) : text_(std::move(text)){}
  
+  // 移動語意用預設
+  TableCell(TableCell&&) noexcept = default;
+  TableCell& operator=(TableCell&&) noexcept = default;
+  // 禁止複製
+  TableCell(const TableCell&) = delete;
+  TableCell& operator=(const TableCell&) = delete;
+
+  bool hasNestedTable() const;
+  const TableBlock* nestedTable() const;
+  void setNestedTable(std::unique_ptr<TableBlock> table);
   const std::string& text() const;
   bool empty() const;
 };
@@ -60,8 +77,8 @@ public :
 struct TableCellDef{
   int cellx = 0;
 
-  bool mergeStart = false;
-  bool merged = false;
+  bool horizontalMergeStart = false;
+  bool horizontalMerged = false;
   bool verticalMergeStart = false;
   bool verticalMerged = false;
 };
@@ -70,6 +87,7 @@ struct TableCellDef{
 class TableRow{
   int trLeft_ = 0;
   int itap_ = 1;
+  int trrh_ = 0;
   bool lastRow_ = false;
   bool headerRow_ = false;
   
@@ -82,6 +100,7 @@ public:
   void setLastRow(bool value = true);
   void setHeaderRow(bool value = true);
   void setItap(int value);
+  void setTrrh(int value);
   
   const std::vector<TableCell>& cells() const;
   const std::vector<TableCellDef>& cellDefs() const;
@@ -89,6 +108,7 @@ public:
   bool isLastRow() const;
   bool isHeaderRow() const;
   int Itap() const;
+  int trrh() const;
 
   bool empty() const;
 };

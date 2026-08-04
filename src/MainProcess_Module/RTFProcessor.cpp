@@ -273,6 +273,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     sheetProcessor sheetprocessor;
     sheetprocessor.processor(rtfContent);
 
+    
     // 進行解讀前的純控制群組處理與篩選
     RtfPreProcessor rtfPreProcessor(logger);
     rtfContent = rtfPreProcessor.process(rtfContent);
@@ -364,7 +365,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     
     
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
-    //用類別的功能來清除文字中剩餘的控制碼等等
+    //清除文字中剩餘的控制碼
     textRtfProcessor textrtfprocessor(observer_);
     textrtfprocessor.Processor(rtfContent,logger);
     notify(ProgressEvent{

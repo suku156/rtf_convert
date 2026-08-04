@@ -107,7 +107,7 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
     out << ".rtf-table td {\n";
     out << "  border: 1px solid black;\n";
     out << "  padding: 4px;\n";
-    out << "  height: 24px;\n";
+    out << "  height: 24pt;\n";
     out << "  vertical-align: top;\n";
     out << "  word-break: break-word;\n";
     out << "}\n";

@@ -33,7 +33,10 @@ namespace{
     Clvmgf,
     Clvmrg,
     TablePar,
-    TableLine
+    TableLine,
+    NestTablePropsStart,
+    NestTablePropsEnd,
+    Trrh
   };
 
   struct MarkerInfo{
@@ -42,7 +45,7 @@ namespace{
     std::optional<int> value = std::nullopt;
   };
 
-  constexpr std::array<MarkerInfo,17> markers{{
+  constexpr std::array<MarkerInfo,19> markers{{
     {MarkerType::TableTrowd, "@@RTF_TABLE_TROWD@@"},
     {MarkerType::TableCell , "@@RTF_TABLE_CELL@@" },
     {MarkerType::TableRow  , "@@RTF_TABLE_ROW@@"  },
@@ -59,7 +62,9 @@ namespace{
     {MarkerType::Clvmgf    , "@@RTF_TABLE_CLVMGF@@"},
     {MarkerType::Clvmrg    , "@@RTF_TABLE_CLVMRG@@"},
     {MarkerType::TablePar  , "@@RTF_TABLE_PAR@@"},
-    {MarkerType::TableLine , "@@RTF_TABLE_LINE@@"}
+    {MarkerType::TableLine , "@@RTF_TABLE_LINE@@"},
+    {MarkerType::NestTablePropsStart , "@@RTF_NEST_TABLE_PROPS_START@@"},
+    {MarkerType::NestTablePropsEnd   , "@@RTF_NEST_TABLE_PROPS_END@@"}
   }};
 
   std::optional<MarkerInfo> findMarker(std::string_view content, size_t pos) {
@@ -74,6 +79,7 @@ namespace{
     // 檢查並處理含有數字資訊之版本的標記符
     // 允許有負號
     constexpr std::string_view trLeftHead = "@@RTF_TABLE_TRLEFT:";
+    constexpr std::string_view trrhHead   = "@@RTF_TABLE_TRRH:";
     // 不允許有負號
     constexpr std::string_view cellxHead = "@@RTF_TABLE_CELLX:";
     constexpr std::string_view itapHead = "@@RTF_TABLE_ITAP:";
@@ -127,11 +133,15 @@ namespace{
       };
     };
 
-    if(auto m = parseNumberMarker(cellxHead,MarkerType::Cellx,false)){
+    if(auto m = parseNumberMarker(trLeftHead,MarkerType::TrLeft,true)){
       return m;
     }
 
-    if(auto m = parseNumberMarker(trLeftHead,MarkerType::TrLeft,true)){
+    if(auto m = parseNumberMarker(trrhHead,MarkerType::Trrh,true)){
+      return m;
+    }
+    
+    if(auto m = parseNumberMarker(cellxHead,MarkerType::Cellx,false)){
       return m;
     }
 
@@ -167,16 +177,25 @@ const ImageNode& ImageBlock::image() const{
     return image_;
 }
 
-// 存放表格區類似一格(最小結構單位)的資訊結構(定義)
+// 存放表格區類似一格(1 cell)(最小結構單位)的資訊結構(定義)
 const std::string& TableCell::text() const {
   return text_;
 }
 bool TableCell::empty() const{
-  return text_.empty();
+  return text_.empty()  && !nestedTable_;
+}
+bool TableCell::hasNestedTable() const{
+  return nestedTable_ != nullptr;
+}
+const TableBlock* TableCell::nestedTable() const{
+  return nestedTable_.get();
+}
+void TableCell::setNestedTable(std::unique_ptr<TableBlock> table){
+  nestedTable_ = std::move(table);
 }
 
 
-// 存放表格區一列的資訊結構(定義)
+// 存放表格區一列(1 row)的資訊結構(定義)
 void TableRow::addCell(TableCell cell){
   cells_.push_back(std::move(cell));
 }
@@ -195,7 +214,9 @@ void TableRow::setHeaderRow(bool value){
 void TableRow::setItap(int value){
   itap_ = value;
 }
-
+void TableRow::setTrrh(int value){
+  trrh_ = value;
+}
 const std::vector<TableCell>& TableRow::cells() const {
   return cells_;
 }
@@ -214,7 +235,9 @@ bool TableRow::isHeaderRow() const{
 int TableRow::Itap() const{
   return itap_;
 }
-
+int TableRow::trrh() const{
+  return trrh_;
+}
 bool TableRow::empty() const{
   return cells_.empty();
 }
@@ -299,6 +322,7 @@ Document DocumentBuilder::build(const std::string& content){
         case MarkerType::Clvmrg:
         case MarkerType::TablePar:
         case MarkerType::TableLine:
+        case MarkerType::Trrh:
         i += marker->text.size();
         break;
 
@@ -399,6 +423,148 @@ std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(std::string_view 
     return info;
 }
 
+// 結尾檢查
+void trimTrailingNewline(std::string& s) {
+  while (!s.empty() && s.back() == '\n'){
+    s.pop_back();
+  }
+};
+
+// 暫存機制使用的結構
+struct PendingRowState {
+  int itap = 1;
+  bool itapSeen = false;
+
+  TableRow row;
+  std::string cellText;
+  TableCellDef pendingDef;
+
+  // 表格暫存成員 每次遇到 cell 結束時的標記符都檢查是否需要掛載
+  std::unique_ptr<TableBlock> pendingNestedTable;
+}; 
+
+//將標記符轉換成語意結構時使用的 struct
+struct TableParseContext {
+  explicit TableParseContext(int level = 1): itap(level){}
+  
+  int itap = 1;
+  TableBlock table;
+
+  // 每一層暫停時保留的解析狀態
+  PendingRowState savePending;
+  bool hasSavePending = false;
+}; 
+// 用來判斷 intbl 後面是否跟著 itap 控制符以及控制符數字
+std::optional<int> peekImmediateItap(
+    std::string_view text,
+    size_t pos)
+{
+    auto marker = findMarker(text, pos);
+
+    if(!marker){
+        return std::nullopt;
+    }
+
+    if(marker->type != MarkerType::Itap){
+        return std::nullopt;
+    }
+
+    if(!marker->value){
+        return std::nullopt;
+    }
+
+    return *marker->value;
+}
+// 巢狀表格退層時移動表格資料到對應層數的暫存器中並移除對應層數
+bool leaveOneTableLevel(
+    std::vector<TableParseContext>& stack,
+    PendingRowState& pending)
+{
+  // 防呆
+  if(stack.size() <= 1){
+    return false;
+  }
+
+  auto& parent = stack[stack.size() - 2];
+
+  if(!parent.hasSavePending){
+    return false;
+  }
+
+  // 暫存資料並移除子層
+  TableBlock childTable = std::move(stack.back().table);
+  stack.pop_back();
+
+  // 將父層的暫存資料移動給共用暫存器
+  pending = std::move(stack.back().savePending);
+
+  // 更新陣列中的資料
+  stack.back().savePending = PendingRowState{};
+  stack.back().hasSavePending = false;
+
+  pending.pendingNestedTable =
+  std::make_unique<TableBlock>(
+    std::move(childTable)
+  );
+
+  return true;
+}
+// 遇到 cell 結束標記符時的共用函式
+void finalizePendingCell(PendingRowState& pending)
+{
+  trimTrailingNewline(pending.cellText);
+
+  TableCell currentCell(std::move(pending.cellText));
+
+  if(pending.pendingNestedTable){
+    currentCell.setNestedTable(
+      std::move(pending.pendingNestedTable)
+    );
+  }
+
+  pending.row.addCell(std::move(currentCell));
+
+  // move 後的 string 已合法但狀態未指定，明確清空較清楚
+  pending.cellText.clear();
+}
+// parseTableBlock 函式回傳前最後的檢查函示用來應對空層狀態的存在
+TableBlock takeFinalTable(
+    std::vector<TableParseContext>& stack,
+    PendingRowState& pending)
+{
+  // 防呆
+  if(stack.empty()){
+    return TableBlock{};
+  }
+
+  // 正常外層已正式完成。
+  if(!stack.front().table.rows().empty()){
+      return std::move(stack.front().table);
+  }
+
+  // 子表格已退回，但外層從未完成 cell/row。
+  // 視為截取出的巢狀表格片段，提升子表格為根。
+  if(pending.pendingNestedTable){
+    TableBlock result = std::move(*pending.pendingNestedTable);
+
+    pending.pendingNestedTable.reset();
+    return result;
+  }
+
+  // 解析結束時仍停在較深層。
+  // 選擇最深且有實際 row 的 context。
+  for(auto it = stack.rbegin();
+      it != stack.rend();
+      ++it)
+  {
+    if(!it->table.rows().empty()){
+      return std::move(it->table);
+    }
+  }
+
+  return TableBlock{};
+}
+
 std::optional<TableBlockResult>
 DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
   // 先檢查並跳過開頭標記符
@@ -414,31 +580,29 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
 
   i += first->text.size();
 
- 
+  // 真實使用的資訊陣列
+  std::vector<TableParseContext> stack;
+  stack.emplace_back(1);
 
-  TableBlock table;
-  TableRow currentRow;
-  std::string cellText;
-  TableCellDef pendingDef;
+  // 公用的區域暫存器
+  PendingRowState pending;
+
+  // 用於判斷是否在巢狀迴圈範圍內的指標
+  bool insideNestTableProps = false;
 
   // 避免連續換行被重複塞入
-  auto appendCellNewline = [&]() {
-    if (!cellText.empty() && cellText.back() != '\n') {
-      cellText.push_back('\n');
+  auto appendCellNewline = [&pending]() {
+    if (!pending.cellText.empty() && pending.cellText.back() != '\n') {
+      pending.cellText.push_back('\n');
     }
   };
-  // 結尾檢查
-  auto trimTrailingNewline = [](std::string& s) {
-    while (!s.empty() && s.back() == '\n') {
-      s.pop_back();
-    }
-  };
+  
 
   for(;i<text.size();){
     auto marker = findMarker(text, i);
 
     if (!marker) {
-      cellText.push_back(text[i]);
+      pending.cellText.push_back(text[i]);
       ++i;
       continue;
     }
@@ -446,27 +610,27 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
     switch(marker -> type){
       case MarkerType::TableCell : 
       {
-        trimTrailingNewline(cellText);
-        TableCell currentCell(std::move(cellText));
-        currentRow.addCell(std::move(currentCell));
-        cellText.clear();
+        finalizePendingCell(pending);
 
         i += marker -> text.size();
         continue;
       } 
       case MarkerType::TableRow :
       {
-        if(!cellText.empty()){
-          trimTrailingNewline(cellText);
-          TableCell currentCell(std::move(cellText));
-          currentRow.addCell(std::move(currentCell));
-          cellText.clear();
+        if(!pending.cellText.empty()){
+          trimTrailingNewline(pending.cellText);
+          
+          TableCell currentCell(std::move(pending.cellText));
+          pending.row.addCell(std::move(currentCell));
+
+          pending.cellText.clear();
         }
 
-        if(!currentRow.empty()){
-          table.addRow(std::move(currentRow));
-          currentRow = TableRow{};
+        if(!pending.row.empty()){
+          stack.back().table.addRow(std::move(pending.row));
         }
+
+        pending = PendingRowState{};
         
         i += marker -> text.size();
 
@@ -479,64 +643,135 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
           continue;
         }
 
-        return TableBlockResult{std::move(table),i};
+        // 回傳前用函式對容器做最後檢查避免空層
+        TableBlock finalTable = takeFinalTable(stack, pending);
+
+        return TableBlockResult{std::move(finalTable),i};
       }
       case MarkerType::TableTrowd:
-      case MarkerType::TableIntbl:
       {
         i += marker -> text.size();
         continue;
       }
+      case MarkerType::TableIntbl:
+      {
+        const size_t nextPos = i + marker->text.size();
+
+        if(auto targetItap = peekImmediateItap(text,nextPos)){
+          int currentItap = stack.back().itap;
+
+          if(*targetItap > currentItap){
+            // push 新 PendingRowState
+            auto& parentCtx = stack.back();
+
+            // 把共用暫存器存入目前層級並清空
+            parentCtx.savePending = std::move(pending);
+            parentCtx.hasSavePending = true;
+
+            pending = PendingRowState{};
+
+            // 新增對應層級
+            stack.emplace_back(*targetItap);
+
+            // 設定共用暫存器
+            pending.itap = *targetItap;
+            pending.itapSeen = true;
+            pending.row.setItap(*targetItap);
+          }
+          else if(*targetItap < currentItap){
+            if(!leaveOneTableLevel(stack,pending)){
+              // 如果加入 log 系統可在 log 中加入訊息
+              // 目前只有先執行退層函式
+            }
+            
+          }
+         
+        }else if(stack.size() > 1){
+          if(!leaveOneTableLevel(stack,pending)){
+            // 如果加入 log 系統可在 log 中加入訊息
+            // 目前只有先執行退層函式
+          }
+        }
+
+        i = nextPos;
+        continue;
+      }
       case MarkerType::LastRow:
       {
-        currentRow.setLastRow();
+        pending.row.setLastRow();
 
         i += marker ->text.size();
         continue;
       }
       case MarkerType::NestCell:
+      {
+        finalizePendingCell(pending);
+        
+        i += marker -> text.size();
+        continue;
+      }
       case MarkerType::NestRow:
       {
-        // 第一版不支援巢狀表格先跳過
+        if(!pending.cellText.empty()){
+          trimTrailingNewline(pending.cellText);
+          
+          TableCell currentCell(std::move(pending.cellText));
+          pending.row.addCell(std::move(currentCell));
+
+          pending.cellText.clear();
+        }
+
+        if(!pending.row.empty()){
+          stack.back().table.addRow(std::move(pending.row));
+        }
+
+        const int currentItap = pending.itap;
+
+        pending = PendingRowState{};
+
+        pending.itap = currentItap;
+        pending.itapSeen = true;
+        pending.row.setItap(currentItap);
+        
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Trhdr:
       {
-        currentRow.setHeaderRow();
+       pending.row.setHeaderRow();
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Clmgf:
       {
-        pendingDef.mergeStart = true;
+        pending.pendingDef.horizontalMergeStart = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Clmrg:
       {
-        pendingDef.merged = true;
+        pending.pendingDef.horizontalMerged = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Clvmgf:
       {
-        pendingDef.verticalMergeStart = true;
+        pending.pendingDef.verticalMergeStart = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Clvmrg:
       {
-        pendingDef.verticalMerged = true;
+        pending.pendingDef.verticalMerged = true;
         i += marker ->text.size();
         continue;
       }
       case MarkerType::Cellx:
       {
         if(marker->value){
-          pendingDef.cellx = *marker->value;
-          currentRow.addCellDef(pendingDef);
-          pendingDef = TableCellDef{};
+          pending.pendingDef.cellx = *marker->value;
+          pending.row.addCellDef(pending.pendingDef);
+          pending.pendingDef = TableCellDef{};
         }
         i += marker ->text.size();
         continue;
@@ -544,7 +779,7 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       case MarkerType::TrLeft:
       {
         if(marker->value){
-          currentRow.setTrleft(*marker->value);
+          pending.row.setTrleft(*marker->value);
         }
         i += marker ->text.size();
         continue;
@@ -552,7 +787,18 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
       case MarkerType::Itap:
       {
         if(marker->value){
-          currentRow.setItap(*marker->value);
+          const int level = *marker->value;
+          pending.itap = level;
+          pending.itapSeen = true;
+          pending.row.setItap(level);
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::Trrh:
+      {
+        if(marker->value){
+          pending.row.setTrrh(*marker->value);
         }
         i += marker ->text.size();
         continue;
@@ -566,27 +812,40 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
         i += marker ->text.size();
         continue;
       }
+      case MarkerType::NestTablePropsStart:
+      {
+        insideNestTableProps = true;
+        i += marker->text.size();
+        continue;
+      }
+      case MarkerType::NestTablePropsEnd:
+      {
+        insideNestTableProps = false;
+        i += marker->text.size();
+        continue;
+      }
       default :
       {
-        if(!table.empty()){
-          return TableBlockResult{std::move(table),i};
+        if(!stack.back().table.empty()){
+          return TableBlockResult{std::move(stack.back().table),i};
         }
         return std::nullopt;
       }
     }
   }
 
-  if(!cellText.empty()){
-    trimTrailingNewline(cellText);
-    currentRow.addCell(TableCell(std::move(cellText)));
+  if(!pending.cellText.empty()){
+    trimTrailingNewline(pending.cellText);
+    pending.row.addCell(TableCell(std::move(pending.cellText)));
   }
 
-  if(!currentRow.empty()){
-    table.addRow(std::move(currentRow));
+  if(!pending.row.empty()){
+    stack.back().table.addRow(std::move(pending.row));
   }
 
-  if(!table.empty()){
-    return TableBlockResult{std::move(table), text.size()};
+  // 此處是迴圈完整跑完遇到文字結尾的情況前面會有提前回傳
+  if(!stack.back().table.empty()){
+    return TableBlockResult{std::move(stack.back().table),i};
   }
 
   return std::nullopt;

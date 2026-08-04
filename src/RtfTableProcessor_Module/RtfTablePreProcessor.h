@@ -45,6 +45,12 @@ struct TableStartMatch{
    std::string_view marker;
 };
 
+struct NestTablePropsResult {
+   std::string text;
+   size_t nextPos = 0;
+};
+
+
 
 
 class sheetProcessor{
@@ -61,4 +67,7 @@ private:
    void buildGroupStackUntil(std::string_view group,
                              std::vector<size_t>& groupStack,
                              size_t start ,size_t end);
+   std::string preprocessNestedTableGroups(std::string_view group);
+   bool isNestTablePropsStart(std::string_view group,size_t pos);
+   std::optional<NestTablePropsResult> processNestTableProps(std::string_view group,size_t pos);
 };

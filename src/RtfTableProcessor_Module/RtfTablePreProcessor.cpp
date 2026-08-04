@@ -11,6 +11,7 @@
 #include <cctype>
 #include <optional>
 #include <array>
+#include <iostream>
 
 // 與表格先關的控制符名單與轉換成的標記符相關
 // 固定資訊控制符: \cell \row.... 等不含數字資訊之控制符
@@ -38,11 +39,14 @@ namespace{
     NestRow,
     Clvmgf,
     Clvmrg,
+    Trowd,
+    Intbl,
 
     // 帶有數字的表格控制符
     Cellx,
     Itap,
     Trleft,
+    Trrh,
 
     Unknown
   };
@@ -57,7 +61,7 @@ namespace{
   };
   // 主要使用的規格表 (固定資訊控制符使用)
   // 新增名單後要在 void sheetProcessor::processor(std::string& rtfContent) 裡使用才會生效
-  constexpr std::array<TableCtrl,12> tableCtrls{
+  constexpr std::array<TableCtrl,14> tableCtrls{
     {
       {"cell", TableCtrlKind::Cell, "@@RTF_TABLE_CELL@@"},
       {"row",  TableCtrlKind::Row , "@@RTF_TABLE_ROW@@"},
@@ -70,7 +74,9 @@ namespace{
       {"clvmgf" ,  TableCtrlKind::Clvmgf, "@@RTF_TABLE_CLVMGF@@"},
       {"clvmrg" ,  TableCtrlKind::Clvmrg, "@@RTF_TABLE_CLVMRG@@"},
       {"par"   ,   TableCtrlKind::Par   , "@@RTF_TABLE_PAR@@"},
-      {"line"  ,   TableCtrlKind::Line  , "@@RTF_TABLE_LINE@@"}
+      {"line"  ,   TableCtrlKind::Line  , "@@RTF_TABLE_LINE@@"},
+      {"trowd" ,   TableCtrlKind::Trowd , "@@RTF_TABLE_TROWD@@"},
+      {"intbl" ,   TableCtrlKind::Intbl , "@@RTF_TABLE_INTBL@@"}
     }
   };
   // 規格表結構 (非固定資訊控制符使用)
@@ -86,11 +92,12 @@ namespace{
   };
   // 主要使用的規格表 (非固定資訊控制符使用)
   // 新增名單後要在 void sheetProcessor::processor(std::string& rtfContent) 裡使用才會生效
-  constexpr std::array<NumericTableCtrl,3> numericTableCtrls{
+  constexpr std::array<NumericTableCtrl,4> numericTableCtrls{
     {
       {"cellx", TableCtrlKind::Cellx, "@@RTF_TABLE_CELLX:", "@@"},
       {"itap" , TableCtrlKind::Itap , "@@RTF_TABLE_ITAP:" , "@@"},
-      {"trleft",TableCtrlKind::Trleft,"@@RTF_TABLE_TRLEFT:","@@"}
+      {"trleft",TableCtrlKind::Trleft,"@@RTF_TABLE_TRLEFT:","@@"},
+      {"trrh" , TableCtrlKind::Trrh , "@@RTF_TABLE_TRRH:"  ,"@@"}
     }
   };
   // 辨別函式使用之回傳結構 (固定/非固定 控制符共用)
@@ -206,6 +213,8 @@ void sheetProcessor::processor(std::string& rtfContent){
   std::vector<size_t> groupStack;
   groupStack.reserve(64);
 
+  rtfContent = preprocessNestedTableGroups(rtfContent);
+
   for(size_t i = 0 ; i < rtfContent.size();i++){
     char c = rtfContent[i];
 
@@ -271,6 +280,9 @@ void sheetProcessor::processor(std::string& rtfContent){
           case TableCtrlKind::Clvmrg:
           case TableCtrlKind::Par:
           case TableCtrlKind::Line:
+          case TableCtrlKind::Trrh:
+          case TableCtrlKind::Trowd:
+          case TableCtrlKind::Intbl:
           sheetscope.newsheetStr_.append(m->marker);
           j = (m->end - 1); // 迴圈會自動在+1
           continue;
@@ -375,6 +387,14 @@ void sheetProcessor::processor(std::string& rtfContent){
             break;
           }
 
+        }
+      }
+
+      if(isNestTablePropsStart(rtfContent,j)){
+        if(auto props = processNestTableProps(rtfContent,j)){
+          sheetscope.newsheetStr_ += props->text;
+          j = props->nextPos - 1;
+          continue;
         }
       }
     }
@@ -516,6 +536,7 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
         case TableCtrlKind::Clvmrg:
         case TableCtrlKind::Par:
         case TableCtrlKind::Line:
+        case TableCtrlKind::Trrh:
         token.text += m->marker;
         i = m->end -1;
         skipControlDelimiter(groupView,i);//吃掉關鍵控制符後方的空格
@@ -682,4 +703,157 @@ size_t sheetProcessor::findGroupEnd(std::string_view group,size_t pos){
   }
 
   return std::string_view::npos;
+}
+// 負責在流程處理前預先處理巢狀迴圈相關群組
+std::string sheetProcessor::preprocessNestedTableGroups(std::string_view group){
+  std::string result;
+  result.reserve(group.size());
+
+  // 替換目標的巢狀群組開頭
+  constexpr std::string_view nonestHead = "{\\nonesttables";
+  constexpr std::string_view nestHead   = "{\\*\\nesttableprops";
+
+  // 巢狀群組替換成的標記符名稱
+  constexpr std::string_view nestPropsStartMarker = "@@RTF_NEST_TABLE_PROPS_START@@";
+  constexpr std::string_view nestPropsEndMarker = "@@RTF_NEST_TABLE_PROPS_END@@";
+
+  for(size_t i =0;i<group.size();){
+    
+    if(i + nonestHead.size() <= group.size() &&
+       group.compare(i,nonestHead.size(),nonestHead) == 0 &&
+       isControlEnd(group,i + nonestHead.size()))
+    {
+      const size_t end = findGroupEnd(group,i);
+
+      // 群組不完整依舊繼續執行
+      if(end == std::string_view::npos){
+        result.push_back(group[i]);
+        i++;
+        continue;
+      }
+
+      i = end;
+      continue;
+    }
+
+    if(i + nestHead.size() <= group.size() &&
+       group.compare(i,nestHead.size(),nestHead) == 0 &&
+       isControlEnd(group,i + nestHead.size()))
+    {
+      const size_t end = findGroupEnd(group, i);
+
+      if(end == std::string_view::npos){
+        result.push_back(group[i]);
+        i++;
+        continue;
+      }
+
+      size_t contentBegin = i + nestHead.size();
+
+      // 跳過控制字後可選的單一 delimiter space。
+      if(contentBegin < end && group[contentBegin] == ' '){
+        ++contentBegin;
+      }
+
+      // end 指向 '}' 後一格，因此 end - 1 是外層結尾 '}'
+      const size_t contentEnd = end - 1;
+
+      result.append(nestPropsStartMarker);
+
+      if(contentBegin < contentEnd){
+        result.append(group.substr(contentBegin,contentEnd - contentBegin));
+      }
+
+      result.append(nestPropsEndMarker);
+     
+      i = end;
+      continue;
+    }
+    
+    result.push_back(group[i]);
+    ++i;
+  }
+
+  return result;
+}
+
+bool sheetProcessor::isNestTablePropsStart(std::string_view group,size_t pos){
+  
+  constexpr std::string_view nestPropsStartMarker = "@@RTF_NEST_TABLE_PROPS_START@@";
+  
+  return pos + nestPropsStartMarker.size() <= group.size() &&
+         group.compare(pos,nestPropsStartMarker.size(),nestPropsStartMarker) == 0;
+}
+
+std::optional<NestTablePropsResult> 
+sheetProcessor::processNestTableProps(std::string_view group,size_t pos){
+  constexpr std::string_view nestPropsStartMarker = "@@RTF_NEST_TABLE_PROPS_START@@";
+  constexpr std::string_view nestPropsEndMarker = "@@RTF_NEST_TABLE_PROPS_END@@";
+
+  std::string result;
+  result.reserve(group.size());
+
+  auto skipControlDelimiter = [](std::string_view s, size_t& i) {
+    while (i < s.size() &&
+           (s[i] == ' ' || s[i] == '\r' || s[i] == '\n')) {
+        ++i;
+    }
+  };
+
+  size_t i = pos;
+  if(i + nestPropsStartMarker.size() <= group.size() &&
+     group.compare(i,nestPropsStartMarker.size(),nestPropsStartMarker) == 0)
+  {
+    result.append(nestPropsStartMarker);
+    i += nestPropsStartMarker.size();
+  }
+  else{
+    return std::nullopt;
+  }
+
+  for(;i <group.size();){
+    
+    if(i + nestPropsEndMarker.size() <= group.size() &&
+       group.compare(i,nestPropsEndMarker.size(),nestPropsEndMarker) == 0)
+    {
+      result.append(nestPropsEndMarker);
+      i += nestPropsEndMarker.size();
+     
+      return NestTablePropsResult{std::move(result),i};
+    }
+
+     if(auto m = matchTableControl(group,i)){
+      switch(m->kind){
+        case TableCtrlKind::Cell:
+        case TableCtrlKind::Row:
+        case TableCtrlKind::Cellx :
+        case TableCtrlKind::Clmgf :
+        case TableCtrlKind::Clmrg :
+        case TableCtrlKind::LastRow:
+        case TableCtrlKind::TrHdr:
+        case TableCtrlKind::NestCell:
+        case TableCtrlKind::NestRow:
+        case TableCtrlKind::Itap:
+        case TableCtrlKind::Trleft:
+        case TableCtrlKind::Clvmgf:
+        case TableCtrlKind::Clvmrg:
+        case TableCtrlKind::Par:
+        case TableCtrlKind::Line:
+        case TableCtrlKind::Trrh:
+        case TableCtrlKind::Trowd:
+        case TableCtrlKind::Intbl:
+        result.append(m->marker);
+        i = m->end;
+        skipControlDelimiter(group,i);//吃掉關鍵控制符後方的空格
+        continue;
+
+        default :
+        break;
+      }  
+    }
+    
+    i++;
+  }
+
+  return std::nullopt;
 }

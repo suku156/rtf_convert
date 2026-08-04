@@ -94,6 +94,25 @@ std::string RtfPreProcessor::processView(std::string_view src,size_t pos){
             continue;
           }
 
+          if(name == "nonesttables"){
+            logger_.log(
+              LogLevel::Warn,
+              "找到漏網的 nonesttables 群組，已移除"
+            );
+            i = end;
+            continue;
+          }
+
+          if(name == "nesttableprops"){
+            logger_.log(
+              LogLevel::Error,
+              "漏網的 nesttableprops 群組，已錯過表格控制符轉換階段，整組移除"
+            );
+
+            i = end;
+            continue;
+          }
+
           result.append(processGroup(currentGroup));
           i = end;
           continue;
@@ -251,6 +270,10 @@ PreDecodeGroupAction RtfPreProcessor::getGroupAction(GroupHeadInfo info){
       return PreDecodeGroupAction::Drop;
     }
 
+    if(name == "nesttableprops"){
+      return PreDecodeGroupAction::Special;
+    }
+
     return PreDecodeGroupAction::Recurse;
   }
 
@@ -264,7 +287,7 @@ PreDecodeGroupAction RtfPreProcessor::getGroupAction(GroupHeadInfo info){
      name == "listoverridetable" ||
      name == "xmlnstbl" ||
      name == "rsidtbl" ||
-     name == "mmathPr") 
+     name == "mmathPr" ) 
   {
     return PreDecodeGroupAction::Drop;
   }
@@ -272,7 +295,8 @@ PreDecodeGroupAction RtfPreProcessor::getGroupAction(GroupHeadInfo info){
   if(name == "field" ||
      name == "pict" ||
      name == "shp" ||
-     name == "object") 
+     name == "object" ||
+     name == "nonesttables") 
   {
     return PreDecodeGroupAction::Special;
   }
