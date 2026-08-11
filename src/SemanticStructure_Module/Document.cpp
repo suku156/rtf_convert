@@ -78,9 +78,9 @@ namespace{
     
     // 檢查並處理含有數字資訊之版本的標記符
     // 允許有負號
+    // 2026/08/11 因為出現帶有負號的真實案例改成全部允許負號等到使用時再去進行判斷
     constexpr std::string_view trLeftHead = "@@RTF_TABLE_TRLEFT:";
     constexpr std::string_view trrhHead   = "@@RTF_TABLE_TRRH:";
-    // 不允許有負號
     constexpr std::string_view cellxHead = "@@RTF_TABLE_CELLX:";
     constexpr std::string_view itapHead = "@@RTF_TABLE_ITAP:";
 
@@ -141,11 +141,11 @@ namespace{
       return m;
     }
     
-    if(auto m = parseNumberMarker(cellxHead,MarkerType::Cellx,false)){
+    if(auto m = parseNumberMarker(cellxHead,MarkerType::Cellx,true)){
       return m;
     }
 
-    if(auto m = parseNumberMarker(itapHead,MarkerType::Itap,false)){
+    if(auto m = parseNumberMarker(itapHead,MarkerType::Itap,true)){
       return m;
     }
     
@@ -193,7 +193,12 @@ const TableBlock* TableCell::nestedTable() const{
 void TableCell::setNestedTable(std::unique_ptr<TableBlock> table){
   nestedTable_ = std::move(table);
 }
-
+void TableCell::setNestedTablePlacement(NestedTablePlacement placement){
+  nestedTablePlacement_ = placement;
+}
+NestedTablePlacement TableCell::nestedTablePlacement() const{
+  return nestedTablePlacement_;
+}
 
 // 存放表格區一列(1 row)的資訊結構(定義)
 void TableRow::addCell(TableCell cell){
@@ -441,6 +446,10 @@ struct PendingRowState {
 
   // 表格暫存成員 每次遇到 cell 結束時的標記符都檢查是否需要掛載
   std::unique_ptr<TableBlock> pendingNestedTable;
+
+  // 用來判斷 cell 表格內的順序用
+  NestedTablePlacement pendingNestedTablePlacement =
+        NestedTablePlacement::None;
 }; 
 
 //將標記符轉換成語意結構時使用的 struct
@@ -502,6 +511,12 @@ bool leaveOneTableLevel(
   stack.back().savePending = PendingRowState{};
   stack.back().hasSavePending = false;
 
+  // 依據暫存器內是否有儲存文字資料決定順序
+  pending.pendingNestedTablePlacement =
+    pending.cellText.empty()
+        ? NestedTablePlacement::BeforeText
+        : NestedTablePlacement::AfterText;
+
   pending.pendingNestedTable =
   std::make_unique<TableBlock>(
     std::move(childTable)
@@ -520,12 +535,15 @@ void finalizePendingCell(PendingRowState& pending)
     currentCell.setNestedTable(
       std::move(pending.pendingNestedTable)
     );
+
+    currentCell.setNestedTablePlacement(pending.pendingNestedTablePlacement);
   }
 
   pending.row.addCell(std::move(currentCell));
 
   // move 後的 string 已合法但狀態未指定，明確清空較清楚
   pending.cellText.clear();
+  pending.pendingNestedTablePlacement = NestedTablePlacement::None;
 }
 // parseTableBlock 函式回傳前最後的檢查函示用來應對空層狀態的存在
 TableBlock takeFinalTable(
@@ -577,8 +595,6 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
   {
     return std::nullopt;
   }
-
-  i += first->text.size();
 
   // 真實使用的資訊陣列
   std::vector<TableParseContext> stack;

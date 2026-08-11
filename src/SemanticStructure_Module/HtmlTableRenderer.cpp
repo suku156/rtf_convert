@@ -12,15 +12,16 @@
 #include<optional>
 #include<algorithm>
 #include<cstdlib>
+#include<iostream>
 
 namespace html_table{
   struct CellResult {
     std::string text;
-    size_t width = 0;
+    int width = 0;
 
     // 水平線的左右邊界(共用水平參考線用)
-    size_t leftBoundary = 0;
-    size_t rightBoundary = 0;
+    int leftBoundary = 0;
+    int rightBoundary = 0;
 
     // 垂直合併用數據
     bool verticalMergeStart = false;
@@ -29,12 +30,23 @@ namespace html_table{
     // 水平合併用數據
     bool horizontalMergeStart = false;
     bool horizontalMerged = false;
+
+    // 只供 renderer 讀取，不負責生命週期
+    const TableBlock* nestedTable = nullptr;
+
+    // 在有表格的情況下用來判斷是文字還是表格優先
+    NestedTablePlacement nestedTablePlacement = NestedTablePlacement::None;
   };
 
   struct RowResult {
     std::vector<CellResult> cells;
+    
+    // 該列左起點：\trleft
+    int leftBoundary = 0;
+    
     // 紀錄每一列最後一個 cellx , 也就是該列右邊界
-    size_t rightBoundary = 0;
+    int rightBoundary = 0;
+    
     int trrh = 0;
   };
 
@@ -50,40 +62,44 @@ namespace html_table{
       RowResult rowResult;
 
       rowResult.trrh = row.trrh();
+      rowResult.leftBoundary = row.trLeft();
       
       const auto& cells = row.cells();
       const auto & cellDefs = row.cellDefs();
 
       if(!cellDefs.empty()){
         rowResult.rightBoundary = cellDefs.back().cellx;
+      }else{
+        rowResult.rightBoundary = rowResult.leftBoundary;
       }
       
       rowResult.cells.reserve(cells.size());
-      size_t prevCellx = 0;
+
+      int prevCellx = rowResult.leftBoundary;
 
       for(size_t i = 0;i<cells.size();i++){
         CellResult cellResult;
         
         cellResult.text = cells[i].text();
+        cellResult.nestedTable = cells[i].nestedTable();
+        cellResult.nestedTablePlacement = cells[i].nestedTablePlacement(); 
 
-        cellResult.leftBoundary =prevCellx;
+        cellResult.leftBoundary = prevCellx;
 
         if(i < cellDefs.size()){
-          const auto rawCellx = cellDefs[i].cellx;
+         
+          const int  currentCellx = cellDefs[i].cellx;
 
-          if(rawCellx >= 0){
-            size_t currentCellx = static_cast<size_t>(rawCellx);
+          cellResult.rightBoundary = currentCellx;
 
-            cellResult.rightBoundary = currentCellx;
-
-            if(currentCellx >= prevCellx){
-              cellResult.width = currentCellx - prevCellx;
-            }else{
-              cellResult.width = 0;
-            }
-
-            prevCellx = currentCellx;
+          if(currentCellx >= prevCellx){
+            cellResult.width = currentCellx - prevCellx;
+          }else{
+            cellResult.width = 0;
           }
+          
+          prevCellx = currentCellx;
+          
          
           cellResult.verticalMergeStart   = cellDefs[i].verticalMergeStart;
           cellResult.verticalMerged       = cellDefs[i].verticalMerged;
@@ -119,33 +135,28 @@ namespace html_table{
   }
 
   // 建立每段表格的共同水平 gird
-  std::vector<size_t> getColspanGrid(const TableResult& result){
-    std::set<size_t> boundaries;
-
-    // 起點
-    boundaries.insert(0);
+  std::vector<int> getColspanGrid(const TableResult& result){
+    std::set<int> boundaries;
 
     // 遍歷結構找尋並加入 cellx 座標
     for(const auto& row : result.rows){
-      size_t current = 0;
+      // 每列真正的左起點：\trleft
+      boundaries.insert(row.leftBoundary);
+
 
       for(const auto& cell : row.cells){
-        current += cell.width;
-
-        if(current > 0){
-          boundaries.insert(current);
-        }
+        boundaries.insert(cell.rightBoundary);
       }
 
-      if(row.rightBoundary > 0){
-        boundaries.insert(row.rightBoundary);
-      }
+      // 防呆用
+      boundaries.insert(row.rightBoundary);
+      
     }
 
-    return std::vector<size_t>(boundaries.begin(), boundaries.end());
+    return std::vector<int>(boundaries.begin(), boundaries.end());
   }
   // 用來查找在共用水平座標列的位置
-  std::optional<size_t> findGridIndex(const std::vector<size_t>& grid, size_t value){
+  std::optional<size_t> findGridIndex(const std::vector<int>& grid, size_t value){
     auto it = std::find(grid.begin(), grid.end(), value);
 
     if(it == grid.end()){
@@ -155,7 +166,7 @@ namespace html_table{
     return static_cast<size_t>(std::distance(grid.begin(), it));
   }
   // 使用流程中的小工具用來回傳要跨幾格(水平線用)
-  size_t getColspan(const std::vector<size_t>& grid,size_t left,size_t right){
+  size_t getColspan(const std::vector<int>& grid,int left,int right){
     size_t colspan = 1;
 
     auto leftIndex = findGridIndex(grid, left);
@@ -170,7 +181,7 @@ namespace html_table{
   // 水平合併判斷函式回傳結構
   struct HorizontalMergeInfo {
     // 合併結尾的右邊界
-    size_t rightBoundary = 0;
+    int rightBoundary = 0;
     // 總共合併掉幾格(使用迴圈以此數推進基本要給 1 避免迴圈卡住)
     size_t consumedCells = 1;
   };
@@ -216,8 +227,8 @@ namespace html_table{
   // 推算要跳過幾格的函式(垂直線用)
   size_t getRowspan(const TableResult& result,
                     size_t rowIndex,
-                    size_t left,
-                    size_t right)
+                    int left,
+                    int right)
   {
     size_t rowspan = 1;
 
@@ -232,8 +243,8 @@ namespace html_table{
                 getHorizontalMergeInfo(row, j);
 
         
-        size_t currentLeft = cell.leftBoundary;
-        size_t currentRight = cell.rightBoundary;
+        int currentLeft = cell.leftBoundary;
+        int currentRight = cell.rightBoundary;
 
         if(cell.horizontalMergeStart){
           currentRight = horizontalInfo.rightBoundary;
@@ -260,8 +271,8 @@ namespace html_table{
   // 檢查函式確認是否是能夠吃掉的 verticalMerged cell 結構體
   bool isCoveredByRowspan(const TableResult& result,
                           size_t rowIndex,
-                          size_t left,
-                          size_t right)
+                          int left,
+                          int right)
   {
     if(rowIndex == 0){
       return false;
@@ -276,8 +287,8 @@ namespace html_table{
         HorizontalMergeInfo horizontalInfo =
               getHorizontalMergeInfo(prevRow, j);
 
-        size_t prevLeft = prevCell.leftBoundary;
-        size_t prevRight = prevCell.rightBoundary;
+        int prevLeft = prevCell.leftBoundary;
+        int prevRight = prevCell.rightBoundary;
 
         if(prevCell.horizontalMergeStart){
           prevRight = horizontalInfo.rightBoundary;
@@ -299,17 +310,22 @@ namespace html_table{
   }
   
   void writeResult(const TableResult& result, std::ostream& out){
-    std::vector<size_t> grid = getColspanGrid(result);
+    std::vector<int> grid = getColspanGrid(result);
 
+    
     out << "<table class=\"rtf-table\">\n";
     // 告知每格的長度
     out << "<colgroup>\n";
 
     for(size_t i = 1; i < grid.size(); i++){
-      size_t width = grid[i] - grid[i - 1];
+      int width = grid[i] - grid[i - 1];
+
+      if(width <= 0){
+        continue;
+      }
 
       out << "  <col style=\"width: "
-          << (width / 8)
+          << (static_cast<double>(width) / 8.0)
           << "px;\">\n";
     }
 
@@ -345,8 +361,8 @@ namespace html_table{
       for(size_t j = 0; j < cells.size();){
         const  CellResult& cell = cells[j];
 
-        size_t left  = cell.leftBoundary;
-        size_t right = cell.rightBoundary;
+        int left  = cell.leftBoundary;
+        int right = cell.rightBoundary;
 
         // 檢查並回傳水平合併資訊
         HorizontalMergeInfo horizontalInfo = 
@@ -365,8 +381,11 @@ namespace html_table{
         }
 
         //水平方面需要的資訊
-        size_t colspan = getColspan(grid,left,right);
-
+        size_t colspan = 1;
+        if(right >= left){
+          colspan = getColspan(grid,left,right);
+        }
+        
         //垂直方面需要的資訊
         size_t rowspan = 1;
         if(cell.verticalMergeStart){
@@ -384,7 +403,29 @@ namespace html_table{
         }
 
         out << ">";
-        writeHtmlEscaped(cell.text, out);
+        
+        if(cell.nestedTable){
+          switch(cell.nestedTablePlacement){
+            case NestedTablePlacement::BeforeText:
+              renderTable(*cell.nestedTable, out);
+              writeHtmlEscaped(cell.text, out);
+            break;
+            case NestedTablePlacement::AfterText:
+              writeHtmlEscaped(cell.text, out);
+              renderTable(*cell.nestedTable, out);
+            break;
+            case NestedTablePlacement::None:
+              // 狀態不一致：
+              // 有 nestedTable，卻沒有設定位置。
+              // 第一版可選擇保守預設為文字後。
+              writeHtmlEscaped(cell.text, out);
+              renderTable(*cell.nestedTable, out);
+            break;
+          }
+        }else{
+          writeHtmlEscaped(cell.text, out);
+        }
+
         out << "</td>\n";
 
         j += horizontalInfo.consumedCells;

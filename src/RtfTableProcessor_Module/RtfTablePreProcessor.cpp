@@ -150,9 +150,7 @@ namespace{
         size_t numStart = nameEnd;
         size_t end = numStart;
 
-        if(numCtrl.kind == TableCtrlKind::Trleft &&
-           end < s.size() && 
-           s[end] == '-'){
+        if(end < s.size() && s[end] == '-'){
           end++;
         }
         

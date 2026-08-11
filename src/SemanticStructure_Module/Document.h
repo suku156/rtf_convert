@@ -51,11 +51,20 @@ public:
   const std::optional<ImageMarkerInfo>& imageMark() const;
 };
 
+// 用來表示 table 內部 表格與文字的順序性用的 enum
+enum class NestedTablePlacement {
+  BeforeText,
+  AfterText,
+  None
+};
+
 // 存放表格區類似一格(最小結構單位)的資訊結構
 // 因為有多放  std::unique_ptr<TableBlock> 的關係此類別禁止複製
 class TableCell{
   std::string text_;
   std::unique_ptr<TableBlock> nestedTable_;
+
+  NestedTablePlacement nestedTablePlacement_ = NestedTablePlacement::None;
 public :
   explicit TableCell(std::string text = {}) : text_(std::move(text)){}
  
@@ -71,6 +80,8 @@ public :
   void setNestedTable(std::unique_ptr<TableBlock> table);
   const std::string& text() const;
   bool empty() const;
+  NestedTablePlacement nestedTablePlacement() const;
+  void setNestedTablePlacement(NestedTablePlacement placement);
 };
 
 // 用來存放與 cell 有關的資訊 cellx ,垂直合併,水平合併等狀態
