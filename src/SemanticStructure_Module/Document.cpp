@@ -13,14 +13,19 @@
 
 namespace{
   enum class MarkerType{
+    // 圖片標記符
+    Image,
+    ImageErr,
+
+    // 一般功能標記符(換行...等等)
+    Par,
+    Line,
+
+    // 表格功能標記符
     TableTrowd,
     TableCell,
     TableRow,
     TableIntbl,
-    Image,
-    ImageErr,
-    Par,
-    Line,
     Cellx,
     TrLeft,
     LastRow,
@@ -36,7 +41,20 @@ namespace{
     TableLine,
     NestTablePropsStart,
     NestTablePropsEnd,
-    Trrh
+    Trrh,
+
+    // 圖形功能標記符
+    ShapeStart,
+    ShapeEnd,
+    ShapeTextStart,
+    ShapeTextEnd,
+    ShapeTextPar,
+    ShapeTextLine,
+    ShapeTop,
+    ShapeBottom,
+    ShapeLeft,
+    ShapeRight,
+    ShapeZ
   };
 
   struct MarkerInfo{
@@ -45,7 +63,7 @@ namespace{
     std::optional<int> value = std::nullopt;
   };
 
-  constexpr std::array<MarkerInfo,19> markers{{
+  constexpr std::array<MarkerInfo,25> markers{{
     {MarkerType::TableTrowd, "@@RTF_TABLE_TROWD@@"},
     {MarkerType::TableCell , "@@RTF_TABLE_CELL@@" },
     {MarkerType::TableRow  , "@@RTF_TABLE_ROW@@"  },
@@ -64,7 +82,13 @@ namespace{
     {MarkerType::TablePar  , "@@RTF_TABLE_PAR@@"},
     {MarkerType::TableLine , "@@RTF_TABLE_LINE@@"},
     {MarkerType::NestTablePropsStart , "@@RTF_NEST_TABLE_PROPS_START@@"},
-    {MarkerType::NestTablePropsEnd   , "@@RTF_NEST_TABLE_PROPS_END@@"}
+    {MarkerType::NestTablePropsEnd   , "@@RTF_NEST_TABLE_PROPS_END@@"},
+    {MarkerType::ShapeStart, "@@RTF_SHAPE_START@@"},
+    {MarkerType::ShapeEnd  , "@@RTF_SHAPE_END@@"},
+    {MarkerType::ShapeTextStart,"@@RTF_SHAPE_TEXT_START@@"},
+    {MarkerType::ShapeTextEnd  ,"@@RTF_SHAPE_TEXT_END@@"},
+    {MarkerType::ShapeTextPar  ,"@@RTF_SHAPE_TEXT_PAR@@"},
+    {MarkerType::ShapeTextLine ,"@@RTF_SHAPE_TEXT_LINE@@"}
   }};
 
   std::optional<MarkerInfo> findMarker(std::string_view content, size_t pos) {
@@ -79,10 +103,18 @@ namespace{
     // 檢查並處理含有數字資訊之版本的標記符
     // 允許有負號
     // 2026/08/11 因為出現帶有負號的真實案例改成全部允許負號等到使用時再去進行判斷
+    // 表格帶數字標記符目標
     constexpr std::string_view trLeftHead = "@@RTF_TABLE_TRLEFT:";
     constexpr std::string_view trrhHead   = "@@RTF_TABLE_TRRH:";
     constexpr std::string_view cellxHead = "@@RTF_TABLE_CELLX:";
     constexpr std::string_view itapHead = "@@RTF_TABLE_ITAP:";
+
+    // 圖形帶數字標記符目標
+    constexpr std::string_view shpTopHead    = "@@RTF_SHPTOP:";
+    constexpr std::string_view shpBottomHead = "@@RTF_SHPBOTTOM:";
+    constexpr std::string_view shpLeftHead   = "@@RTF_SHPLEFT:";
+    constexpr std::string_view shpRightHead  = "@@RTF_SHPRIGHT:";
+    constexpr std::string_view shpZHead      = "@@RTF_SHPZ:";
 
     auto  parseNumberMarker = 
     [&content,pos](std::string_view head, MarkerType type, bool allowMinus)
@@ -148,7 +180,31 @@ namespace{
     if(auto m = parseNumberMarker(itapHead,MarkerType::Itap,true)){
       return m;
     }
+
+    if(auto m = parseNumberMarker(shpTopHead, MarkerType::ShapeTop, true)){
+      return m;
+    }
+
+    if(auto m = parseNumberMarker(shpTopHead, MarkerType::ShapeTop, true)){
+      return m;
+    }
+
+    if(auto m = parseNumberMarker(shpBottomHead, MarkerType::ShapeBottom, true)){
+      return m;
+    }
+
+    if(auto m = parseNumberMarker(shpLeftHead, MarkerType::ShapeLeft, true)){
+      return m;
+    }
+
+    if(auto m = parseNumberMarker(shpRightHead, MarkerType::ShapeRight, true)){
+      return m;
+    }
     
+    if(auto m = parseNumberMarker(shpZHead, MarkerType::ShapeZ, true)){
+      return m;
+    }
+
     return std::nullopt;
   }
 }
@@ -258,6 +314,25 @@ bool TableBlock::empty() const{
   return rows_.empty();
 }
 
+// 存放圖形群組(非圖片)專用的段落空間函式定義
+const std::string& ShapeTextBlock::text() const {
+  return text_;
+}
+int ShapeTextBlock::top() const{
+  return top_;
+}
+int ShapeTextBlock::bottom() const{
+  return bottom_;
+}
+int ShapeTextBlock::left() const{
+  return left_;
+}
+int ShapeTextBlock::right() const{
+  return right_;
+}
+int ShapeTextBlock::zOrder() const{
+  return zOrder_;
+}
 
 // 用來存放各種段落空間的容器函式定義
 template<typename BlockT,typename... Args>
@@ -367,6 +442,33 @@ Document DocumentBuilder::build(const std::string& content){
           doc.addBlock<ImageBlock>(ImageNode(imgInfo));
 
           i = end;
+          break;
+        }
+        case MarkerType::ShapeEnd:
+        case MarkerType::ShapeTextStart:
+        case MarkerType::ShapeTextEnd:
+        case MarkerType::ShapeTop:
+        case MarkerType::ShapeBottom:
+        case MarkerType::ShapeLeft:
+        case MarkerType::ShapeRight:
+        case MarkerType::ShapeZ:
+        i += marker->text.size();
+        break;
+
+        case MarkerType::ShapeStart:
+        {
+          parblock = nullptr;
+          std::optional<ShapeTextBlockResult> result = 
+             parseShapeBlock(content, i);
+
+          if(!result){
+              i += marker->text.size();
+              break;
+          }
+
+          doc.addBlock<ShapeTextBlock>(std::move(result->shape));
+
+          i = result->nextPos;
           break;
         }
         
@@ -864,5 +966,140 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
     return TableBlockResult{std::move(stack.back().table),i};
   }
 
+  return std::nullopt;
+}
+
+std::optional<ShapeTextBlockResult> 
+DocumentBuilder::parseShapeBlock(std::string_view text,size_t pos){
+   
+  // 確認是正確的 start 標記符開頭 
+  auto startMarker = findMarker(text, pos);
+
+  if(!startMarker ||startMarker->type != MarkerType::ShapeStart){
+    return std::nullopt;
+  }
+
+  size_t i = pos + startMarker->text.size();
+
+  std::string shapetext;
+
+  int top = 0;
+  int bottom = 0;
+  int left = 0;
+  int right = 0;
+  int zOrder = 0;
+
+  while(i < text.size()){
+
+    auto marker = findMarker(text, i);
+
+    if(!marker){
+      ++i;
+      continue;
+    }
+
+    if(marker->type == MarkerType::ShapeEnd){
+      i += marker->text.size();
+
+      ShapeTextBlock shape(shapetext,
+                           top,
+                           bottom,
+                           left,
+                           right,
+                           zOrder);
+
+      return ShapeTextBlockResult{
+        std::move(shape),
+        i
+      };
+    }
+
+    switch(marker->type){
+      case MarkerType::ShapeTop:
+      {
+        if(marker->value){
+          top = *marker->value;
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::ShapeBottom:
+      {
+        if(marker->value){
+          bottom = *marker->value;
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::ShapeLeft:
+      {
+        if(marker->value){
+          left = *marker->value;
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::ShapeRight:
+      {
+        if(marker->value){
+          right = *marker->value;
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      case MarkerType::ShapeZ:
+      {
+        if(marker->value){
+          zOrder = *marker->value;
+        }
+        i += marker ->text.size();
+        continue;
+      }
+      
+      case MarkerType::ShapeTextStart:
+      {
+        i += marker->text.size();
+
+        // 開始吃文字區塊
+        while(i < text.size()){
+          auto textMarker = findMarker(text, i);
+
+          if(!textMarker){
+            shapetext.push_back(text[i]);
+            i++;
+            continue;
+          }
+
+          if(textMarker->type == MarkerType::ShapeTextEnd){
+            i += textMarker->text.size();
+            break;
+          }
+          
+          // 目前觀察實際上沒有換行動作先保留
+          if(textMarker->type == MarkerType::ShapeTextPar){
+            i += textMarker->text.size();
+            continue;
+          }
+          // 目前觀察實際上沒有換行動作先保留 
+          if(textMarker->type == MarkerType::ShapeTextLine){
+            i += textMarker->text.size();
+            continue;
+          }
+
+          // 其餘標記符此範圍內遇到先直接吃掉
+          i += textMarker->text.size();
+        }
+        
+        break;
+      }   
+      
+      default:
+      {
+        i += marker->text.size();
+        continue;
+      }
+    }
+  }
+  
   return std::nullopt;
 }

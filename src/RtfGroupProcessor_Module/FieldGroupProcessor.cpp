@@ -30,6 +30,7 @@ std::optional<std::string> fieldGroupProcessor::groupProcessor(std::string_view 
   // 判斷關鍵群組
   fieldKind key = judgeGroup(fldinstGroup);
 
+
   // 依據群組關鍵字決定如何處理
   switch(key){
     case fieldKind::Hyperlink:

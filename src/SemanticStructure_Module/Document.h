@@ -165,6 +165,47 @@ struct TableBlockResult{
   size_t nextPos = 0 ;
 };
 
+// 存放圖形群組(非圖片)專用的段落空間
+// 目前只支援 純文字註解
+class ShapeTextBlock : public Block {
+  std::string text_;
+
+  int top_ = 0;
+  int bottom_ = 0;
+  int left_ = 0;
+  int right_ = 0;
+  int zOrder_ = 0;
+
+public:
+  ShapeTextBlock(std::string text,
+                 int top,
+                 int bottom,
+                 int left,
+                 int right,
+                 int zOrder)
+    : text_(std::move(text)),
+      top_(top),
+      bottom_(bottom),
+      left_(left),
+      right_(right),
+      zOrder_(zOrder)
+  {}
+
+  const std::string& text() const;
+  int top() const;
+  int bottom() const;
+  int left() const;
+  int right() const;
+  int zOrder() const;
+};
+
+// 用於回傳 圖形段落處裡回傳用的容器
+struct ShapeTextBlockResult{
+  ShapeTextBlock shape;
+  size_t nextPos = 0 ;
+};
+
+
 // 用來存放各種段落空間的容器
 class Document{
   std::vector<std::unique_ptr<Block>> blocks_;
@@ -182,4 +223,5 @@ public:
 private:
   std::optional<ImageMarkerInfo> extractImageId(std::string_view text);
   std::optional<TableBlockResult> parseTableBlock(std::string_view text,size_t pos);
+  std::optional<ShapeTextBlockResult> parseShapeBlock(std::string_view text,size_t pos);
 };

@@ -16,6 +16,7 @@
 #pragma once
 #include<string>
 #include<cstddef>
+#include<string_view>
 
 // 用來判斷是否是字元中的特殊符號用的介面
 class ISymbolJudgment{
@@ -49,4 +50,6 @@ private:
   void cleanTargetGroup(std::string& content,const std::string& target);
   void handleSpecialSymbolGroups(std::string& content);
   size_t findGroupEnd(const std::string& content, size_t start);
+  size_t findGroupEnd(std::string_view content, size_t start);
+  std::string processNestedField(std::string_view group);
 };

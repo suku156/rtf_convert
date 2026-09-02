@@ -248,6 +248,8 @@ void sheetProcessor::processor(std::string& rtfContent){
     bool startedFromGroup = false;
 
     // 藉由 {} 位置之紀錄決定開頭之正確位置
+    // 2026/08/18 因為副作用過大拿掉此機制觀察沒有影響後進行移除
+    /*
     if(groupStack.size() >= 2){
       sheetscope.sheetstart_ = groupStack.back();
       defaultEnd = findGroupEnd(rtfContent,groupStack.back());
@@ -255,6 +257,8 @@ void sheetProcessor::processor(std::string& rtfContent){
     }else{
       sheetscope.sheetstart_ = i;
     }
+    */
+    sheetscope.sheetstart_ = i;
    
     sheetscope.newsheetStr_.append(match -> marker);
 
@@ -290,6 +294,7 @@ void sheetProcessor::processor(std::string& rtfContent){
             sheetscope.newsheetStr_.append(m->marker);
             size_t rowEnd = m->end;
 
+            /*
             if(startedFromGroup &&
               defaultEnd != std::string_view::npos &&
               defaultEnd > rowEnd)
@@ -298,7 +303,10 @@ void sheetProcessor::processor(std::string& rtfContent){
             }else{
               sheetscope.sheetend_ = rowEnd;
             }
-            
+            */
+
+            sheetscope.sheetend_ = rowEnd;
+
             foundRow = true;
             break;
           }
@@ -550,7 +558,28 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
     // 忽略換行符
     if(c == '\n' || c == '\r') continue;
 
-    if(c == '{' || c == '}') continue;
+    if(c == '{'){
+      size_t k = findGroupEnd(groupView, i);
+
+      if(k != std::string_view::npos){
+        std::string_view nested = groupView.substr(i, k - i);
+
+        if(start_with(nested, "{\\field")){
+          fieldGroupProcessor processor;
+
+          if(auto text = processor.groupProcessor(nested)){
+            token.text += *text;
+          }
+
+          i = k - 1;
+          continue;
+        }
+      }
+
+      continue;
+    }
+
+    if(c == '}') continue;
 
     if(c == '\\'){
       

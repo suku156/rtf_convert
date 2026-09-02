@@ -275,9 +275,10 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
 
     
     // 進行解讀前的純控制群組處理與篩選
-    RtfPreProcessor rtfPreProcessor(logger);
-    rtfContent = rtfPreProcessor.process(rtfContent);
+    //RtfPreProcessor rtfPreProcessor(logger);
+    //rtfContent = rtfPreProcessor.process(rtfContent);
 
+    
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"開始嘗試解碼訊息"
@@ -366,8 +367,8 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //清除文字中剩餘的控制碼
-    textRtfProcessor textrtfprocessor(observer_);
-    textrtfprocessor.Processor(rtfContent,logger);
+    //textRtfProcessor textrtfprocessor(observer_);
+    //textrtfprocessor.Processor(rtfContent,logger);
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"完成多餘控制符清理"
@@ -413,6 +414,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       ProgressEventType::Info,
       L"成功建立輸出檔案"
     });
+    
 
     // .txt 檔案寫入 UTF-8 BOM 讓 Windows 筆記本正常顯示
     if(outputformat == Common::OutputFormat::Txt){
@@ -420,9 +422,9 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
  
-    //output << rtfContent;
+    output << rtfContent;
     
-    
+    /*
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -457,7 +459,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       processresult = ProcessResult::Failed;
       return processresult;
     }
-    
+    */
     
     notify(ProgressEvent{
       ProgressEventType::Info,

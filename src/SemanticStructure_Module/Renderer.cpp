@@ -155,10 +155,10 @@ void HtmlRenderer::renderImage(const ImageBlock& img,std::ostream& out){
       out << "<div class=\"image-block\">\n";
       switch(mark->type){
         case ImageMarkerType::Normal :
-        out << "img src=\"[IMAGE : " << mark->id << "]\" alt=\"\">\n";
+        out << "[IMAGE : " << mark->id << "]\n";
         break;
         case ImageMarkerType::Error :
-        out << "img src=\"[IMAGE_ERR :  " << mark->id << "]\" alt=\"\">\n";
+        out << "[IMAGE_ERR :  " << mark->id << "]\n";
         break;
       }
       out << "</div>\n";

@@ -2,9 +2,11 @@
 // Module : GroupProcessor (implementation)
 // =====================================================
 #include "GroupProcessor.h"
+#include "RtfGroupProcessor_Module/FieldGroupProcessor.h"
 #include<string>
 #include<cstddef>
 #include<cctype>
+#include<iostream>
 
 // 判斷該群組中是否都是 utf 特殊符號 函式定義
 bool utfSymbolJudgment::judgment(const std::string& content){
@@ -65,6 +67,11 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
 
       //取出開頭與結尾範圍內的文字進行判斷與加工
       std::string group = content.substr(pos,end - pos + 1);
+
+      // 如果目標群組中有 {\field 群組就對其進行預處裡 
+      if(group.find("{\\field") != std::string::npos){
+        group = processNestedField(group);
+      }
 
       //判斷擷取出的段落中有無 \uXXXX 這樣的控制符
       bool hasUnicode = group.find("\\u") != std::string::npos;//
@@ -198,4 +205,57 @@ size_t utf8GroupProcessor::findGroupEnd(const std::string& content, size_t start
   }
 
   return std::string::npos;
+}
+size_t utf8GroupProcessor::findGroupEnd(std::string_view content, size_t start){
+  int depth = 0;
+
+  for(size_t i = start; i < content.size(); i++){
+    char c = content[i];
+
+    if(c == '\\'){
+      i++; // 用來跳過 \ 後面的控制符如 \{ \} 等等
+      continue;
+    }
+
+    if(c == '{'){
+      depth++;
+    }
+    else if(c == '}'){
+      depth--;
+
+      if(depth == 0){
+        return i;
+      }
+    }
+  }
+
+  return std::string::npos;
+}
+std::string utf8GroupProcessor::processNestedField(std::string_view group){
+  size_t fieldPos = group.find("{\\field");
+
+  if(fieldPos == std::string_view::npos){
+    return std::string(group);
+  }
+
+  size_t fieldEnd = findGroupEnd(group, fieldPos);
+
+  if(fieldEnd == std::string_view::npos){
+    return std::string(group);
+  }
+
+  std::string result;
+  result.append(group.substr(0, fieldPos));
+
+  fieldGroupProcessor processor;
+
+  std::string_view fieldGroup = group.substr(fieldPos, fieldEnd - fieldPos);
+
+  if(auto fieldText = processor.groupProcessor(fieldGroup)){
+    result += *fieldText;
+  }
+
+  result.append(group.substr(fieldEnd));
+
+  return result;
 }
