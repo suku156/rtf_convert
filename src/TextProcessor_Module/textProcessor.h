@@ -47,7 +47,7 @@ private:
   bool hasVisibleText(std::string_view g);
   GroupDecision classifyGroup(std::string_view group);
   void controlGroupProcessor(std::string& Cleaned,logSystem& logger);
-  void finalRtfSymbolClean(std::string& Cleaned);
+  void finalRtfSymbolClean(std::string& Cleaned,logSystem& logger);
   void compressBlankLines(std::string& Cleaned,int maxBlankLines);
   void removeOuterBraces(std::string& Cleaned);
   void trimLeadingNewlines(std::string& Cleaned);

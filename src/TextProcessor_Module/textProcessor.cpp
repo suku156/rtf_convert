@@ -15,14 +15,14 @@
 #include<vector>
 #include <utility>
 #include <unordered_map>
+#include <iostream>
 
 // 公開入口的函式定義
 void textRtfProcessor::Processor(std::string& Cleaned,logSystem& logger){
     size_t before = Cleaned.size();
-    
-    
+
     controlGroupProcessor(Cleaned,logger);
-    finalRtfSymbolClean(Cleaned);
+    finalRtfSymbolClean(Cleaned,logger);
     compressBlankLines(Cleaned,3);
     removeOuterBraces(Cleaned);
     trimLeadingNewlines(Cleaned);
@@ -109,9 +109,8 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
     for(size_t i = 0; i < g.size(); ++i){
       unsigned char c = (unsigned char)g[i];
 
-      // 跳過大括號
+      // 跳過群組括號
       if(c == '{' || c == '}'){
-        ++i;
         continue;
       }
 
@@ -170,23 +169,21 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
               ++j;
           }
 
-          i = j;
+          i = j -1;
           continue;
         }
 
         // control symbol: \~ \- \_ \* 等
-        i += 2;
+        i += 1;
         continue;
       }
       // 空白類不算正文
       if(std::isspace(c)){
-        ++i;
         continue;
       }
         
       // 分號在 fonttbl 常出現，單獨不建議算正文
       if(c == ';'){
-        ++i;
         continue;
       }
 
@@ -196,7 +193,8 @@ bool textRtfProcessor::hasVisibleText(std::string_view g){
   return false;    
 }
 //用來判斷 群組內是 正文還是可以刪除的控制符段落
-textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view group){
+textRtfProcessor::GroupDecision 
+textRtfProcessor::classifyGroup(std::string_view group){
   
   // 圖片群組 前面已經有處理 防呆一下
     if(start_with(group, "{\\pict") || start_with(group, "@@RTF_IMAGE_")){
@@ -223,13 +221,15 @@ textRtfProcessor::GroupDecision textRtfProcessor::classifyGroup(std::string_view
     if(isKnownDroppableGroup(group)){
       return GroupDecision::Drop;
     }
-    
+
     // 只要遇到有可見文字的 -> 假定為正文
+    
     if(hasVisibleText(group)){
       return GroupDecision::KeepText;
     }
 
     return GroupDecision::Drop;
+    
 }
 //清理控制群組
 void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& logger){
@@ -340,7 +340,17 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
               {
                 std::string_view groupInner{Cleaned.data() + i + 1,end - i - 2};
                 std::string cleanStr  = processGroupInner(groupInner,logger);
+                
+                // 額外的小檢查避免控制符結尾與數字相連接
+                if (!result.empty() && !cleanStr.empty() &&
+                    std::isdigit(static_cast<unsigned char>(result.back())) &&
+                    std::isdigit(static_cast<unsigned char>(cleanStr.front())))
+                {
+                    result.push_back(' ');
+                }
+                
                 result.append(cleanStr);
+                
                 i = end;
                 continue;
               }
@@ -392,8 +402,9 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
     Cleaned.swap(result);
 }
 // 用來將剩餘的 rtf 控制符全部清空
-void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
-    std::string result;
+void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned,logSystem& logger){
+  
+  std::string result;
     
     const std::unordered_map<std::string,std::string> rtfReplacements = {
       {"par", "\n"},
@@ -463,6 +474,8 @@ void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned){
       ++i;
     }
     Cleaned.swap(result);
+
+    
 }
 //如果遇到過多連續空行,將其改為只有一行,用後方參數來設定最多可以空幾行
 void textRtfProcessor::compressBlankLines(std::string& Cleaned,int maxBlankLines){
@@ -567,8 +580,9 @@ bool textRtfProcessor::isSkippableRtfEscape(const std::string& s, size_t pos){
   return false;
 }
 
-// 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組 與 field 群組
+// 用在 controlGroupProcessor 流程中清理群組中的 {\*\ 群組 
 std::string textRtfProcessor::processGroupInner(std::string_view g,logSystem& logger){
+  
   std::string mid;
   if(g.find("{\\field") != std::string_view::npos){
     mid = processFieldGroup(g);
@@ -616,6 +630,7 @@ std::string textRtfProcessor::processGroupInner(std::string_view g,logSystem& lo
   }
 
   std::string tmp = cleanRtfControlWordsButKeepSemantic(result);
+
   return replaceSemanticControls(tmp);
 }
 
@@ -783,7 +798,7 @@ std::string textRtfProcessor::replaceSemanticControls(std::string_view target){
   }
 
   return result;
-}
+} 
 
 
 void textRtfProcessor::notify(const ProgressEvent& event){

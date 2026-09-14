@@ -22,6 +22,7 @@
 #include<mutex>
 #include<filesystem>
 #include<string>
+#include<string_view>
 
 
 
@@ -46,7 +47,7 @@ class logSystem{
 public:
   bool open(const std::filesystem::path& logPath);
   void close();
-  void log(LogLevel level,const std::string& message);
+  void log(LogLevel level,std::string_view message);
   bool isOpen() const noexcept{
     return output_.is_open();
   }

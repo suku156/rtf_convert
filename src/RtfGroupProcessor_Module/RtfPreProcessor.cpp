@@ -270,7 +270,8 @@ PreDecodeGroupAction RtfPreProcessor::getGroupAction(GroupHeadInfo info){
        name == "listtable" ||
        name == "listoverridetable" ||
        name == "bkmkstart" ||
-       name == "bkmkend") 
+       name == "bkmkend" ||
+       name == "revtbl") 
     {
       return PreDecodeGroupAction::Drop;
     }

@@ -23,6 +23,7 @@
 #include<filesystem>
 #include<optional>
 #include<iostream>
+#include<algorithm>
 #ifdef _WIN32
   #include <windows.h>
 #endif
@@ -230,6 +231,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       return processresult;
     }
 
+    
     // 圖片區況處理
     PictDisassembler pictdisassemcler(errorhandler,fileOut);
     auto picrResult = pictdisassemcler.process(rtfContent,logger);
@@ -267,6 +269,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       });
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
     }
+    
   
     //表格區塊需要的預先處裡
     logger.log(LogLevel::Info,"處裡表格區塊預先處理的部份");
@@ -275,8 +278,8 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
 
     
     // 進行解讀前的純控制群組處理與篩選
-    //RtfPreProcessor rtfPreProcessor(logger);
-    //rtfContent = rtfPreProcessor.process(rtfContent);
+    RtfPreProcessor rtfPreProcessor(logger);
+    rtfContent = rtfPreProcessor.process(rtfContent);
 
     
     notify(ProgressEvent{
@@ -286,7 +289,6 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
 
     
     // 先處理可能存在的 \uXXXX 區域部份
-    
     logger.log(LogLevel::Info,"處裡 utf \\uXXXX 標記符");
     auto utf_decoded = utf8Decoder().decode(rtfContent);
     if(!utf_decoded){
@@ -294,7 +296,6 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       return processresult;
     } 
     rtfContent = utf_decoded.value();
-    
 
     // 接著處裡 \'XX 區域部份 
     logger.log(LogLevel::Info,"嘗試處裡 ansi \\'XX 標記符");
@@ -338,6 +339,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     }else{
       logger.log(LogLevel::Info, "未偵測到 ANSI codepage,跳過 \\'XX 解碼");
     }
+    
 
     // 處裡群組前進行一次 utf8 檢查
     Utf8ErrorDetector utf_detector;
@@ -364,11 +366,10 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
     // 處裡群組
     utf8GroupProcessor().processGroups(rtfContent);
     
-    
     logger.log(LogLevel::Info,"清理轉換後之字串剩餘之控制符");
     //清除文字中剩餘的控制碼
-    //textRtfProcessor textrtfprocessor(observer_);
-    //textrtfprocessor.Processor(rtfContent,logger);
+    textRtfProcessor textrtfprocessor(observer_);
+    textrtfprocessor.Processor(rtfContent,logger);
     notify(ProgressEvent{
       ProgressEventType::Info,
       L"完成多餘控制符清理"
@@ -422,9 +423,9 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       output.write(reinterpret_cast<const char*>(bom), 3);
     }
  
-    output << rtfContent;
+    //output << rtfContent;
     
-    /*
+    
     DocumentBuilder DocBuilder;
     Document Doc = DocBuilder.build(rtfContent);
     logger.log(LogLevel::Info,"將處裡好的字串拆解為語意模型");
@@ -459,7 +460,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       processresult = ProcessResult::Failed;
       return processresult;
     }
-    */
+    
     
     notify(ProgressEvent{
       ProgressEventType::Info,

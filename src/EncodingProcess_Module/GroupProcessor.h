@@ -18,6 +18,7 @@
 #include<cstddef>
 #include<string_view>
 
+
 // 用來判斷是否是字元中的特殊符號用的介面
 class ISymbolJudgment{
 public:
@@ -25,12 +26,7 @@ public:
   virtual bool judgment(const std::string& content) = 0;
 };
 
-// 介面 用來給處理 utf 群組的類別繼承
-class myRtfGroupProcessor{
-public:
-  virtual ~myRtfGroupProcessor() = default;
-  virtual void processGroups(std::string& content) = 0;
-};
+
 
 
 // 判斷該群組中是否都是 utf 特殊符號
@@ -43,9 +39,9 @@ private:
 };
 
 // utf8 用的群組處理類別
-class utf8GroupProcessor : public myRtfGroupProcessor{
+class utf8GroupProcessor{
 public:
-  void processGroups(std::string& content) override;
+  void processGroups(std::string& content);
 private:
   void cleanTargetGroup(std::string& content,const std::string& target);
   void handleSpecialSymbolGroups(std::string& content);

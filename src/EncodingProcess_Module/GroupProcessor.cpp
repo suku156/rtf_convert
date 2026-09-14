@@ -60,8 +60,13 @@ void utf8GroupProcessor::processGroups(std::string& content){
     handleSpecialSymbolGroups(content);
 }
 void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string& target){
-    size_t pos = 0;
+    
+  size_t pos = 0;
+  size_t groupIndex = 0;
+
     while((pos = content.find(target,pos)) != std::string::npos){
+      groupIndex++;
+      
       size_t end = findGroupEnd(content,pos);
       if(end == std::string::npos) break;
 
@@ -69,8 +74,29 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
       std::string group = content.substr(pos,end - pos + 1);
 
       // 如果目標群組中有 {\field 群組就對其進行預處裡 
-      if(group.find("{\\field") != std::string::npos){
-        group = processNestedField(group);
+      while(group.find("{\\field") != std::string::npos){
+        
+        size_t fieldPos = group.find("{\\field");
+        size_t fieldEnd = findGroupEnd(group,fieldPos);
+        
+        if(fieldEnd == std::string::npos){
+          return;
+        }
+
+        size_t len = fieldEnd - fieldPos + 1;
+
+        std::string innerView{ 
+          group.data() + fieldPos,
+          len
+        };
+
+        fieldGroupProcessor processor;
+
+        if (auto text = processor.groupProcessor(innerView)) {
+          group.replace(fieldPos, fieldEnd - fieldPos + 1, *text);
+        }else{
+          group.erase(fieldPos, len);
+        }
       }
 
       //判斷擷取出的段落中有無 \uXXXX 這樣的控制符
@@ -151,6 +177,7 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
       }else{
         content.erase(pos,end-pos+1);
       }
+      
     }
 }
 void utf8GroupProcessor::handleSpecialSymbolGroups(std::string& content){

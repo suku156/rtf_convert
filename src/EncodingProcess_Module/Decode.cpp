@@ -19,6 +19,7 @@
 #include<cstddef>
 #include<iconv.h>
 #include<filesystem>
+#include<iostream>
 
 namespace{
   inline uint8_t hexToNibble(char c) {
@@ -70,6 +71,8 @@ std::string utf8Decoder::decodeUnToString(const std::string& content) {
   std::string result;
   result.reserve(content.size());
 
+  //auto targetPos = content.find("{\\dbch\\af0 {\\field");
+
   size_t ucSkip = 1; // RTF default
 
   for (size_t i = 0; i < content.size();) {
@@ -93,6 +96,7 @@ std::string utf8Decoder::decodeUnToString(const std::string& content) {
       }
 
       if (hasDigit) {
+ 
         ucSkip = value;
         // 這裡選擇移除 \ucN，因為它只是 Unicode fallback 設定
         i = j;
@@ -148,15 +152,33 @@ std::string utf8Decoder::decodeUnToString(const std::string& content) {
           }
         }
 
+          /*
+          size_t oldI = i;
+
+            if (targetPos != std::string::npos &&
+                oldI < targetPos &&
+                j >= targetPos)
+            {
+                std::wcout << "===== UTF SKIP CROSSED TARGET =====\n"
+                    << "oldI    = " << oldI << '\n'
+                    << "newJ    = " << j << '\n'
+                    << "target  = " << targetPos << '\n'
+                    << "value   = " << value << '\n'
+                    << "ucSkip  = " << ucSkip << '\n';
+            }
+          */
+          
+
+          
           i = j;
           continue;
         }
     }
 
-      // 重點：不要在這裡轉 \'XX
-      // 保留給下一階段 AnsiSegmentScanner + iconv
-      result.push_back(content[i]);
-      ++i;
+    // 重點：不要在這裡轉 \'XX
+    // 保留給下一階段 AnsiSegmentScanner + iconv
+    result.push_back(content[i]);
+    ++i;
   }
 
   return result;
