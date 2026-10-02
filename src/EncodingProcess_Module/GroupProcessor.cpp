@@ -64,6 +64,18 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
   size_t pos = 0;
   size_t groupIndex = 0;
 
+  auto processShapeTextRtf = [](const std::string& shptxtGroup) -> std::string{
+    constexpr std::string_view prefix = "{\\shptxt";
+
+    std::string content =
+    shptxtGroup.substr(
+      prefix.size(),
+      shptxtGroup.size() - prefix.size() - 1
+    );
+
+    return content;
+  };
+
     while((pos = content.find(target,pos)) != std::string::npos){
       groupIndex++;
       
@@ -97,6 +109,49 @@ void utf8GroupProcessor::cleanTargetGroup(std::string& content,const std::string
         }else{
           group.erase(fieldPos, len);
         }
+      }
+
+      // 如果目標群組中有 {\shp 群組就對其進行預處裡
+      while(group.find("{\\shp") != std::string::npos){
+
+        size_t shpPos = group.find("{\\shp");
+        size_t shpEnd = findGroupEnd(group, shpPos);
+
+        if(shpEnd == std::string::npos){
+          return;
+        }
+
+        size_t shpLen = shpEnd - shpPos;
+
+        std::string shpGroup{
+          group.data() + shpPos,
+          shpLen
+        };
+
+        size_t shptxtPos = shpGroup.find("{\\shptxt");
+
+        // 沒有文字內容，整個 shp 丟掉
+        if(shptxtPos == std::string::npos){
+          group.erase(shpPos, shpLen);
+          continue;
+        }
+
+        size_t shptxtEnd = findGroupEnd(shpGroup, shptxtPos);
+
+        if(shptxtEnd == std::string::npos){
+          return;
+        }
+
+        size_t shptxtLen = shptxtEnd - shptxtPos;
+
+        std::string shptxtGroup{
+          shpGroup.data() + shptxtPos,
+          shptxtLen
+        };
+
+        std::string preserved = processShapeTextRtf(shptxtGroup);
+
+        group.replace(shpPos, shpLen, preserved);
       }
 
       //判斷擷取出的段落中有無 \uXXXX 這樣的控制符

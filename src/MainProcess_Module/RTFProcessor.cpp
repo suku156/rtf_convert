@@ -270,11 +270,11 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       errorhandler.handleFatalGlobal(L"圖片區塊破壞性錯誤導致整體程式緊急終止!!!");
     }
     
-  
+    
     //表格區塊需要的預先處裡
     logger.log(LogLevel::Info,"處裡表格區塊預先處理的部份");
     sheetProcessor sheetprocessor;
-    sheetprocessor.processor(rtfContent);
+    sheetprocessor.processor(rtfContent,logger);
 
     
     // 進行解讀前的純控制群組處理與篩選
@@ -374,7 +374,7 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       ProgressEventType::Info,
       L"完成多餘控制符清理"
     });
-
+    
     
     logger.log(LogLevel::Info,"開始檢查檔案處裡結果品質");
     //檢查 圖檔區域處裡完的純文字的品質檢查

@@ -51,6 +51,72 @@ namespace txt_table{
   struct TableResult {
     std::vector<RowResult> rows;
   };  
+
+  std::string parsePictMarker(std::string_view text){
+    constexpr std::string_view imgHead = "@@RTF_IMAGE";
+    constexpr std::string_view imgErr  = "_ERR_";
+
+    std::string result;
+    result.reserve(text.size());
+
+    for(size_t i = 0;i < text.size();i++){
+
+      if(i + imgHead.size() <= text.size() &&
+         text.compare(i, imgHead.size(), imgHead) == 0)
+      {
+        size_t j = i + imgHead.size();
+
+        if(j + imgErr.size() <= text.size() &&
+           text.compare(j, imgErr.size(), imgErr) == 0)
+        {
+          size_t numStart = j + imgErr.size();
+          
+          size_t MarkerEnd = text.find("@@",numStart);
+          
+          if(MarkerEnd == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,MarkerEnd - numStart);
+
+          result += "[IMAGE_ERR :  ";
+          result += num ;
+          result += "]";
+         
+          i = MarkerEnd + 1; // 跳過最後兩個 @@ 迴圈會在自動加一所以只加一
+          continue;
+
+        }else if( j < text.size() && text[j] == '_'){
+          size_t numStart = j + 1;
+          
+          size_t end = text.find("@@",numStart);
+          
+          if(end == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,end - numStart);
+
+          result += "[IMAGE :  ";
+          result += num ;
+          result += "]";
+          
+
+          i = end + 1;
+          continue;
+
+        }
+      }
+
+      result.push_back(text[i]);
+    }
+
+    return result;
+  }
   
   TableResult buildResult(const TableBlock& table){
     TableResult tableResult;
@@ -78,7 +144,14 @@ namespace txt_table{
       for(size_t i = 0;i<cells.size();i++){
         CellResult cellResult;
         
-        cellResult.text = cells[i].text();
+        const auto& cellText = cells[i].text();
+        
+        if(cellText.find("@@RTF_IMAGE") != std::string::npos){
+          cellResult.text = parsePictMarker(cellText);
+        }else{
+          cellResult.text = cellText;
+        }
+        
         cellResult.nestedTable = cells[i].nestedTable();
         cellResult.nestedTablePlacement = cells[i].nestedTablePlacement(); 
 
@@ -200,20 +273,55 @@ namespace txt_table{
   }
   // 用來補齊文字線的函式(文字完整度優先)
   void padContentLineToWidth(std::string& line, size_t targetWidth){
-    if(!line.empty() && line.back() == '\n'){
-      line.pop_back();
+    size_t start = 0;
+
+    while(start < line.size()){
+      size_t end = line.find('\n', start);
+
+      if(end == std::string::npos){
+        end = line.size();
+      }
+
+      std::string currentLine = line.substr(start, end - start);
+
+      size_t width = displayWidth(currentLine);
+
+      // 文字完整度優先：超過就保留原樣，不裁切
+      if(width < targetWidth &&
+         !currentLine.empty() &&
+         currentLine.back() == '|')
+      {
+        currentLine.pop_back();
+
+        currentLine.append(
+          targetWidth - width,
+          ' '
+        );
+
+        currentLine.push_back('|');
+      }
+
+      // 將原本這一行替換成補齊後的內容
+      line.replace(
+          start,
+          end - start,
+          currentLine
+      );
+
+      // 移動到下一行
+      start += currentLine.size();
+
+      if(start < line.size() &&
+         line[start] == '\n')
+      {
+        ++start;
+      }
     }
 
-    size_t width = displayWidth(line);
-
-    // 文字完整性優先：超過就保留原樣，不裁切
-    if(width < targetWidth && !line.empty() && line.back() == '|'){
-      line.pop_back();
-      line.append(targetWidth - width, ' ');
-      line.push_back('|');
+    // 如果原本最後沒有換行，補上
+    if(line.empty() || line.back() != '\n'){
+      line.push_back('\n');
     }
-
-    line.push_back('\n');
   }
   
   // 建立每段表格的共同水平 gird
@@ -374,6 +482,216 @@ namespace txt_table{
     }
   }
 
+  // 用來判斷是否在 中文區用的配套函式
+  uint32_t decodeUtf8(const std::string& text,size_t pos,size_t& charLen)
+  {
+    unsigned char c = static_cast<unsigned char>(text[pos]);
+
+    if((c & 0x80) == 0){
+      charLen = 1;
+      return c;
+    }
+
+    if((c & 0xE0) == 0xC0){
+        charLen = 2;
+
+        return
+            ((c & 0x1F) << 6) |
+            (static_cast<unsigned char>(text[pos + 1]) & 0x3F);
+    }
+
+    if((c & 0xF0) == 0xE0){
+        charLen = 3;
+
+        return
+            ((c & 0x0F) << 12) |
+            ((static_cast<unsigned char>(text[pos + 1]) & 0x3F) << 6) |
+            (static_cast<unsigned char>(text[pos + 2]) & 0x3F);
+    }
+
+    if((c & 0xF8) == 0xF0){
+        charLen = 4;
+
+        return
+            ((c & 0x07) << 18) |
+            ((static_cast<unsigned char>(text[pos + 1]) & 0x3F) << 12) |
+            ((static_cast<unsigned char>(text[pos + 2]) & 0x3F) << 6) |
+            (static_cast<unsigned char>(text[pos + 3]) & 0x3F);
+    }
+
+    charLen = 1;
+    return c;
+  }
+
+  // 將目標依照換行符進行分行的動作
+  // 有加入計算長度後進行分行的功能
+  std::vector<std::string> splitLines(const std::string& text,size_t width){
+    std::vector<std::string> result;
+
+    std::string line;
+    size_t lineWidth = 0;
+
+    for(size_t i = 0; i < text.size();){
+      // 原始換行
+      if(text[i] == '\n'){
+        result.push_back(line);
+        line.clear();
+        lineWidth = 0;
+        ++i;
+        continue;
+      }
+
+      // 判斷目前 UTF-8 字元長度
+      size_t charLen = 1;
+
+      unsigned char c = static_cast<unsigned char>(text[i]);
+
+      if((c & 0x80) == 0x00){
+        charLen = 1;
+      }else if((c & 0xE0) == 0xC0){
+        charLen = 2;
+      }else if((c & 0xF0) == 0xE0){
+        charLen = 3;
+      }else if((c & 0xF8) == 0xF0){
+        charLen = 4;
+      }
+
+      std::string utf8Char = text.substr(i, charLen);
+
+      size_t charWidth = displayWidth(utf8Char);
+
+      // 放不下，先換行
+      if(lineWidth > 0 &&
+         lineWidth + charWidth > width)
+      {
+        // 判斷是否為 UTF-8 多 byte 字元
+        size_t charLen = 0;
+
+        uint32_t cp = decodeUtf8(text, i, charLen);
+
+        bool isAsciiWord = 
+        cp <= 0x7F && ((cp >= 'A' && cp <= 'Z') ||
+                       (cp >= 'a' && cp <= 'z') ||
+                       (cp >= '0' && cp <= '9'));
+                                              
+        if(isAsciiWord){
+          // 非 中文byte內容 嘗試往前找空白
+          size_t spacePos = line.find_last_of(' ');
+
+          if(spacePos != std::string::npos &&
+             spacePos + 1 < line.size())
+          {
+            std::string nextLine = line.substr(spacePos + 1);
+
+            line.erase(spacePos);
+
+            result.push_back(line);
+
+            line = nextLine;
+            lineWidth = displayWidth(line);
+
+            continue;
+          }
+        }
+
+        result.push_back(line);
+
+        line.clear();
+        lineWidth = 0;
+      }
+
+      line.append(utf8Char);
+      lineWidth += charWidth;
+
+      i += charLen;
+    }
+    
+    // 最後一行
+    result.push_back(line);
+
+    return result;
+  }
+
+  std::string buildTxtRow(
+    const RowResult& row,
+    const std::vector<int>& grid,
+    const std::vector<size_t>& gridWidths)
+  {
+    std::vector<size_t> horizon;
+    horizon.reserve(row.cells.size());
+    
+    std::vector<std::vector<std::string>> allCellLines;
+
+    for(const CellResult& cell : row.cells){
+      size_t width =  getCellRenderWidth(cell,grid,gridWidths);
+
+      horizon.push_back(width);
+
+      std::vector<std::string> cellLines = splitLines(cell.text,width);
+
+      allCellLines.push_back(std::move(cellLines));
+    }
+
+    size_t vertical_max = 0;
+
+    for(const auto& cellLines : allCellLines){
+      if(cellLines.size() > vertical_max){
+        vertical_max = cellLines.size();
+      }
+    }
+
+    std::vector<std::string> lines(vertical_max);
+
+    for(size_t i = 0 ; i < row.cells.size();i++){
+      // 從名單中取出對應的邊線
+      size_t width = horizon[i];
+
+      // 從名單中取出對應清單
+      std::vector<std::string> cellLines = allCellLines[i];
+
+      // 填充完每個 cell 的對應行數的資料
+      for(size_t j = 0;j < lines.size();j++){
+        lines[j].append("|");
+
+        // 如果該行有內容就將內容移動
+        if(j < cellLines.size()){
+          const std::string& text = cellLines[j];
+          lines[j].append(text);
+
+          // 計算出含中文的實際長度
+          size_t used = displayWidth(text);
+
+          // 補上空格到邊界之前
+          if(used < width){
+            lines[j].append(
+              width - used,
+              ' '
+            );
+          }
+        }
+        else{
+          lines[j].append(
+            width,
+            ' '
+          );
+        }
+      }
+    }
+
+    // 將 整個 row 的資訊結合
+    // 補上結尾與換行標記
+
+    std::string result;
+
+    for(auto& line : lines){
+      line.append("|");
+      line.append("\n");
+      result.append(line);
+    }
+
+    return result;
+  }
+
   void writeResult(const TableResult& result, std::ostream& out){
     const std::vector<RowResult>& rows = result.rows;
 
@@ -415,19 +733,13 @@ namespace txt_table{
         // 第一行
         firstText.append("+");
         firstText.append(renderWidth,'-');
-
-        // 第二行
-        secondText.append("|");
-        secondText.append(text);
-
-        if(renderWidth > textWidth){
-          secondText.append(renderWidth - textWidth,' ');
-        }
       }
 
       // 加入結尾符號
       firstText.append("+\n");
-      secondText.append("|\n");
+      
+      // 第二行
+      secondText = buildTxtRow(row, grid, gridWidths);
 
       // 找到最寬的列的值
       maxLineWidth = std::max(maxLineWidth, lineWidthNoNewline(firstText));
@@ -463,26 +775,5 @@ namespace txt_table{
     txt_table::writeResult(result,out);
   }
 
-  // utf8中文可用的安全版裁切(目前沒用到,如果有裁切模式的需求在用)
-  /*
-  std::string cutToDisplayWidth(std::string_view s, size_t maxWidth){
-    std::string result;
-    size_t width = 0;
-
-    for(size_t i = 0; i < s.size(); ){
-      size_t bytes = utf8CharBytes(static_cast<unsigned char>(s[i]));
-      size_t charWidth = charDisplayWidth(s, i);
-
-      if(width + charWidth > maxWidth){
-        break;
-      }
-
-      result.append(s.substr(i, bytes));
-      width += charWidth;
-      i += bytes;
-    }
-
-    return result;
-  }
-  */
+  
 }

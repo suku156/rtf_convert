@@ -97,7 +97,8 @@ bool textRtfProcessor::isKnownDroppableGroup(std::string_view g){
            start_with(g,"{\\themedata")        ||
            start_with(g,"{\\colorschememapping") ||
            start_with(g,"{\\xmlnstbl")         ||
-           start_with(g,"{\\rsidtbl"); 
+           start_with(g,"{\\rsidtbl") ||
+           start_with(g,"{\\footer") ; 
 }
 bool textRtfProcessor::isHex(char c){
   return (c >= '0' && c <= '9') ||
@@ -200,11 +201,20 @@ textRtfProcessor::classifyGroup(std::string_view group){
     if(start_with(group, "{\\pict") || start_with(group, "@@RTF_IMAGE_")){
        return GroupDecision::KeepAll;
     }
+    
     // 圖片標記符保護
+    /*
     if(group.find("@@RTF_IMAGE_") != std::string_view::npos ||
        group.find("@@RTF_IMAGE_ERR_") != std::string_view::npos)
     {
       return GroupDecision::KeepAll;
+    }
+    */
+
+
+    // 遇到圖型群組
+    if(start_with(group, "{\\shp")){
+      return  GroupDecision::Shp;
     }
 
     // word 特別蜂巢群組
@@ -242,6 +252,18 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
 
     size_t pos = targetPos + target.size();
     result.append(Cleaned,targetPos,pos);
+
+    auto processShapeTextRtf = [](const std::string& shptxtGroup) -> std::string{
+      constexpr std::string_view prefix = "{\\shptxt";
+
+      std::string content =
+      shptxtGroup.substr(
+        prefix.size(),
+        shptxtGroup.size() - prefix.size() - 1
+      );
+
+      return content;
+    };
     
     for(size_t i = pos;i<Cleaned.size();){
       unsigned char c = static_cast<unsigned char>(Cleaned[i]);
@@ -311,7 +333,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
           }
          
           //偵測有無圖片標記符 要特別處理
-
+          /* 因為群組資訊混雜的關係改為由 一般群組負責圖片標記符
           std::string_view groupView{Cleaned.data() + i, end - i};
           constexpr std::string_view imgHead = "@@RTF_IMAGE_";
           constexpr std::string_view imgTail   = "@@";
@@ -328,6 +350,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
               continue;
             }
           }
+          */
          
           // 需要增加判斷來表是可不可以跳過
           std::string_view innerView{Cleaned.data()+ i ,end - i};
@@ -346,7 +369,7 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
                     std::isdigit(static_cast<unsigned char>(result.back())) &&
                     std::isdigit(static_cast<unsigned char>(cleanStr.front())))
                 {
-                    result.push_back(' ');
+                  result.push_back(' ');
                 }
                 
                 result.append(cleanStr);
@@ -387,6 +410,65 @@ void textRtfProcessor::controlGroupProcessor(std::string& Cleaned,logSystem& log
               if(sg.text){
                 result.append(*sg.text);
               }
+              
+              i = end;
+              continue;
+            }
+            case GroupDecision::Shp :
+            {
+              std::string group{innerView.data(),innerView.size()};
+
+              while(group.find("{\\shp") != std::string::npos){
+
+                size_t shpPos = group.find("{\\shp");
+                size_t shpEnd = findGroupEnd(group, shpPos);
+
+                if(shpEnd == std::string::npos){
+                  break;
+                }
+
+                size_t shpLen = shpEnd - shpPos;
+
+                std::string shpGroup{
+                  group.data() + shpPos,
+                  shpLen
+                };
+
+                size_t shptxtPos = shpGroup.find("{\\shptxt");
+
+                // 沒有文字內容，整個 shp 丟掉
+                if(shptxtPos == std::string::npos){
+                  group.erase(shpPos, shpLen);
+                  continue;
+                }
+
+                size_t shptxtEnd = findGroupEnd(shpGroup, shptxtPos);
+
+                if(shptxtEnd == std::string::npos){
+                  break;
+                }
+
+                size_t shptxtLen = shptxtEnd - shptxtPos;
+
+                std::string shptxtGroup{
+                  shpGroup.data() + shptxtPos,
+                  shptxtLen
+                };
+
+                std::string preserved = processShapeTextRtf(shptxtGroup);
+
+                group.replace(shpPos, shpLen, preserved);
+              }
+
+              // 額外的小檢查避免控制符結尾與數字相連接
+              if (!result.empty() && !group.empty() &&
+                  std::isdigit(static_cast<unsigned char>(result.back())) &&
+                  std::isdigit(static_cast<unsigned char>(group.front())))
+              {
+                result.push_back(' ');
+              }
+              
+              result.append(group);
               
               i = end;
               continue;
@@ -638,7 +720,26 @@ std::string textRtfProcessor::cleanRtfControlWordsButKeepSemantic(std::string_vi
   std::string result;
   result.reserve(input.size());
 
+  constexpr std::string_view imgHead = "@@RTF_IMAGE_";
+  constexpr std::string_view imgTail = "@@";
+
   for(size_t i = 0; i < input.size(); ){
+    
+    // 保留圖片語意標記
+    if(i + imgHead.size() <= input.size() &&
+       input.compare(i, imgHead.size(), imgHead) == 0)
+    {
+      size_t imgEnd = input.find(imgTail, i + imgHead.size());
+
+      if(imgEnd != std::string_view::npos){
+        imgEnd += imgTail.size();
+
+        result.append(input.substr(i, imgEnd - i));
+        i = imgEnd;
+        continue;
+      }
+    }
+    
     if(input[i] != '\\'){
       
       // 群組的 {} 也丟掉

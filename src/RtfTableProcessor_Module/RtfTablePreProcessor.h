@@ -20,6 +20,7 @@
 #include <optional>
 #include <cstddef>
 #include <vector>
+#include "LogSystem_Module/LogSystem.h"
 
 enum class TableTokenType{
    text,
@@ -55,11 +56,11 @@ struct NestTablePropsResult {
 
 class sheetProcessor{
 public:
-   void processor(std::string& rtfContent);
+   void processor(std::string& rtfContent,logSystem& logger);
 private:
    bool isControlEnd(const std::string& s,size_t pos);
    bool isControlEnd(std::string_view s,size_t pos);
-   TableToken groupProcessor(std::string_view groupView);
+   TableToken groupProcessor(std::string_view groupView,logSystem& logger);
    size_t findNextTableEntry(const std::string& rtfContent,size_t from);
    bool start_with(std::string_view s,std::string_view prefix);
    std::optional<TableStartMatch> matchTableStart(std::string_view s, size_t i);
@@ -70,4 +71,5 @@ private:
    std::string preprocessNestedTableGroups(std::string_view group);
    bool isNestTablePropsStart(std::string_view group,size_t pos);
    std::optional<NestTablePropsResult> processNestTableProps(std::string_view group,size_t pos);
+   std::string removeTableShapes(std::string_view group);
 };

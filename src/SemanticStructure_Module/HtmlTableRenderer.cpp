@@ -52,7 +52,76 @@ namespace html_table{
 
   struct TableResult {
     std::vector<RowResult> rows;
-  };  
+  }; 
+  
+  std::string parsePictMarker(std::string_view text){
+    constexpr std::string_view imgHead = "@@RTF_IMAGE";
+    constexpr std::string_view imgErr  = "_ERR_";
+
+    std::string result;
+    result.reserve(text.size());
+
+    for(size_t i = 0;i < text.size();i++){
+
+      if(i + imgHead.size() <= text.size() &&
+         text.compare(i, imgHead.size(), imgHead) == 0)
+      {
+        size_t j = i + imgHead.size();
+
+        if(j + imgErr.size() <= text.size() &&
+           text.compare(j, imgErr.size(), imgErr) == 0)
+        {
+          size_t numStart = j + imgErr.size();
+          
+          size_t MarkerEnd = text.find("@@",numStart);
+          
+          if(MarkerEnd == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,MarkerEnd - numStart);
+
+          result += "<div class=\"image-block\">\n";
+          result += "[IMAGE_ERR :  ";
+          result += num ;
+          result += "]";
+          result += "</div>\n";
+
+          i = MarkerEnd + 1; // 跳過最後兩個 @@ 迴圈會在自動加一所以只加一
+          continue;
+
+        }else if( j < text.size() && text[j] == '_'){
+          size_t numStart = j + 1;
+          
+          size_t end = text.find("@@",numStart);
+          
+          if(end == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,end - numStart);
+
+          result += "<div class=\"image-block\">\n";
+          result += "[IMAGE :  ";
+          result += num ;
+          result += "]";
+          result += "</div>\n";
+
+          i = end + 1;
+          continue;
+
+        }
+      }
+
+      result.push_back(text[i]);
+    }
+
+    return result;
+  }
   
   TableResult buildResult(const TableBlock& table){
     TableResult tableResult;
@@ -80,7 +149,14 @@ namespace html_table{
       for(size_t i = 0;i<cells.size();i++){
         CellResult cellResult;
         
-        cellResult.text = cells[i].text();
+        const auto& cellText = cells[i].text();
+        
+        if(cellText.find("@@RTF_IMAGE") != std::string::npos){
+          cellResult.text = parsePictMarker(cellText);
+        }else{
+          cellResult.text = cellText;
+        }
+        
         cellResult.nestedTable = cells[i].nestedTable();
         cellResult.nestedTablePlacement = cells[i].nestedTablePlacement(); 
 

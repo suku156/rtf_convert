@@ -32,6 +32,7 @@ class textRtfProcessor{
     KeepText,
     KeepAll,
     Field,
+    Shp,
     Start
   };
   IProgressObserver* observer_ = nullptr;

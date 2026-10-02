@@ -15,8 +15,38 @@ StarGroupResult StartGroupProcessor::groupProcessor(std::string_view group){
     return startResult;
   }
   
-  startResult.unknown = true;
-  startResult.unknownGroupName = findStartGroupName(group);
+  std::string name = findStartGroupName(group);
+
+  if( name == "fchars" ||
+      name == "lchars" ||
+      name == "ud" ||
+      name == "wgrffmtfilter" ||
+      name == "pnseclvl" ||
+      name == "rsidtbl" ||
+      name == "themedata" ||
+      name == "colorschememapping" ||
+      name == "datastore" ||
+      name == "latentstyles" ||
+      name == "defchp" ||
+      name == "defpap" ||
+      name == "xmlnstbl" ||
+      name == "mmathPr" ||
+      name == "generator" ||
+      name == "userprops" ||
+      name == "ftnsep" ||
+      name == "listtable" ||
+      name == "listoverridetable" ||
+      name == "bkmkstart" ||
+      name == "bkmkend" ||
+      name == "revtbl" ||
+      name == "expandedcolortbl" ||
+      name == "htmltag")
+  {
+    startResult.unknown = false;
+  }else{
+    startResult.unknown = true;
+    startResult.unknownGroupName = name;
+  }
 
   startResult.text = extractVisibleText(group);
 

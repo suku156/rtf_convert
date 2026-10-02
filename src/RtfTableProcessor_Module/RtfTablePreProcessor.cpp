@@ -4,6 +4,7 @@
 
 #include "RtfTablePreProcessor.h"
 #include "RtfGroupProcessor_Module/FieldGroupProcessor.h"
+#include "RtfGroupProcessor_Module/StartDestinationProcessor.h"
 #include <string>
 #include <string_view>
 #include <vector>
@@ -12,6 +13,7 @@
 #include <optional>
 #include <array>
 #include <iostream>
+#include "LogSystem_Module/LogSystem.h"
 
 // 與表格先關的控制符名單與轉換成的標記符相關
 // 固定資訊控制符: \cell \row.... 等不含數字資訊之控制符
@@ -204,12 +206,64 @@ namespace{
 
     return std::nullopt;
   }
+
+  // 圖片標記符使用的結構
+  struct ImageMarkerMatch{
+    std::string marker;
+    size_t end;
+  };
+
+  // 判斷並回圖片標記符傳結構用的函式
+  std::optional<ImageMarkerMatch> matchImageMarker(std::string_view s, size_t pos){
+    constexpr std::string_view imgHead    = "@@RTF_IMAGE_";
+    constexpr std::string_view imgTail = "@@";
+
+    if(pos + imgHead.size() > s.size() ||
+       s.compare(pos, imgHead.size(), imgHead) != 0)
+    {
+      return std::nullopt;
+    }
+
+    size_t imgEnd = s.find(imgTail, pos + imgHead.size());
+
+    if(imgEnd == std::string_view::npos){
+      return std::nullopt;
+    }
+
+    imgEnd += imgTail.size();
+
+    return ImageMarkerMatch{
+      std::string(s.substr(pos, imgEnd - pos)),
+      imgEnd
+    };
+  }
+
+  std::optional<std::string>
+  extractPreservedContent(std::string_view group){
+    std::string result;
+    
+    for(size_t i = 0;i < group.size();i++){
+      if(auto m = matchImageMarker(group, i)){
+        result.append(m -> marker);
+        i = m -> end - 1;
+      }
+    }
+
+    if(!result.empty()){
+      return result;
+    }
+
+    return std::nullopt;
+  }
+  
 }
 
-void sheetProcessor::processor(std::string& rtfContent){
+void sheetProcessor::processor(std::string& rtfContent,logSystem& logger){
   std::vector<sheetScope> pending;
   std::vector<size_t> groupStack;
   groupStack.reserve(64);
+
+  std::string debugStr;
 
   rtfContent = preprocessNestedTableGroups(rtfContent);
 
@@ -316,6 +370,14 @@ void sheetProcessor::processor(std::string& rtfContent){
         }
       }
 
+      // 辨別並保留圖片標記符
+      if(auto m = matchImageMarker(rtfContent, j)){
+        sheetscope.newsheetStr_.append(m->marker);
+
+        j = (m->end - 1);
+        continue;
+      }
+
       if(foundRow){
         break;
       }
@@ -346,10 +408,14 @@ void sheetProcessor::processor(std::string& rtfContent){
               start_with(groupView, "{\\*\\shppict") ||
               start_with(groupView, "{\\*\\picprop")) 
           {
+            if(auto preserved = extractPreservedContent(groupView)){
+              sheetscope.newsheetStr_.append(*preserved);
+            }
+            
             j = k - 1;
             continue;
           }
-
+          
           // 2. 處裡 field 群組
           if(start_with(groupView, "{\\field")){
             fieldGroupProcessor fieldgroupprocessor;
@@ -367,7 +433,7 @@ void sheetProcessor::processor(std::string& rtfContent){
 
           // 3.處裡一般群組查詢有無正文或關鍵控制符
           bool groupHasRow = false;
-          TableToken token = groupProcessor(groupView);
+          TableToken token = groupProcessor(groupView,logger);
           
           if(!token.text.empty()){
             sheetscope.newsheetStr_.append(token.text);
@@ -394,6 +460,26 @@ void sheetProcessor::processor(std::string& rtfContent){
           }
 
         }
+        else{ // 一般括號包住的情況
+          size_t k = findGroupEnd(rtfContent, j);
+
+          if(k == std::string_view::npos){
+            break;
+          }
+
+          std::string_view groupView{
+            rtfContent.data() + j,
+            k - j
+          };
+
+          TableToken token = groupProcessor(groupView, logger);
+
+          if(!token.text.empty()){
+            sheetscope.newsheetStr_.append(token.text);
+          }
+
+          j = k - 1;
+        }
       }
 
       if(isNestTablePropsStart(rtfContent,j)){
@@ -402,6 +488,125 @@ void sheetProcessor::processor(std::string& rtfContent){
           j = props->nextPos - 1;
           continue;
         }
+      }
+
+      
+      // 吃掉並跳過控制符
+      if(c == '\\'){
+
+        
+        if(j + 1 < rtfContent.size() &&
+           (rtfContent[j + 1] == '{' ||
+            rtfContent[j + 1] == '}' ||
+            rtfContent[j + 1] == '\\') )
+        {
+          sheetscope.newsheetStr_ += rtfContent[j + 1];
+          j++;
+          continue; // 迴圈會自動 +1 所以此處只 +1
+        }
+
+        // 處理 \'XX，例如 \'a4\'a4
+        if (j + 3 < rtfContent.size() &&
+            rtfContent[j + 1] == '\'' &&
+            std::isxdigit(static_cast<unsigned char>(rtfContent[j + 2])) &&
+            std::isxdigit(static_cast<unsigned char>(rtfContent[j + 3])))
+        {
+          sheetscope.newsheetStr_.push_back('\\');
+          sheetscope.newsheetStr_.push_back('\'');
+          sheetscope.newsheetStr_.push_back(rtfContent[j + 2]);
+          sheetscope.newsheetStr_.push_back(rtfContent[j + 3]);
+
+          j += 3;
+          continue;
+        }
+
+        // 保留關鍵 \ucX 控制符
+        if(j + 3 < rtfContent.size() && 
+           rtfContent[j + 1] == 'u'  &&
+           rtfContent[j + 2] == 'c'  &&
+           std::isdigit(static_cast<unsigned char>(rtfContent[j+3])))
+        {
+          size_t k = j+3;
+          
+          sheetscope.newsheetStr_.push_back('\\');
+          sheetscope.newsheetStr_.push_back('u');
+          sheetscope.newsheetStr_.push_back('c');
+          
+          while (k < rtfContent.size() &&
+                std::isdigit(static_cast<unsigned char>(rtfContent[k])))
+          {
+            sheetscope.newsheetStr_.push_back(rtfContent[k]);
+            ++k;
+          }
+
+          j = k - 1; // 迴圈自己 +1
+          continue;
+        }
+
+        // 處裡 \uXXXX utf 標記符
+        if(j + 1 < rtfContent.size() && rtfContent[j + 1] == 'u'){
+          size_t k = j + 2;
+
+          //可能有負號
+          if(k < rtfContent.size() && rtfContent[k] == '-'){
+            k++;
+          }
+
+          size_t digitStart = k;
+          while(k < rtfContent.size() &&
+                std::isdigit(static_cast<unsigned char>(rtfContent[k])))
+          {
+            k++;
+          }
+
+          if( k > digitStart){
+            sheetscope.newsheetStr_.append(rtfContent.substr(j,k-j));
+            j = k - 1;
+            continue;
+          }
+        }
+        
+        
+        size_t k = j + 1 ;
+     
+        while(k < rtfContent.size()&& std::isalpha(static_cast<unsigned char>(rtfContent[k]))){
+          k++;
+        }
+
+        if (k < rtfContent.size() &&
+           (rtfContent[k] == '-' || std::isdigit(static_cast<unsigned char>(rtfContent[k]))))
+        {
+          if (rtfContent[k] == '-') {
+            ++k;
+          }
+
+          while (k < rtfContent.size() &&
+            std::isdigit(static_cast<unsigned char>(rtfContent[k]))) 
+          {
+            ++k;
+          }
+        }
+
+        if (k <rtfContent.size() && rtfContent[k] == ' ') {
+          j = k;
+          continue;
+        }
+
+        // 目前 j 已經在下一個非控制字字元，要先 -1 避免迴圈多跳
+        j = k -1 ;
+        continue;
+      }
+      
+
+      // 吃掉單獨的大括號
+      if(c == '{' || c == '}'){
+        continue;
+      }
+      
+      // 處裡到此步假定為正文將其加入字串中
+      // RTF 原始格式中的換行不屬於正文內容
+      if(c != '\n' && c != '\r'){
+        sheetscope.newsheetStr_.push_back(c);
       }
     }
 
@@ -498,7 +703,13 @@ bool sheetProcessor::isControlEnd(std::string_view s,size_t pos){
 
 
 // 用來偵測群組中有無表格相關的關鍵控制符
-TableToken sheetProcessor::groupProcessor(std::string_view groupView){
+TableToken sheetProcessor::groupProcessor(std::string_view groupView,logSystem& logger){
+  // 先移除一般群組內部內的 shp 群組
+  std::string cleanedGroup = removeTableShapes(groupView);
+
+  //轉移指向的目標
+  groupView = cleanedGroup;
+  
   TableToken token;
   token.text.reserve(groupView.size());
   token.type = TableTokenType::text;// 預設是文字
@@ -573,6 +784,33 @@ TableToken sheetProcessor::groupProcessor(std::string_view groupView){
 
           i = k - 1;
           continue;
+        }
+
+        if(start_with(nested, "{\\*\\")){
+          // 星號特別群組交由專用模組處裡
+          StartGroupProcessor startProcessor;
+          StarGroupResult sg = startProcessor.groupProcessor(nested);
+
+          // 名單內的就全部移除
+          if(sg.unknown == false){
+            i = k - 1;
+            continue;
+          }else{
+            if(!sg.unknownGroupName.empty()){
+              logger.log(
+                LogLevel::Warn,
+                "Unknown star group: " +
+                sg.unknownGroupName
+              );
+            }
+
+            if(sg.text){
+              token.text += *sg.text;
+            }
+
+            i = k - 1;
+            continue;
+          }
         }
       }
 
@@ -883,4 +1121,39 @@ sheetProcessor::processNestTableProps(std::string_view group,size_t pos){
   }
 
   return std::nullopt;
+}
+
+// 檢查並處裡找到群組中的 shp 群組
+std::string sheetProcessor::removeTableShapes(std::string_view group){
+  constexpr std::string_view  target = "{\\shp";
+  
+  if(group.find(target) == std::string::npos){
+    return std::string(group);
+  } 
+
+  std::string result;
+  result.reserve(group.size());
+
+  for(size_t i =0;i<group.size();){
+
+    if(i + target.size() <= group.size() &&
+       group.compare(i,target.size(),target) == 0 &&
+       isControlEnd(group,i + target.size()))
+    {
+      size_t j = findGroupEnd(group,i);
+
+      if(j == std::string::npos){
+        return std::string(group);
+      }
+
+      // 目前採取 : 整個圖形群組跳過的策略
+      i = j;
+      continue;
+    }
+
+    result.push_back(group[i]);
+    i++;
+  }
+
+  return result;
 }

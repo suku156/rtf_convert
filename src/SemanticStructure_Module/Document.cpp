@@ -942,6 +942,27 @@ DocumentBuilder::parseTableBlock(std::string_view text,size_t pos){
         i += marker->text.size();
         continue;
       }
+      case MarkerType::Image:
+      case MarkerType::ImageErr:
+      {
+        size_t end = text.find("@@", i + marker->text.size());
+        if (end == std::string_view::npos) {
+          i += marker->text.size();
+          continue;
+        }
+
+        end += 2;
+
+        std::string_view fullMarker{
+          text.data() + i,
+          end - i
+        };
+
+        pending.cellText.append(fullMarker);
+        
+        i = end;
+        continue;
+      }
       default :
       {
         if(!stack.back().table.empty()){

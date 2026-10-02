@@ -17,9 +17,10 @@
 #pragma once
 #include <iosfwd>
 
+
 class TableBlock;
 
 namespace txt_table {
-
   void renderTable(const TableBlock& table, std::ostream& out);
+  
 }

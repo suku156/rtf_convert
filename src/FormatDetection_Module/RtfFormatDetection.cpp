@@ -102,15 +102,21 @@ bool EncodingDetector::rtfSymbolCheck(std::string_view strView){
 
   j += 3; // 跳過 rtf
 
-   // \rtf 後面最好要有版本數字，例如 \rtf1
-  if (j >= strView.size() ||
-    !std::isdigit(static_cast<unsigned char>(strView[j]))) {
-    return false;
+  // \rtf 後面可有版本數字，例如 \rtf1
+  // 若沒有版本數字，則允許直接接其他 control word
+  if(j < strView.size() &&
+     std::isdigit(static_cast<unsigned char>(strView[j])))
+  {
+    while(j < strView.size() &&
+          std::isdigit(static_cast<unsigned char>(strView[j])))
+    {
+      ++j;
+    }
   }
-
-  while (j < strView.size() &&
-         std::isdigit(static_cast<unsigned char>(strView[j]))) {
-    ++j;
+  else if(j < strView.size() &&
+        std::isalpha(static_cast<unsigned char>(strView[j])))
+  {
+    return false;
   }
 
   return true;
