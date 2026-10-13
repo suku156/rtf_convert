@@ -489,8 +489,8 @@ void textRtfProcessor::finalRtfSymbolClean(std::string& Cleaned,logSystem& logge
   std::string result;
     
     const std::unordered_map<std::string,std::string> rtfReplacements = {
-      {"par", "\n"},
-      {"line", "\n"},
+      {"par", "@@par@@"},
+      {"line", "@@line@@"},
       {"tab", "\t"},
       {"emdash", "—"},
       {"bullet", "•"}

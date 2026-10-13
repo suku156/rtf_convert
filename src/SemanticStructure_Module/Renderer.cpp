@@ -352,6 +352,7 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
 
   out << ".rtf-table {\n";
   out << "  border-collapse: collapse;\n";
+  out << " margin-bottom: 20px;\n";
   out << "}\n";
 
   out << ".rtf-table td {\n";

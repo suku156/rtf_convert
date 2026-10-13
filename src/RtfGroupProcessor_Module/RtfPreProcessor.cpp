@@ -12,14 +12,38 @@ namespace{
 }
 
 std::string RtfPreProcessor::process(std::string_view rtf){
-    constexpr std::string_view target = "{\\rtf";
-    size_t targetPos = rtf.find(target);
-    if(targetPos == std::string_view::npos){
+    size_t pos = 0;
+
+    while(pos < rtf.size() &&
+          std::isspace(static_cast<unsigned char>(rtf[pos]))) {
+      ++pos;
+    }
+
+    if (pos >= rtf.size() || rtf[pos] != '{') {
       return std::string(rtf);
-    } 
-  
-    size_t pos = targetPos + target.size();
-    
+    }
+
+    ++pos;
+
+    while(pos < rtf.size() &&
+          std::isspace(static_cast<unsigned char>(rtf[pos]))) {
+      ++pos;
+    }
+
+    constexpr std::string_view target = "\\rtf";
+
+    if (rtf.substr(pos, target.size()) != target) {
+      return std::string(rtf);
+    }
+
+    size_t endPos = pos + target.size();
+
+    if(endPos < rtf.size() &&
+       std::isalpha(static_cast<unsigned char>(rtf[endPos]))) 
+    {
+      return std::string(rtf);
+    }
+
     std::string result;
     result.reserve(rtf.size());
 

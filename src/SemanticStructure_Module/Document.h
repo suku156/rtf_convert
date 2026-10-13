@@ -101,6 +101,7 @@ class TableRow{
   int trrh_ = 0;
   bool lastRow_ = false;
   bool headerRow_ = false;
+  bool mergedRow_ = false;
   
   std::vector<TableCell> cells_;
   std::vector<TableCellDef> cellDefs_;
@@ -112,12 +113,15 @@ public:
   void setHeaderRow(bool value = true);
   void setItap(int value);
   void setTrrh(int value);
+  void setMergedRow(bool value = true);
+  void changeCellDefsCellx(const std::vector<int>& target);
   
   const std::vector<TableCell>& cells() const;
   const std::vector<TableCellDef>& cellDefs() const;
   int trLeft() const;
   bool isLastRow() const;
   bool isHeaderRow() const;
+  bool isMergedRow() const;
   int Itap() const;
   int trrh() const;
 
@@ -156,6 +160,9 @@ class TableBlock : public Block{
 public:
   void addRow(TableRow row);
   const std::vector<TableRow>& rows() const;
+  void changeMergedRow(int Trleft,const std::vector<int>& cellxRow);
+  void appendRows(TableBlock&& other);
+  bool hasMergedRow() const;
   bool empty() const;
 };
 
@@ -224,4 +231,6 @@ private:
   std::optional<ImageMarkerInfo> extractImageId(std::string_view text);
   std::optional<TableBlockResult> parseTableBlock(std::string_view text,size_t pos);
   std::optional<ShapeTextBlockResult> parseShapeBlock(std::string_view text,size_t pos);
+  bool canMergeTable(const TableBlock& pendingTable ,const TableBlock& resultTable);
+  void revisionMergeTable(TableBlock& pendingTable);
 };

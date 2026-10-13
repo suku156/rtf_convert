@@ -10,6 +10,8 @@
 #include<optional>
 #include<iostream>
 #include<array>
+#include<cctype>
+#include<set>
 
 namespace{
   enum class MarkerType{
@@ -207,6 +209,17 @@ namespace{
 
     return std::nullopt;
   }
+
+  //檢測字串是否只包含格式控制符的工具函式
+  bool hasVisibleText(const std::string& text){
+    for (unsigned char c : text) {
+      if (!std::isspace(c)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 }
 
 // 文字節點函式定義
@@ -278,6 +291,19 @@ void TableRow::setItap(int value){
 void TableRow::setTrrh(int value){
   trrh_ = value;
 }
+void TableRow::setMergedRow(bool value) {
+  mergedRow_ = value;
+}
+void TableRow::changeCellDefsCellx(const std::vector<int>& target){
+  if(target.size() != cellDefs_.size()){
+    return;
+  }
+
+  for(size_t i =0;i<cellDefs_.size();i++){
+    cellDefs_[i].cellx = target[i];
+  }
+}
+
 const std::vector<TableCell>& TableRow::cells() const {
   return cells_;
 }
@@ -302,6 +328,9 @@ int TableRow::trrh() const{
 bool TableRow::empty() const{
   return cells_.empty();
 }
+bool TableRow::isMergedRow() const {
+  return mergedRow_;
+}
 
 // 存放表格專用的段落空間(定義)
 void TableBlock::addRow(TableRow row){
@@ -309,6 +338,43 @@ void TableBlock::addRow(TableRow row){
 }
 const std::vector<TableRow>& TableBlock::rows() const {
   return rows_;
+}
+// 用來讓 TableBlock 合併 另一個 TableBlock
+// 被合併 TableBlock 的會被清空
+void TableBlock::appendRows(TableBlock&& other){
+  for (auto& row : other.rows_){
+    row.setMergedRow();
+    rows_.push_back(std::move(row));
+  }
+
+  other.rows_.clear();
+}
+void TableBlock::changeMergedRow(int Trleft,const std::vector<int>& cellxRow){
+  if(cellxRow.empty()) return;
+  
+  for (auto& row : rows_) {
+
+    // 不是合併進來的不調整
+    if (!row.isMergedRow()) {
+        continue;
+    }
+
+    // 調整 trLeft
+    row.setTrleft(Trleft);
+
+    // 調整 cellDef 中的 cellx
+    row.changeCellDefsCellx(cellxRow);
+  }
+}
+bool TableBlock::hasMergedRow() const
+{
+  for (const auto& row : rows_) {
+    if (row.isMergedRow()) {
+      return true;
+    }
+  }
+
+  return false;
 }
 bool TableBlock::empty() const{
   return rows_.empty();
@@ -350,6 +416,18 @@ const std::vector<std::unique_ptr<Block>>& Document::blocks() const{
 Document DocumentBuilder::build(const std::string& content){
     Document doc;
     ParagraphBlock* parblock = nullptr;
+    std::optional<TableBlock> pendingTable;
+
+    auto flushPendingTable = [&pendingTable,&doc,this](){
+      if(!pendingTable) return;
+
+      if (pendingTable->hasMergedRow()) {
+        revisionMergeTable(*pendingTable);
+      }
+
+      doc.addBlock<TableBlock>(std::move(*pendingTable));
+      pendingTable.reset();
+    };
     
     auto appendText = [&](std::string text) {
       if (text.empty()) return;
@@ -373,15 +451,27 @@ Document DocumentBuilder::build(const std::string& content){
         continue;
       }
 
-      appendText(std::move(buffer));
-      buffer.clear();
+      if(!buffer.empty()){
+        if (!parblock) {
+          if (hasVisibleText(buffer)) {
+            flushPendingTable();
+          }else {
+            buffer.clear();
+            continue;
+          }
+        }
+
+        appendText(std::move(buffer));
+        buffer.clear();
+      }
 
       switch(marker -> type){
         case MarkerType::Par :
           parblock = nullptr;
+          flushPendingTable();
+
           i += marker->text.size();
           break;
-        
         case MarkerType::Line:
           appendText("\n");
           i += marker->text.size();
@@ -417,7 +507,16 @@ Document DocumentBuilder::build(const std::string& content){
             i += marker->text.size();
             break;
           }     
-          doc.addBlock<TableBlock>(std::move(result->table));
+          
+          if(!pendingTable){
+            pendingTable = std::move(result->table);
+          }else if(canMergeTable(*pendingTable, result->table)){
+            pendingTable -> appendRows(std::move(result->table));
+          }else{
+            flushPendingTable();
+            pendingTable = std::move(result->table); 
+          }
+
           i = result -> nextPos;
           break;
         }  
@@ -425,6 +524,8 @@ Document DocumentBuilder::build(const std::string& content){
         case MarkerType::Image:
         {
           parblock = nullptr;
+          flushPendingTable();
+
           size_t end = content.find("@@", i + marker->text.size());
           if (end == std::string_view::npos) {
             i += marker->text.size();
@@ -458,6 +559,8 @@ Document DocumentBuilder::build(const std::string& content){
         case MarkerType::ShapeStart:
         {
           parblock = nullptr;
+          flushPendingTable();
+
           std::optional<ShapeTextBlockResult> result = 
              parseShapeBlock(content, i);
 
@@ -479,8 +582,11 @@ Document DocumentBuilder::build(const std::string& content){
     }
 
     appendText(std::move(buffer));
+    flushPendingTable();
+
     return doc;
 }
+
 std::optional<ImageMarkerInfo> DocumentBuilder::extractImageId(std::string_view text){
     constexpr std::string_view imgHead = "@@RTF_IMAGE";
     constexpr std::string_view imgErr  = "_ERR_";
@@ -1123,4 +1229,105 @@ DocumentBuilder::parseShapeBlock(std::string_view text,size_t pos){
   }
   
   return std::nullopt;
+}
+
+// 用來判斷相鄰的表格是否進行合併的評斷函式
+bool DocumentBuilder::canMergeTable
+(const TableBlock& pendingTable ,const TableBlock& resultTable){
+  
+  if (pendingTable.rows().empty() ||
+      resultTable.rows().empty()) 
+  {
+    return false;
+  }
+  
+  const TableRow& lastRow = pendingTable.rows().back();
+  const TableRow& firstRow = resultTable.rows().front();
+
+  // 比對雙方層級
+  if (lastRow.Itap() != firstRow.Itap()){
+    return false;
+  }
+
+  return true;
+}
+
+// 如果表格有合併過使用此函式進行一體化調整
+void DocumentBuilder::revisionMergeTable(TableBlock& pendingTable){
+  if (pendingTable.rows().empty()) {
+    return;
+  }
+
+  // 目標編號
+  std::optional<size_t> targetNum = std::nullopt;
+
+   // 第一階段：尋找沒有水平合併的列
+  for(size_t i = 0; i < pendingTable.rows().size();i++){
+    bool foundTargetRow = true;
+
+    const TableRow& TR = pendingTable.rows()[i];
+
+    if(TR.cellDefs().empty()){
+      continue;
+    }
+    
+    for(size_t j = 0;j < TR.cellDefs().size();j++){
+      const TableCellDef& cellDef = TR.cellDefs()[j];
+
+      if(cellDef.horizontalMerged ||
+         cellDef.horizontalMergeStart )
+      {
+        foundTargetRow = false;
+        break;
+      }
+    }
+
+    if(foundTargetRow){
+      targetNum = i;
+      break;
+    }
+  }
+
+  // 第二階段：沒有無合併列時，尋找不同 cellx 最多的列
+  if(!targetNum){
+    size_t maxNum = 1;
+
+    for(size_t i = 0; i < pendingTable.rows().size();i++){
+      const TableRow& row = pendingTable.rows()[i];
+
+      if(row.cellDefs().empty()){
+        continue;
+      }
+
+      std::set<int> cellxSet;
+      
+      for (const TableCellDef& cellDef : row.cellDefs()) {
+        cellxSet.insert(cellDef.cellx);
+      }
+
+      if(cellxSet.size() > maxNum){
+        maxNum = cellxSet.size();
+        targetNum = i;
+      }
+    }
+  }
+
+  // 沒有可靠的參考列
+  if (!targetNum) {
+    return;
+  }
+
+  // 統一取得參考列資料
+  const TableRow& targetRow = pendingTable.rows()[*targetNum];
+
+  std::vector<int> cellxRow;
+  cellxRow.reserve(targetRow.cellDefs().size());
+
+  for (const TableCellDef& cellDef : targetRow.cellDefs()) {
+      cellxRow.push_back(cellDef.cellx);
+  }
+
+  const int trLeft = targetRow.trLeft();
+
+  pendingTable.changeMergedRow(trLeft,cellxRow);
 }
