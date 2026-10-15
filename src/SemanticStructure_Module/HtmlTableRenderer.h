@@ -16,9 +16,12 @@
 
 #pragma once
 #include <iosfwd>
+#include <unordered_map>
+#include <filesystem>
 
 class TableBlock;
 
 namespace html_table {
-  void renderTable(const TableBlock& table, std::ostream& out);
+  void renderTable(const TableBlock& table, std::ostream& out,
+                   const std::unordered_map<int, std::filesystem::path>& index);
 }

@@ -6,10 +6,16 @@
 #include "MdTableRenderer.h"
 #include "HtmlTableRenderer.h"
 #include "SemanticStructure_Module/Document.h"
-#include<ostream>
-#include<string>
+#include <ostream>
+#include <string>
 #include <utility>
 #include <iostream>
+#include <unordered_map>
+#include <filesystem>
+#include <charconv>
+#include <system_error>
+#include <algorithm>
+#include <cctype>
 
 namespace{
 
@@ -336,7 +342,14 @@ void MarkdownRenderer::renderParagraphWithTextPict
 
 
 // Html 類型的函式定義
-void HtmlRenderer::render(const Document& Doc,std::ostream& out){
+void HtmlRenderer::render(const Document& Doc,std::ostream& out,
+                          const std::optional<std::filesystem::path>& imageDir)
+{
+  std::unordered_map<int, std::filesystem::path> index;
+  if(imageDir){
+    index = buildImageIndex(*imageDir);
+  }
+
   out << "<!DOCTYPE html>\n";
   out << "<html>\n<head>\n";
   out << "<meta charset=\"utf-8\">\n";
@@ -375,9 +388,9 @@ void HtmlRenderer::render(const Document& Doc,std::ostream& out){
     if(auto* p = dynamic_cast<const ParagraphBlock*>(blk.get())){
       renderParagraph(*p,out);
     }else if(auto* img = dynamic_cast<const ImageBlock*>(blk.get())){
-      renderImage(*img,out);
+      renderImage(*img,out,index);
     }else if(auto* table = dynamic_cast<const TableBlock*>(blk.get())){
-      renderTable(*table, out);
+      renderTable(*table, out,index);
       out << "\n";
     }
   }
@@ -410,25 +423,74 @@ void HtmlRenderer::renderParagraph(const ParagraphBlock& p,std::ostream& out){
   
   out << "</p>\n";
 }
-void HtmlRenderer::renderImage(const ImageBlock& img,std::ostream& out){
-    const auto& mark = img.image().imageMark();
+void HtmlRenderer::renderImage(const ImageBlock& img,std::ostream& out,
+                               const std::unordered_map<int, std::filesystem::path>& index)
+{
+  const auto& mark = img.image().imageMark();
 
-    if(mark){
-      out << "<div class=\"image-block\">\n";
-      switch(mark->type){
-        case ImageMarkerType::Normal :
-        out << "[IMAGE : " << mark->id << "]\n";
-        break;
-        case ImageMarkerType::Error :
-        out << "[IMAGE_ERR :  " << mark->id << "]\n";
-        break;
-      }
-      out << "</div>\n";
+  if (!mark) {
+    return;
+  }
+
+  // 錯誤圖片標記不應拿來查找正常圖片
+  if (mark->type == ImageMarkerType::Error) {
+      out << "<!-- IMAGE_ERR: " << mark->id << " -->\n";
+      return;
+  }
+
+  int imageNumber = 0;
+  
+  const auto& id = mark->id;
+
+  const auto [ptr, ec] = std::from_chars(
+    id.data(),
+    id.data() + id.size(),
+    imageNumber
+  );
+
+  if(ec != std::errc{} ||
+     ptr != id.data() + id.size() ||
+     imageNumber < 0) 
+  {
+    return;
+  }
+  
+  const auto it = index.find(imageNumber);
+
+  if (it == index.end()) {
+    // 找不到對應圖片
+    return;
+  }
+
+  const auto& path = it->second;
+  std::string ext = path.extension().string();
+
+  std::transform(ext.begin(), ext.end(), ext.begin(),
+    [](unsigned char c) {
+      return static_cast<char>(std::tolower(c));
     }
-    
+  );
+
+  if (ext == ".wmf" || ext == ".emf") 
+  {
+    out << "<div class=\"image-unsupported\">\n";
+    out << "[圖片無法直接顯示："
+        << path.filename().string()
+        << "，格式尚未支援]\n";
+    out << "</div>\n";
+    return;
+  }
+  
+  const std::string src = "images/" + it->second.filename().generic_string();
+
+  out << "<div class=\"image-block\">\n";
+  out << "<img src=\"" << src << "\" alt=\"RTF image\">\n";
+  out << "</div>\n";
 }
-void HtmlRenderer::renderTable(const TableBlock& table,std::ostream& out){
-  html_table::renderTable(table,out);
+void HtmlRenderer::renderTable(const TableBlock& table,std::ostream& out,
+                               const std::unordered_map<int, std::filesystem::path>& index)
+{
+  html_table::renderTable(table,out,index);
 }
 
 void HtmlRenderer::renderParagraphWithTextPict(const ParagraphBlock& p,std::ostream& out){
@@ -546,4 +608,55 @@ void HtmlRenderer::renderParagraphWithTextPict(const ParagraphBlock& p,std::ostr
   }
 
   out << "</p>\n";
+}
+
+std::unordered_map<int, std::filesystem::path>
+HtmlRenderer::buildImageIndex(const std::filesystem::path& imageDir)
+{
+  std::unordered_map<int, std::filesystem::path> index;
+
+  if (!std::filesystem::exists(imageDir) || !std::filesystem::is_directory(imageDir)) 
+  {
+    return index;
+  }
+
+for (const auto& entry : std::filesystem::directory_iterator(imageDir)) {
+    if (!entry.is_regular_file()) {
+      continue;
+    }
+
+    const std::filesystem::path path = entry.path();
+    const std::string stem = path.stem().string();
+
+    constexpr std::string_view prefix = "IMG_";
+
+    if (stem.size() <= prefix.size() ||
+        stem.compare(0, prefix.size(), prefix) != 0) 
+    {
+      continue;
+    }
+
+    const std::string_view numberText(
+        stem.data() + prefix.size(),
+        stem.size() - prefix.size()
+    );
+
+    int number = 0;
+    const auto [ptr, ec] = std::from_chars(
+        numberText.data(),
+        numberText.data() + numberText.size(),
+        number
+    );
+
+    if(ec != std::errc{} ||
+       ptr != numberText.data() + numberText.size() ||
+       number < 0)
+    {
+      continue;
+    }
+
+    index.emplace(number, path.filename());
+  }
+
+  return index;
 }

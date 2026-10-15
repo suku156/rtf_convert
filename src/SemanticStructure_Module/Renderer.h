@@ -17,6 +17,9 @@
 #pragma once
 #include<ostream>
 #include<string>
+#include<filesystem>
+#include<optional>
+#include <unordered_map>
 
 // forward declaration
 class Document;
@@ -48,11 +51,16 @@ private:
 // 讀取語意結構用的類別 Html 用
 class HtmlRenderer{
 public:
-  void render(const Document& Doc,std::ostream& out);
+  void render(const Document& Doc,std::ostream& out,
+              const std::optional<std::filesystem::path>& imageDir);
 private:
   void renderEscapedText(const std::string& text,std::ostream& out);
   void renderParagraph(const ParagraphBlock& p,std::ostream& out);
-  void renderImage(const ImageBlock& img,std::ostream& out);
-  void renderTable(const TableBlock& table,std::ostream& out);
+  void renderImage(const ImageBlock& img,std::ostream& out,
+                   const std::unordered_map<int, std::filesystem::path>& index);
+  void renderTable(const TableBlock& table,std::ostream& out,
+                   const std::unordered_map<int, std::filesystem::path>& index);
   void renderParagraphWithTextPict(const ParagraphBlock& p,std::ostream& out); 
+  std::unordered_map<int, std::filesystem::path>
+  buildImageIndex(const std::filesystem::path& imageDir);
 };

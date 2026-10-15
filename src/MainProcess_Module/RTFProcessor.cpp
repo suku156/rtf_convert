@@ -21,6 +21,7 @@
 #include "RtfTableProcessor_Module/RtfTablePreProcessor.h"
 #include "RtfGroupProcessor_Module/RtfPreProcessor.h"
 #include<filesystem>
+#include<iosfwd>
 #include<optional>
 #include<iostream>
 #include<algorithm>
@@ -447,7 +448,19 @@ ProcessResult RTFProcessor::processFile(const FileProcessRequest& req)
       
       case Common::OutputFormat::Html:{
         HtmlRenderer htmlren;
-        htmlren.render(Doc,output);
+
+        std::optional<std::filesystem::path> imageDir;
+
+        const std::filesystem::path candidate =
+          std::filesystem::path(req.finalOutputPath).parent_path() / "images";
+
+        if(std::filesystem::exists(candidate) && 
+           std::filesystem::is_directory(candidate)) 
+        {
+          imageDir = candidate;
+        }
+
+        htmlren.render(Doc,output,imageDir);
         logger.log(LogLevel::Info,"將語意模型以指定之檔案類型(html)輸出");
         break;
       }

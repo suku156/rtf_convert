@@ -4,15 +4,18 @@
 
 #include "HtmlTableRenderer.h"
 #include "SemanticStructure_Module/Document.h"
-#include<ostream>
-#include<string>
-#include<cstddef>
+#include <ostream>
+#include <string>
+#include <cstddef>
 #include <utility>
-#include<set>
-#include<optional>
-#include<algorithm>
-#include<cstdlib>
-#include<iostream>
+#include <set>
+#include <optional>
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <charconv>
+#include <system_error>
+#include <cctype>
 
 namespace html_table{
   struct CellResult {
@@ -54,75 +57,6 @@ namespace html_table{
     std::vector<RowResult> rows;
   }; 
   
-  std::string parsePictMarker(std::string_view text){
-    constexpr std::string_view imgHead = "@@RTF_IMAGE";
-    constexpr std::string_view imgErr  = "_ERR_";
-
-    std::string result;
-    result.reserve(text.size());
-
-    for(size_t i = 0;i < text.size();i++){
-
-      if(i + imgHead.size() <= text.size() &&
-         text.compare(i, imgHead.size(), imgHead) == 0)
-      {
-        size_t j = i + imgHead.size();
-
-        if(j + imgErr.size() <= text.size() &&
-           text.compare(j, imgErr.size(), imgErr) == 0)
-        {
-          size_t numStart = j + imgErr.size();
-          
-          size_t MarkerEnd = text.find("@@",numStart);
-          
-          if(MarkerEnd == std::string::npos){
-            i = numStart - 1; // 迴圈會自動加
-            continue;
-          }
-
-          // 擷取數字部份
-          std::string num(text.data() + numStart,MarkerEnd - numStart);
-
-          result += "<div class=\"image-block\">\n";
-          result += "[IMAGE_ERR :  ";
-          result += num ;
-          result += "]";
-          result += "</div>\n";
-
-          i = MarkerEnd + 1; // 跳過最後兩個 @@ 迴圈會在自動加一所以只加一
-          continue;
-
-        }else if( j < text.size() && text[j] == '_'){
-          size_t numStart = j + 1;
-          
-          size_t end = text.find("@@",numStart);
-          
-          if(end == std::string::npos){
-            i = numStart - 1; // 迴圈會自動加
-            continue;
-          }
-
-          // 擷取數字部份
-          std::string num(text.data() + numStart,end - numStart);
-
-          result += "<div class=\"image-block\">\n";
-          result += "[IMAGE :  ";
-          result += num ;
-          result += "]";
-          result += "</div>\n";
-
-          i = end + 1;
-          continue;
-
-        }
-      }
-
-      result.push_back(text[i]);
-    }
-
-    return result;
-  }
-  
   TableResult buildResult(const TableBlock& table){
     TableResult tableResult;
     tableResult.rows.reserve(table.rows().size());
@@ -151,11 +85,8 @@ namespace html_table{
         
         const auto& cellText = cells[i].text();
         
-        if(cellText.find("@@RTF_IMAGE") != std::string::npos){
-          cellResult.text = parsePictMarker(cellText);
-        }else{
-          cellResult.text = cellText;
-        }
+        cellResult.text = cellText;
+        
         
         cellResult.nestedTable = cells[i].nestedTable();
         cellResult.nestedTablePlacement = cells[i].nestedTablePlacement(); 
@@ -208,6 +139,130 @@ namespace html_table{
         default: out << c; break;
         }
     }
+  }
+
+  // 新增：處理一般文字與圖片標記
+  void writeHtmlEscapedWithImages(
+    std::string_view text,
+    std::ostream& out,
+    const std::unordered_map<int, std::filesystem::path>& index)
+  {
+    constexpr std::string_view imgHead = "@@RTF_IMAGE";
+    constexpr std::string_view imgErr  = "_ERR_";
+
+    size_t plainStart = 0;
+
+    for(size_t i = 0;i < text.size();i++){
+      
+      if(i + imgHead.size() <= text.size() &&
+         text.compare(i, imgHead.size(), imgHead) == 0)
+      {
+        size_t j = i + imgHead.size();
+
+        if(j + imgErr.size() <= text.size() &&
+           text.compare(j, imgErr.size(), imgErr) == 0)
+        {
+          size_t numStart = j + imgErr.size();
+          
+          size_t MarkerEnd = text.find("@@",numStart);
+          
+          if(MarkerEnd == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          //確認找到標記符後先輸出掉之前的文字
+          writeHtmlEscaped(text.substr(plainStart, i - plainStart), out);
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,MarkerEnd - numStart);
+
+          out << "<div class=\"image-block\">\n";
+          out << "[IMAGE_ERR :  ";
+          out <<  num ;
+          out <<  "]";
+          out <<  "</div>\n";
+
+          i = MarkerEnd + 1; // 跳過最後兩個 @@ 迴圈會在自動加一所以只加一
+          plainStart = i + 1;
+          continue;
+
+        }else if( j < text.size() && text[j] == '_'){
+          size_t numStart = j + 1;
+          
+          size_t end = text.find("@@",numStart);
+          
+          if(end == std::string::npos){
+            i = numStart - 1; // 迴圈會自動加
+            continue;
+          }
+
+          //確認找到標記符後先輸出掉之前的文字
+          writeHtmlEscaped(text.substr(plainStart, i - plainStart), out);
+
+          // 擷取數字部份
+          std::string num(text.data() + numStart,end - numStart);
+
+          int imageNumber = 0;
+
+          const auto [ptr, ec] = std::from_chars(
+            num.data(),
+            num.data() + num.size(),
+            imageNumber
+          );
+
+          if (ec == std::errc{} &&
+            ptr == num.data() + num.size() &&
+            imageNumber >= 0)
+          {
+            const auto it = index.find(imageNumber);
+
+            if(it != index.end()){
+              const auto& path = it->second;
+              std::string ext = path.extension().string();
+
+              std::transform(ext.begin(), ext.end(), ext.begin(),
+                  [](unsigned char c) {
+                    return static_cast<char>(std::tolower(c));
+                  }
+              );
+
+              if (ext == ".wmf" || ext == ".emf")
+              {
+                out <<  "<div class=\"image-unsupported\">\n";
+                out <<  "[圖片無法直接顯示：";
+                out <<  path.filename().string();
+                out <<  "，格式尚未支援]\n";
+                out <<  "</div>\n";
+              }else{
+                const std::string src =
+                "images/" + it->second.filename().generic_string();
+
+                out <<  "<div class=\"image-block\">\n";
+                out <<  "<img src=\"";
+                out <<  src;
+                out <<  "\" alt=\"RTF image\">\n";
+                out <<  "</div>\n";
+              }
+            }else{
+              out <<  "<div class=\"image-missing\">"
+                          "[找不到圖片：";
+              out <<  num;
+              out <<  "]</div>\n";
+            }
+          }else{
+            out <<  "<div class=\"image-missing\">"
+                      "[無效的圖片編號]</div>\n";
+          }
+
+          i = end + 1;
+          plainStart = i + 1;
+          continue;
+        }
+      }
+    }
+    // 迴圈結束後，處理剩餘的一般文字
+    writeHtmlEscaped(text.substr(plainStart), out);
   }
 
   // 建立每段表格的共同水平 gird
@@ -385,7 +440,9 @@ namespace html_table{
     return false;
   }
   
-  void writeResult(const TableResult& result, std::ostream& out){
+  void writeResult(const TableResult& result, std::ostream& out,
+                   const std::unordered_map<int, std::filesystem::path>& index)
+  {
     std::vector<int> grid = getColspanGrid(result);
 
     
@@ -483,23 +540,23 @@ namespace html_table{
         if(cell.nestedTable){
           switch(cell.nestedTablePlacement){
             case NestedTablePlacement::BeforeText:
-              renderTable(*cell.nestedTable, out);
-              writeHtmlEscaped(cell.text, out);
+              renderTable(*cell.nestedTable, out,index);
+              writeHtmlEscapedWithImages(cell.text, out,index);
             break;
             case NestedTablePlacement::AfterText:
-              writeHtmlEscaped(cell.text, out);
-              renderTable(*cell.nestedTable, out);
+              writeHtmlEscapedWithImages(cell.text, out,index);
+              renderTable(*cell.nestedTable, out,index);
             break;
             case NestedTablePlacement::None:
               // 狀態不一致：
               // 有 nestedTable，卻沒有設定位置。
               // 第一版可選擇保守預設為文字後。
-              writeHtmlEscaped(cell.text, out);
-              renderTable(*cell.nestedTable, out);
+              writeHtmlEscapedWithImages(cell.text, out,index);
+              renderTable(*cell.nestedTable, out,index);
             break;
           }
         }else{
-          writeHtmlEscaped(cell.text, out);
+          writeHtmlEscapedWithImages(cell.text, out,index);
         }
 
         out << "</td>\n";
@@ -513,8 +570,10 @@ namespace html_table{
     out << "</table>\n";
   }
 
-  void renderTable(const TableBlock& table, std::ostream& out){
+  void renderTable(const TableBlock& table, std::ostream& out,
+                   const std::unordered_map<int, std::filesystem::path>& index)
+  {
     auto result = buildResult(table);
-    writeResult(result,out);
+    writeResult(result,out,index);
   }
 }
