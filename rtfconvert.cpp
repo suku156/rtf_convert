@@ -13,9 +13,14 @@
 // Notes :
 //   wmain 只負責流程啟動,不包含邏輯
 // ==============================
+#ifdef _WIN32
+
 #pragma execution_character_set("utf-8")
 #include <io.h>       
 #include <fcntl.h>    
+
+#endif
+
 #include <cstdio> 
 #include "LogSystem_Module/LogSystem.h"
 #include "ErrorSystem_Module/ErrorHandle.h"
@@ -27,6 +32,8 @@
 #include "Task_Module/ConversionTaskBuilder.h"
 #include "Task_Module/ConversionTask.h"
 #include "Cli_Module/ConsoleObserver.h"
+
+#ifdef _WIN32
 
 int wmain(int argc,wchar_t* argv[]){
   // 強制讓 wcout 用 UTF-16 (Windows 本地寬字輸出)
@@ -76,3 +83,54 @@ int wmain(int argc,wchar_t* argv[]){
   
   return result;
 }
+
+// 給 linux 版本用的
+#else
+int main(int argc, char* argv[]) {
+  //主程序的日誌系統
+  logSystem mainlogger;
+  // 錯誤處理系統變數建立
+  ErrorHandle mainerrorhandler(mainlogger);
+  
+  // 簡易防呆
+  if(argc < 2){
+    Cli::printHelp();
+    mainerrorhandler.handleFatalGlobal(L"需要正確輸入指令");
+  }
+
+  // 命令列紀錄
+  Cli::ParseResult parseresult = Cli::parse(argc,argv);
+  if(parseresult.showhelp){
+    Cli::printHelp();
+    return 0;
+  }
+  if(parseresult.shoeversion){
+    Cli::printVersion();
+    return 0;
+  }
+
+  if(!parseresult.ok){
+    Console::ensureWcout(parseresult.message);
+    Cli::printHelp();
+    return 2;
+  }
+  
+  // 將命令列解析後的資訊轉譯成預定型態
+  NormalizedConversionRequest request = Conversion::resolveConfig(parseresult);
+
+  // 新增 cli 線的 observer
+  ConsoleObserver consoleObserver;
+  // 用命令列訊息決定如何呼叫
+  App::ConversionEngine conversionengine(&consoleObserver);
+  taskBuilder::ConversionTaskBuilder builder;
+  BuildResult BDresult = builder.build(request);
+  App::AppExitCode resultCode = conversionengine.run(BDresult);
+  int result = static_cast<int>(resultCode);
+  
+  return result;
+}
+
+
+
+
+#endif

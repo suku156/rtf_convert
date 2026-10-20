@@ -24,7 +24,7 @@
 #include<iosfwd>
 #include<optional>
 #include<iostream>
-#include<algorithm>
+
 #ifdef _WIN32
   #include <windows.h>
 #endif

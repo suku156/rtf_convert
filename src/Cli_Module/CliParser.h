@@ -19,7 +19,7 @@
 #include <filesystem>
 #include <string>
 #include <optional>
-#include <cstddef>
+#include <vector>
 
 namespace Cli{
   
@@ -44,7 +44,13 @@ namespace Cli{
   };
 
   // 將得到的訊息拆解成 ParseResult 回傳給主流程去做使用
+  ParseResult parseArgs(const std::vector<std::wstring>& args);
+  ParseResult parseArgs(const std::vector<std::string>& args);
+  // Windows版本會使用的函式多載版本
   ParseResult parse(int argc,wchar_t* argv[]);
+  // linux版本會使用到的函式多載版本
+  ParseResult parse(int argc, char* argv[]);
+
   // 用來顯示 --help 功能介紹
   void printHelp();
   // 用來顯示 --version 版本介紹

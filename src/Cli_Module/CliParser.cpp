@@ -5,11 +5,9 @@
 #include "Universal_Module/CommonEnum.h"
 #include "Universal_Module/Version.h"
 #include<string>
-#include<cwctype>
-#include<algorithm>
 #include<iostream>
-#include<exception>
 #include<system_error>
+#include<vector>
 
 namespace{
   std::wstring toLower(std::wstring s){
@@ -18,23 +16,32 @@ namespace{
     }
     return s;
   }
+
+  std::string toLower(std::string s){
+    for(auto& c : s){
+      c = std::towlower(c);
+    }
+    return s;
+  }
 }
 
 namespace Cli{
-  ParseResult parse(int argc,wchar_t* argv[]){
+ 
+  ParseResult parseArgs(const std::vector<std::wstring>& args){
     ParseResult result;
     bool hasInput = false;
     bool hasDirPolicy = false;
+    const size_t argc = args.size();
    
-    for(int i = 1; i < argc; i++){
-      std::wstring arg = argv[i];
+    for(size_t i = 1; i < argc; i++){
+      const std::wstring& arg = args[i];
       
       if(arg == L"--input" ){
         if(i + 1 >= argc){
           result.message = L"--input 後面缺少檔案路徑";
           return result;
         }
-        result.config.inputPath = argv[++i];
+        result.config.inputPath = args[++i];
         hasInput = true;
       }
       else if(arg == L"--output"){
@@ -42,7 +49,7 @@ namespace Cli{
           result.message = L"--output 後面缺少輸出資料夾路徑";
           return result;
         }
-        result.config.outputDir = argv[++i];
+        result.config.outputDir = args[++i];
       }
       else if(arg == L"--help"){
         result.showhelp = true;
@@ -106,7 +113,7 @@ namespace Cli{
         }
         
         //擷取並檢查字串
-        std::wstring threadstring = argv[++i];
+        std::wstring threadstring = args[++i];
         //檢查是否為空或純數字
         if(threadstring.empty()){
           result.ok = false;
@@ -159,7 +166,7 @@ namespace Cli{
           return result;
         }
 
-        std::wstring fmt = argv[++i];
+        std::wstring fmt = args[++i];
         fmt = toLower(fmt);
         if(fmt == L"txt"){
           result.config.format = Common::OutputFormat::Txt; 
@@ -188,6 +195,198 @@ namespace Cli{
     }
     result.ok = true;
     return result;
+  }
+
+  ParseResult parseArgs(const std::vector<std::string>& args){
+    ParseResult result;
+    bool hasInput = false;
+    bool hasDirPolicy = false;
+    const size_t argc = args.size();
+   
+    for(size_t i = 1; i < argc; i++){
+      const std::string& arg = args[i];
+      
+      if(arg == "--input" ){
+        if(i + 1 >= argc){
+          result.message = L"--input 後面缺少檔案路徑";
+          return result;
+        }
+        result.config.inputPath = args[++i];
+        hasInput = true;
+      }
+      else if(arg == "--output"){
+        if(i + 1 >= argc){
+          result.message = L"--output 後面缺少輸出資料夾路徑";
+          return result;
+        }
+        result.config.outputDir = args[++i];
+      }
+      else if(arg == "--help"){
+        result.showhelp = true;
+        return result;
+      }
+      else if(arg == "--version"){
+        result.shoeversion = true;
+        return result;
+      }
+      else if(arg == "--overwrite"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
+        result.config.dirPolicy = Common::ExistingDirPolicy::Overwrite;
+        hasDirPolicy = true;
+      }
+      else if(arg == "--renamewithsuffix"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
+        result.config.dirPolicy = Common::ExistingDirPolicy::RenameWithSuffix;
+        hasDirPolicy = true;
+      }
+      else if(arg == "--reject"){
+        if(hasDirPolicy){
+          result.ok = false;
+          result.message = L"輸出資料夾處理策略只能指定一種，不能同時使用多個選項";
+          return result;
+        }
+        result.config.dirPolicy = Common::ExistingDirPolicy::Reject;
+        hasDirPolicy = true;
+      }
+      else if(arg == "--recursive"){
+        result.recursive = true;
+      }
+      else if(arg == "--preserve-structure"){
+        if(result.config.preserveRelativeStructure.has_value()){
+          result.ok = false;
+          result.message = L"資料夾遞迴輸出結構選項不能同時指定多個。";
+          return result;
+        }
+        result.config.preserveRelativeStructure = true;
+      }
+      else if(arg == "--flat-output"){
+        if(result.config.preserveRelativeStructure.has_value()){
+          result.ok = false;
+          result.message = L"資料夾遞迴輸出結構選項不能同時指定多個。";
+          return result;
+        }
+        result.config.preserveRelativeStructure = false;
+      }
+      else if(arg == "--thread"){
+        if(i+1 >= argc){
+          result.ok = false;
+          result.message = L" --thread 需指定執行緒數量。";
+          return result;
+        }
+        
+        //擷取並檢查字串
+        std::string threadstring = args[++i];
+        //檢查是否為空或純數字
+        if(threadstring.empty()){
+          result.ok = false;
+          result.message = L"--thread 的值必須是正整數";
+          return result;
+        }
+        for(unsigned char c : threadstring){
+          if(!isdigit(c)){
+            result.ok = false;
+            result.message = L"--thread 的值必須是正整數";
+            return result;
+          }
+        }
+        
+        // 轉換出數字
+        size_t pos = 0;
+        unsigned long long raw = 0;
+        
+        try{
+          raw = std::stoull(threadstring,&pos);
+        }
+        catch(...){
+          result.ok = false;
+          result.message = L"--thread 數值錯誤";
+          return result;
+        }
+        
+        if(pos != threadstring.size()){
+          result.ok = false;
+          result.message = L"--thread 格式錯誤";
+          return result;
+        }
+        size_t threadresult = static_cast<size_t>(raw);
+
+        if(threadresult == 0){
+          result.ok = false;
+          result.message = L"多執行緒數量不可設置為 0";
+          return result;
+        }
+        if(threadresult > 16){
+          result.ok = false;
+          result.message = L"多執行緒數量不可超過 16。";
+          return result;
+        }
+        result.config.threadCount = threadresult;  
+      }
+      else if(arg == "--format" ){
+        if(i + 1 >= argc){
+          result.message = L"--format 後面缺少格式名稱";
+          return result;
+        }
+
+        std::string fmt = args[++i];
+        fmt = toLower(fmt);
+        if(fmt == "txt"){
+          result.config.format = Common::OutputFormat::Txt; 
+        }
+        else if(fmt == "md"){
+          result.config.format = Common::OutputFormat::Md;
+        }
+        else if(fmt == "html"){
+          result.config.format = Common::OutputFormat::Html;  
+        }
+        else{
+          result.message = L"未知的 format";
+          return result; 
+        }
+      }
+      else{
+        result.message = L"未知參數" ;
+        return result;
+      }
+    }
+    
+    if(!hasInput){
+      result.ok = false;
+      result.message = L"缺少必要參數 --input";
+      return result;
+    }
+    result.ok = true;
+    return result;
+  }
+
+  ParseResult parse(int argc,wchar_t* argv[]){
+    std::vector<std::wstring> args;
+    args.reserve(argc);
+
+    for(int i =0;i<argc;i++){
+      args.emplace_back(argv[i]);
+    }
+
+    return parseArgs(args);
+  }
+
+  ParseResult parse(int argc, char* argv[]){
+    std::vector<std::string> args;
+    args.reserve(argc);
+
+    for(int i =0;i<argc;i++){
+      args.emplace_back(argv[i]);
+    }
+
+    return parseArgs(args);
   }
 
   void printHelp(){
