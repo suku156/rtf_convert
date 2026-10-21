@@ -390,6 +390,7 @@ namespace Cli{
   }
 
   void printHelp(){
+  #ifdef _WIN32  
     std::wcout << L"Usage:\n";
     std::wcout << L"  rtfconvert --input <path> [--output <dir>] [--format txt]\n\n";
     std::wcout << L"Options:\n";
@@ -410,6 +411,28 @@ namespace Cli{
     std::wcout << L"  --thread 用於決定遞迴模式有多少執行緒(非遞迴模式會無視)\n";
     std::wcout << L"  --thread 補充:(設定數值需為正整數 1~16)(指定數量多於目標檔案數量會自動調整)\n";
     std::wcout << L"  --help      顯示此說明\n";
+  #else 
+    std::cout << "Usage:\n";
+    std::cout << "  rtfconvert --input <path> [--output <dir>] [--format txt]\n\n";
+    std::cout << "Options:\n";
+    std::cout << "  --input     指定輸入檔案或資料夾\n";
+    std::cout << "  --output    指定輸出資料夾 \n";
+    std::cout << "(--output 不輸入的話.目標為檔案時預設為檔案所在資料夾,目標為資料夾的話預設為目標資料夾)\n";
+    std::cout << "  --format    輸出格式\n";
+    std::cout << "(--format 目前支援 : txt|md|html 三種格式)\n";
+    std::cout << "  --version 顯示目前的版本號\n";
+    std::cout << "  --overwrite 碰到同名資料夾會採取覆蓋策略,不能與安全模式及新增檔案模式並存\n";
+    std::cout << "  --renamewithsuffix 碰到同名資料夾會採取新增檔案策略,不能與安全模式及覆蓋檔案模式並存\n";
+    std::cout << "  --reject (為預設處理模式)碰到同名資料夾會採取安全策略,不能與新增檔案模式及覆蓋檔案模式並存\n";
+    std::cout << "  --recursive 目標為資料夾的話會遞迴處理包含的資料夾\n";
+    std::cout << "  --preserve-structure 設定資料夾遞迴模式下保留所有子資料夾中間路徑\n";
+    std::cout << "  --preserve-structure 補充:(不設定會用預設行為)(不能與不保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
+    std::cout << "  --flat-output 設定資料夾遞迴模式下'不'保留所有子資料夾中間路徑\n";
+    std::cout << "  --flat-output 補充:(不設定會用預設行為)(不能與保留中間路徑並存)(非資料夾遞迴模式會無視此指令)\n";
+    std::cout << "  --thread 用於決定遞迴模式有多少執行緒(非遞迴模式會無視)\n";
+    std::cout << "  --thread 補充:(設定數值需為正整數 1~16)(指定數量多於目標檔案數量會自動調整)\n";
+    std::cout << "  --help      顯示此說明\n";
+  #endif
   }
 
   void printVersion(){

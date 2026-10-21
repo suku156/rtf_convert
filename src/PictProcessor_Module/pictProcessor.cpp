@@ -104,7 +104,7 @@ std::wstring ProcessRunner::quoterArgW(const std::wstring& s){
     out += L"\"";
     return out;
 }
-std::string  quoteArgA(const std::string& s){
+std::string  ProcessRunner::quoteArgA(const std::string& s){
    std::string out = "\"";
     for (char ch : s) {
       if(ch == '"'){

@@ -7,6 +7,7 @@ add_library(rtfcore
     EncodingProcess_Module/Decode.cpp
     EncodingProcess_Module/GroupProcessor.cpp
     Universal_Module/Console.cpp
+    Universal_Module/ChangeStr.cpp
     TextProcessor_Module/textProcessor.cpp
     Universal_Module/OutputDirGuard.cpp
     PictProcessor_Module/pictProcessor.cpp
@@ -30,6 +31,8 @@ target_include_directories(rtfcore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(rtfcore PUBLIC
+if(WIN32)
+ target_link_libraries(rtfcore PUBLIC
     iconv
-)
+ )
+endif()

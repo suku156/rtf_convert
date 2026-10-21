@@ -4,7 +4,7 @@
 #include"ErrorHandle.h"
 #include"LogSystem_Module/LogSystem.h"
 #include"ErrorSystem_Module/ErrorSystem.h"
-#include<cstddef>
+#include"Universal_Module/ChangeStr.h"
 #include<string>
 #include<iostream>
 
@@ -42,6 +42,11 @@ void ErrorHandle::endFile() noexcept{
     hasFatalLocal_ = false;
 }
 [[noreturn]] void ErrorHandle::terminate(const std::wstring& message , int exitCode){
+  #ifdef _WIN32
   std::wcerr <<L"[Fatal Error] "<< message << L"\n→ 程式中止 (Exit Code = " << exitCode << L")\n";
+  #else
+  std::cerr <<L"[Fatal Error] "<< ChangeStr::wstringToUtf8(message) << "\n→ 程式中止 (Exit Code = " << exitCode << ")\n";
+  #endif
+
   std::exit(exitCode);
 }

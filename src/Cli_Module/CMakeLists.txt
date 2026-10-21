@@ -14,10 +14,12 @@ target_compile_options(rtfconvert_cli PRIVATE
     -fexec-charset=UTF-8
 )
 
+if(WIN32)
 target_link_options(rtfconvert_cli PRIVATE
     -municode
     -mconsole
 )
+endif()
 
 set_target_properties(rtfconvert_cli PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin

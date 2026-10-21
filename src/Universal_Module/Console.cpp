@@ -1,4 +1,5 @@
 ﻿#include "Console.h"
+#include "ChangeStr.h"
 #include<string>
 #include<mutex>
 #include<iostream>
@@ -9,11 +10,20 @@ namespace {
 // 安全型 std::wcout
 void Console::ensureWcout(const std::wstring& msg){
   std::lock_guard<std::mutex> lock(g_consoleMutex);
-  std::wcout << msg << L"\n"; 
+  #ifdef _WIN32
+    std::wcout << msg << L"\n"; 
+  #else
+    std::cout  << ChangeStr::wstringToUtf8(msg) << "\n";
+  #endif
 }
 
 // 安全型 std::wcerr
 void Console::ensureWcerr(const std::wstring& msg){
   std::lock_guard<std::mutex> lock(g_consoleMutex);
-  std::wcerr << msg << L"\n";
+  
+  #ifdef _WIN32
+    std::wcerr << msg << L"\n";
+  #else
+    std::cerr  << ChangeStr::wstringToUtf8(msg) << "\n";
+  #endif
 }
