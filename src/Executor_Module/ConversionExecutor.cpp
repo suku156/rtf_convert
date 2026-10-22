@@ -41,16 +41,28 @@ namespace App{
      std::error_code ec;
      auto st = std::filesystem::status(input,ec);
      if (ec) {
-      std::wcout << L"[Error] 無法讀取輸入路徑: "
-                 << input.wstring()
-                 << L"\n";
+      std::wstring wstr = 
+         L"[Error] 無法讀取輸入路徑: " +
+         input.wstring();
+      
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        wstr
+      });
 
       return AppExitCode::Fail;
      }
      if (!std::filesystem::exists(st)) {
-      std::wcout << L"[Error] 輸入目標不存在: "
-                 << input.wstring()
-                 << L"\n";
+      
+      std::wstring wstr =
+         L"[Error] 輸入目標不存在: " +
+         input.wstring();
+      
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        wstr
+      });
+      
       return AppExitCode::Fail;
      }
     }
@@ -60,7 +72,13 @@ namespace App{
     auto st = fileOut.checkDirectory(output);
 
     if(st != DirCheckResult::Ok){ // 檢查給定的指定資料夾
-      std::wcout << L"輸出資料夾不符合規定,程式未執行\n";
+      std::wstring wstr =  L"輸出資料夾不符合規定,程式未執行";
+
+      notify(ProgressEvent{
+        ProgressEventType::Error,
+        wstr
+      });
+      
       return AppExitCode::RunTimeError;
     }
 

@@ -45,7 +45,7 @@ void ErrorHandle::endFile() noexcept{
   #ifdef _WIN32
   std::wcerr <<L"[Fatal Error] "<< message << L"\n→ 程式中止 (Exit Code = " << exitCode << L")\n";
   #else
-  std::cerr <<L"[Fatal Error] "<< ChangeStr::wstringToUtf8(message) << "\n→ 程式中止 (Exit Code = " << exitCode << ")\n";
+  std::cerr <<"[Fatal Error] "<< ChangeStr::wstringToUtf8(message) << "\n→ 程式中止 (Exit Code = " << exitCode << ")\n";
   #endif
 
   std::exit(exitCode);
