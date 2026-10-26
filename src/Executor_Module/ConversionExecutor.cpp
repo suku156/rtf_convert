@@ -136,7 +136,10 @@ namespace App{
       OPResolver::OutputPathResolver resolver(registry);
       OPResolver::ResolverResult test = resolver.resolve(resolverReq);
       if(!test.pathReserved){
-        Console::ensureWcout(L"因為資料夾同名碰裝問題程式中止!!");
+        notify(ProgressEvent{
+          ProgressEventType::Error,
+          L"因為資料夾同名碰裝問題程式中止!!"
+        });
         return AppExitCode::Fail;
       }
       FPrequest.finalOutputPath = test.finalPath;
