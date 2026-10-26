@@ -32,7 +32,8 @@ namespace App{
     Success = 0,
     Fail = 1,
     RunTimeError = 2,
-    PartialSuccess = 3
+    PartialSuccess = 3,
+    SuccessWithWarnings = 4
   };
 
   class ConversionEngine{

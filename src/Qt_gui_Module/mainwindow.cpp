@@ -350,6 +350,12 @@ void MainWindow::onConvertFinished(){
         QMessageBox::warning(this, "部分完成", "部分檔案轉換成功，部分失敗");
         break;
     }
+    case App::AppExitCode::SuccessWithWarnings:
+    {
+
+        QMessageBox::warning(this, "轉換完成但含有警告", "檔案轉換成功，但有部分檔案含有警告");
+        break;
+    }
     default:
     {
 

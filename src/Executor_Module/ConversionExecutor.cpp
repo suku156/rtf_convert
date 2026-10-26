@@ -265,7 +265,7 @@ namespace App{
           L"多執行緒轉換成功，但包含警告，請查看 log"
         });
 
-        return AppExitCode::PartialSuccess;
+        return AppExitCode::SuccessWithWarnings;
       }
 
       // 剩下就是部份失敗
