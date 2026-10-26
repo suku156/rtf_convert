@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>916</height>
+    <height>937</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -341,7 +341,7 @@
        </font>
       </property>
       <property name="title">
-       <string>輸出位置</string>
+       <string>輸出位置(預設:單檔目標放在檔案同資料夾/資料夾目標放在目標資料夾內)</string>
       </property>
       <layout class="QFormLayout" name="formLayout_2">
        <property name="horizontalSpacing">

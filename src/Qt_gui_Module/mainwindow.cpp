@@ -173,7 +173,7 @@ void MainWindow::on_btnCleanOutput_clicked(){
 
 void MainWindow::updateOutputDisplay(){
     if(selectedOutputPath_.isEmpty()){
-        ui->OutputInfo->setText("未指定 (使用預設) ");
+        ui->OutputInfo->setText("未指定 (使用預設)");
     }else{
         ui->OutputInfo->setText(selectedOutputPath_);
         ui->OutputInfo->adjustSize();
