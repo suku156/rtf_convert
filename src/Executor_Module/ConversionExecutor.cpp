@@ -138,7 +138,7 @@ namespace App{
       if(!test.pathReserved){
         notify(ProgressEvent{
           ProgressEventType::Error,
-          L"因為資料夾同名碰裝問題程式中止!!"
+          L"因為資料夾同名碰撞問題程式中止!!"
         });
         return AppExitCode::Fail;
       }
