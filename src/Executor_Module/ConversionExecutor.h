@@ -33,7 +33,8 @@ namespace App{
     Fail = 1,
     RunTimeError = 2,
     PartialSuccess = 3,
-    SuccessWithWarnings = 4
+    SuccessWithWarnings = 4,
+    OutputConflictError = 5
   };
 
   class ConversionEngine{

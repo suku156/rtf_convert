@@ -56,6 +56,7 @@ class RTFDirectoryRunner{
 std::atomic<size_t> successCount_{0};
 std::atomic<size_t> failCount_{0};
 std::atomic<size_t> warningCount_{0};
+std::atomic<size_t> conflictCount_{0};
 IProgressObserver* observer_ = nullptr;
 std::mutex failedFilesMutex_;
 std::mutex warningFilesMutex_;
@@ -69,6 +70,7 @@ public:
   size_t getSuccessNum() const;
   size_t getFailNum() const;
   size_t getWarningNum() const;
+  size_t getConflictNum() const;
   bool hasFailedFiles() const;
   bool hasWarningFiles() const;
   std::vector<std::filesystem::path> getFailedFiles() const;

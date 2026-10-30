@@ -30,6 +30,8 @@ build_gui/
 build/
 logs/
 output/
+build-windows-clean/
+build-windows-qt-mingw
 
 # CMake（未來用）
 CMakeFiles/

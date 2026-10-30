@@ -234,12 +234,32 @@ namespace App{
         }
       }
 
-      size_t failNum = Drunner.getFailNum();
-      size_t successNum = Drunner.getSuccessNum();
-      size_t warningNum = Drunner.getWarningNum();
+      const size_t failNum = Drunner.getFailNum();
+      const size_t successNum = Drunner.getSuccessNum();
+      const size_t warningNum = Drunner.getWarningNum();
+      const size_t conflictsNum = Drunner.getConflictNum();
 
       // 全部失敗
       if(successNum == 0){
+        
+        if(conflictsNum > 0){
+          std::wstring wstr = L"警告:有 " + 
+                             std::to_wstring(conflictsNum) + 
+                             L" 個檔案因輸出名稱衝突而未轉換";
+          
+          notify(ProgressEvent{
+            ProgressEventType::Fail,
+            wstr
+          });
+
+          notify(ProgressEvent{
+            ProgressEventType::Finish,
+            L"多執行緒轉換失敗"
+          });
+
+          return AppExitCode::OutputConflictError;
+        }
+        
         notify(ProgressEvent{
           ProgressEventType::Finish,
           L"多執行緒轉換失敗"
@@ -269,6 +289,24 @@ namespace App{
       }
 
       // 剩下就是部份失敗
+      if(conflictsNum > 0){
+        std::wstring wstr = L"警告:有 " + 
+                            std::to_wstring(conflictsNum) + 
+                            L" 個檔案因輸出檔案名稱衝突而未轉換";
+        
+        notify(ProgressEvent{
+          ProgressEventType::Fail,
+          wstr
+        });
+
+        notify(ProgressEvent{
+          ProgressEventType::Finish,
+          L"多執行緒轉換部份成功"
+        });
+
+        return AppExitCode::OutputConflictError;
+      }
+
       notify(ProgressEvent{
         ProgressEventType::Finish,
         L"多執行緒轉換部份成功"

@@ -82,6 +82,7 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
     // 4.清空計數器
     successCount_.store(0,std::memory_order_relaxed);
     failCount_.store(0,std::memory_order_relaxed);
+    conflictCount_.store(0,std::memory_order_relaxed);
 
     // 一些由多執行緒總管持有的資源
     FileProcessRequest baseReq = req;
@@ -106,11 +107,15 @@ void RTFDirectoryRunner::run(const FileProcessRequest& req,bool recursive,
         
         //負責的類別驗證路徑
         OPResolver::ResolverResult test = resolver.resolve(useResolverreq);
+        
         if(!test.pathReserved){ // 檢查是否有同名檔案衝突問題
           failCount_.fetch_add(1, std::memory_order_relaxed);
+          conflictCount_.fetch_add(1, std::memory_order_relaxed);
+
           ProOB.onUnitDone();
           continue;
         }
+        
         fileReq.finalOutputPath = test.finalPath;
         fileReq.finalOutputDir  = test.parentDir; 
         
@@ -224,6 +229,9 @@ size_t RTFDirectoryRunner::getFailNum() const{
 }
 size_t RTFDirectoryRunner::getWarningNum() const{
   return warningCount_.load(std::memory_order_relaxed);
+}
+size_t RTFDirectoryRunner::getConflictNum() const{
+  return conflictCount_.load(std::memory_order_relaxed);
 }
 bool RTFDirectoryRunner::hasFailedFiles() const{
   return !failedFiles_.empty();

@@ -356,6 +356,12 @@ void MainWindow::onConvertFinished(){
         QMessageBox::warning(this, "轉換完成但含有警告", "檔案轉換成功，但有部分檔案含有警告");
         break;
     }
+    case App::AppExitCode::OutputConflictError:
+    {
+        QMessageBox::warning(this, "轉換結果：輸出名稱衝突", "部分或全部檔案因輸出名稱衝突而未轉換。\n\n"
+                                                         "請檢查輸出資料夾，或調整同名檔案處理模式後重新執行。");
+        break;
+    }
     default:
     {
 
