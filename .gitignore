@@ -30,8 +30,7 @@ build_gui/
 build/
 logs/
 output/
-build-windows-clean/
-build-windows-qt-mingw
+build-/
 
 # CMake（未來用）
 CMakeFiles/
@@ -44,6 +43,8 @@ CMakePresets.json
 .qtcreator/
 *.user
 *.pro.user
+.qt/
+*_autogen
 
 # 跨平台預備用
 *.a
