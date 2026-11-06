@@ -38,6 +38,24 @@
         "BUILD_GUI": "OFF",
         "BUILD_SANDBOX": "ON"
       } 
+    },
+    {
+     "name": "linux-cli",
+     "displayName": "Linux CLI Build",
+     "inherits": "cli",
+     "generator": "Unix Makefiles",
+     "binaryDir": "${sourceDir}/build_linux_cli"
+    },
+    {
+     "name": "linux-gui",
+     "displayName": "Linux GUI Build",
+     "generator": "Unix Makefiles",
+     "binaryDir": "${sourceDir}/build_linux_gui",
+     "cacheVariables": {
+     "BUILD_CLI": "OFF",
+     "BUILD_GUI": "ON",
+     "BUILD_SANDBOX": "OFF"
+     }
     }
   ],
   "buildPresets": [
@@ -52,6 +70,14 @@
     {
       "name": "build-sandbox",
       "configurePreset": "sandbox" 
+    },
+    {
+      "name": "build-linux-cli",
+      "configurePreset": "linux-cli"
+    },
+    {
+      "name": "build-linux-gui",
+      "configurePreset": "linux-gui"
     }
   ]
 }
