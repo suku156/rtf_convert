@@ -75,9 +75,11 @@ int wmain(int argc,wchar_t* argv[]){
   // 新增 cli 線的 observer
   ConsoleObserver consoleObserver;
   // 用命令列訊息決定如何呼叫
-  App::ConversionEngine conversionengine(&consoleObserver);
+  
   taskBuilder::ConversionTaskBuilder builder;
   BuildResult BDresult = builder.build(request);
+
+  App::ConversionEngine conversionengine(&consoleObserver);
   App::AppExitCode resultCode = conversionengine.run(BDresult);
   int result = static_cast<int>(resultCode);
   
